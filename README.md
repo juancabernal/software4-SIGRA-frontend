@@ -119,7 +119,7 @@ software4-SIGRA-frontend/
 └── src/
     ├── index.html
     ├── main.ts               Punto de arranque y configuración de la aplicación
-    ├── styles.css            Estilos globales y variables de la guía visual
+    ├── styles.scss           Estilos globales y variables de la guía visual
     └── app/
         ├── app.routes.ts     Rutas raíz con carga diferida por módulo
         ├── core/             Infraestructura transversal: se instancia una sola vez
@@ -129,7 +129,7 @@ software4-SIGRA-frontend/
         │   ├── models/       Modelos transversales: Usuario, Rol, Sesión, respuestas de la API
         │   └── services/     Servicios transversales: sesión, almacenamiento, notificaciones
         ├── features/         Un módulo de negocio por carpeta
-        │   ├── asignaturas/           RF-03 y gestión de semestres
+        │   ├── asignaturas/           RF-03
         │   ├── auditoria/             RF-19, RF-21c
         │   ├── auth/                  RF-04
         │   ├── calificaciones/        RF-12, RF-13
@@ -140,9 +140,10 @@ software4-SIGRA-frontend/
         │   ├── profesores/            RF-01, RF-07
         │   ├── programas/             RF-02
         │   ├── reportes/              RF-20, RF-21a/b, RF-22
-        │   └── resultadosaprendizaje/ RF-06
+        │   ├── resultadosaprendizaje/ RF-06
+        │   └── semestres/             RF-Semestre (la crea Santiago al entregar su vista)
         └── shared/           Reutilizable en toda la aplicación
-            ├── components/   Piezas con lógica: tabla paginada, estado vacío, confirmación
+            ├── components/   Piezas con lógica: tabla paginada, estado vacío, confirmación (pendiente de crear)
             ├── pipes/        Transformaciones de presentación: nota, fecha, nivel de logro
             └── ui/           Piezas puramente visuales: botones, badges, campos, tarjetas
 ```
@@ -155,7 +156,7 @@ Cada carpeta de `features/` tiene siempre las mismas tres subcarpetas:
 | `models/` | Interfaces y tipos propios del módulo, alineados con los DTO del backend |
 | `services/` | Servicios HTTP que consumen los endpoints de ese módulo |
 
-Los nombres coinciden con los módulos del backend —`resultadosaprendizaje` en una sola palabra, y semestres dentro de `asignaturas`—, de modo que cada integrante trabaja en la carpeta del mismo nombre a ambos lados del proyecto.
+Los nombres coinciden con los módulos del backend —`resultadosaprendizaje` en una sola palabra, y `semestres` como módulo propio, igual que en el backend—, de modo que cada integrante trabaja en la carpeta del mismo nombre a ambos lados del proyecto. La carpeta `features/semestres/` la crea Santiago al entregar su vista.
 
 ### Convenciones
 
@@ -163,6 +164,7 @@ Los nombres coinciden con los módulos del backend —`resultadosaprendizaje` en
 - **`core/` contra `features/<modulo>/`.** En `core/` va solo lo que usan varios módulos: la sesión del usuario, el rol, los interceptores, el shell. Lo que pertenece a un dominio concreto —`Asignatura`, `Calificacion`, `AsignaturaService`— vive dentro de su feature, no en `core/`.
 - **`shared/ui/` contra `shared/components/`.** En `ui/` van las piezas sin lógica de negocio, que solo reciben entradas y emiten eventos (badge de nivel de logro, badge de estado, botón, campo de formulario). En `components/` van las que coordinan algo: tabla con paginación y filtros, diálogo de confirmación, bloque de estado vacío.
 - **Ningún archivo de `shared/` o `core/` importa desde `features/`.** La dependencia va siempre en un sentido: `features → shared → core`.
+- **Las rutas privadas no se prerenderizan.** Las rutas que consumen la API se declaran con `RenderMode.Client` en `app.routes.server.ts` (por ejemplo `admin/**`), para que no se prerendericen en el build.
 
 ---
 
@@ -228,11 +230,11 @@ Los nombres coinciden con los módulos del backend —`resultadosaprendizaje` en
 | --- | --- |
 | Framework | Angular |
 | Lenguaje | TypeScript |
-| Estilos | CSS global con variables, o SCSS según lo declarado en `angular.json` |
+| Estilos | SCSS (`src/styles.scss` y estilos de componente en SCSS) |
 | Cliente HTTP | `HttpClient` de Angular |
 | Formularios | Reactive Forms con validación |
 | Enrutamiento | Angular Router con lazy loading |
-| Pruebas unitarias | Karma + Jasmine |
+| Pruebas unitarias | Vitest (builder `@angular/build:unit-test`, con jsdom) |
 | Accesibilidad | axe DevTools y Lighthouse |
 | Gestor de paquetes | npm |
 
@@ -244,12 +246,11 @@ Los nombres coinciden con los módulos del backend —`resultadosaprendizaje` en
 
 | Herramienta | Versión mínima | Verificación |
 | --- | --- | --- |
-| Node.js | 20 LTS | `node -v` |
-| npm | 10 | `npm -v` |
-| Angular CLI | 17 o superior | `ng version` |
+| Node.js | 22.22.3 (o 24.15 o superior) | `node -v` |
+| npm | 11 (`package.json` declara `npm@11.17.0`) | `npm -v` |
 | Git | 2.30 | `git --version` |
 
-Instalación de Angular CLI, si hace falta:
+Angular CLI (versión 22) viene como dependencia local del proyecto, así que se usa con `npx ng ...` después de `npm install`. La instalación global es opcional:
 
 ```bash
 npm install -g @angular/cli
@@ -273,10 +274,17 @@ npm install
 Si la carpeta `src/environments/` todavía no existe, créala una sola vez con el CLI:
 
 ```bash
-ng generate environments
+npx ng generate environments
 ```
 
-Luego edita `src/environments/environment.ts` para desarrollo local:
+El comando crea dos archivos:
+
+| Archivo | Uso |
+| --- | --- |
+| `environment.ts` | Valores de producción; es el que se usa por defecto en el build |
+| `environment.development.ts` | Desarrollo local; `ng serve` lo usa automáticamente |
+
+Edita `src/environments/environment.development.ts` para desarrollo local:
 
 ```typescript
 export const environment = {
@@ -285,7 +293,7 @@ export const environment = {
 };
 ```
 
-Y `src/environments/environment.production.ts` para producción:
+Y `src/environments/environment.ts` para producción:
 
 ```typescript
 export const environment = {
@@ -316,16 +324,17 @@ La aplicación queda en **http://localhost:4200** y recarga sola al guardar camb
 Para exponerla en la red local y probar desde un celular:
 
 ```bash
-ng serve --host 0.0.0.0 --port 4200
+npx ng serve --host 0.0.0.0 --port 4200
 ```
 
 ### 6. Ejecutar las pruebas
 
 ```bash
-npm test                        # Pruebas unitarias con Karma
-ng test --code-coverage         # Pruebas con reporte de cobertura
-ng lint                         # Análisis estático
+npm test                        # Pruebas unitarias con Vitest, en modo observación
+npx ng test --no-watch          # Una sola ejecución, sin quedarse observando cambios
 ```
+
+El análisis estático (`ng lint`) está pendiente de configurar.
 
 ### 7. Compilar para producción
 
@@ -352,8 +361,8 @@ location / {
 
 | Síntoma | Causa probable | Solución |
 | --- | --- | --- |
-| Error de CORS en la consola | El backend no autoriza el origen `http://localhost:4200` | Agrega el origen a la configuración CORS del backend |
-| `ng: command not found` | Angular CLI no está instalado globalmente | `npm install -g @angular/cli` o usa `npx ng` |
+| Error de CORS en la consola | El backend no autoriza el origen desde el que corre el frontend | El backend ya habilita CORS en `config/WebConfig`; el origen por defecto es `http://localhost:4200` y se cambia con la propiedad `cors.allowed-origins`. Si cambias el puerto del frontend, ajusta esa propiedad |
+| `ng: command not found` | Angular CLI no está instalado globalmente | Usa `npx ng` (el CLI viene como dependencia local) o instálalo con `npm install -g @angular/cli` |
 | Todas las peticiones devuelven `401` | Token ausente, vencido o interceptor mal registrado | Vuelve a iniciar sesión y revisa el interceptor en `core/interceptors/` |
 | Una vista devuelve `403` | El rol no tiene ese permiso en la Matriz RBAC | Verifica el rol contra el Apéndice 4.1 del SRS |
 | Al recargar una ruta interna aparece `404` | Falta el fallback a `index.html` | Configura `try_files` en el servidor web |
@@ -363,7 +372,7 @@ location / {
 
 ## Estado actual del repositorio
 
-El workspace de Angular ya está generado y la estructura de carpetas descrita en la sección 4 está creada: `core/` con sus guards, interceptores, layout, modelos y servicios; las doce carpetas de `features/`, cada una con `components`, `models` y `services`; y `shared/` con `components`, `pipes` y `ui`.
+El workspace de Angular ya está generado (esqueleto inicial, con SSR habilitado y rutas aún vacías) y la estructura de carpetas está creada, por ahora vacía: `core/` con sus carpetas de guards, interceptores, layout, modelos y servicios; doce carpetas de `features/`, cada una con `components`, `models` y `services`; y `shared/` con `pipes` y `ui`. Faltan `shared/components/` y `features/semestres/`.
 
 Quedan por entregar, en este orden:
 
@@ -372,7 +381,7 @@ Quedan por entregar, en este orden:
 3. **Archivos de entorno** con `apiUrl`, generados con `ng generate environments`.
 4. **Piezas de `shared/ui/`** que usan casi todas las vistas: badge de nivel de logro, badge de estado, botón y campo de formulario.
 5. **Piezas de `shared/components/`**: tabla paginada con filtros, bloque de estado vacío y diálogo de confirmación.
-6. **Guía de estilos visual** (colores y tipografías), que sigue **pendiente de aprobación del cliente** según el Apéndice 4.4 del SRS y debe respetar los mínimos de accesibilidad de RNF-21. Mientras no se apruebe, define los colores como variables CSS en `styles.css` para poder cambiarlos en un solo lugar.
+6. **Guía de estilos visual** (colores y tipografías), que sigue **pendiente de aprobación del cliente** según el Apéndice 4.4 del SRS y debe respetar los mínimos de accesibilidad de RNF-21. Mientras no se apruebe, define los colores como variables en `styles.scss` para poder cambiarlos en un solo lugar.
 
 Las carpetas de `features/` se llenan en paralelo, cada integrante en la suya, según el reparto de la sección 3.
 
@@ -392,11 +401,26 @@ Las carpetas de `features/` se llenan en paralelo, cada integrante en la suya, s
 
 ## Flujo de trabajo con Git
 
+Cada integrante trabaja en su propia rama (por ejemplo `bernal`) o en una rama `feature/RF-XX-nombre-corto`:
+
 ```bash
-git checkout -b feature/RF-XX-nombre-corto
+git checkout bernal
+git pull origin develop
 # ... desarrollo ...
-git commit -m "RF-XX: descripción del cambio"
-git push origin feature/RF-XX-nombre-corto
+git commit -m "feat(asignaturas): vista de administrador de asignaturas"
+git push origin bernal
 ```
 
-Toda rama se integra a `main` mediante Pull Request revisado por al menos otro integrante. `main` debe permanecer siempre estable y desplegable.
+- **Toda integración se hace por Pull Request hacia `develop`**, revisado por al menos otro integrante.
+- Nunca se abre un Pull Request de una rama personal hacia `main`.
+- `develop` debe mantenerse siempre estable y compilando.
+- `main` se actualiza solo desde `develop`, en las entregas.
+
+### Convención de commits
+
+Igual que en el backend, se usa [Conventional Commits](https://www.conventionalcommits.org/es/): `tipo(ámbito): descripción`, con los tipos `feat`, `fix`, `test`, `docs`, `chore`, `ci` y `refactor`. Por ejemplo:
+
+```
+docs: agregar README del repositorio frontend
+chore: resolver conflicto en README al unir repositorios
+```
