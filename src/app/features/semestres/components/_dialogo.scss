@@ -1,0 +1,148 @@
+// Estilos comunes de los diálogos del módulo de semestres.
+// Usan las variables --sem-* que define SemestresPage en su :host.
+
+dialog {
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  border: 1px solid var(--sem-line);
+  border-radius: var(--sem-radius);
+  background: var(--sem-surface);
+  color: var(--sem-ink);
+  box-shadow: 0 24px 48px -16px rgba(15, 23, 42, 0.35);
+}
+
+dialog::backdrop {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+form {
+  display: grid;
+  gap: 1.1rem;
+  padding: 1.5rem;
+}
+
+.encabezado h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 650;
+}
+
+.encabezado p {
+  margin: 0.35rem 0 0;
+  color: var(--sem-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.campo {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.campo label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.campo input {
+  font: inherit;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--sem-field-line);
+  border-radius: 8px;
+  background: var(--sem-field);
+  color: var(--sem-ink);
+}
+
+.campo input:hover {
+  border-color: var(--sem-field-line-hover);
+}
+
+.campo input:focus-visible {
+  outline: none;
+  border-color: var(--sem-accent);
+  box-shadow: 0 0 0 3px var(--sem-accent-ring);
+  background: var(--sem-surface);
+}
+
+.campo input[aria-invalid='true'] {
+  border-color: var(--sem-danger);
+}
+
+.ayuda {
+  margin: 0;
+  color: var(--sem-muted);
+  font-size: 0.8rem;
+}
+
+.error-campo {
+  margin: 0;
+  color: var(--sem-danger);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.fila {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.alerta {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--sem-danger-line);
+  border-radius: 8px;
+  background: var(--sem-danger-bg);
+  color: var(--sem-danger);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.alerta ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--sem-line);
+  background: var(--sem-surface);
+  color: var(--sem-ink-2);
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--sem-hover);
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--sem-accent-ring);
+  outline-offset: 1px;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn--primario {
+  border-color: var(--sem-accent);
+  background: var(--sem-accent);
+  color: #fff;
+}
+
+.btn--primario:hover:not(:disabled) {
+  background: var(--sem-accent-hover);
+}
