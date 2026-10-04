@@ -1,8 +1,8 @@
 import { RenderMode, ServerRoute } from '@angular/ssr';
 
 export const serverRoutes: ServerRoute[] = [
+  // Las pantallas privadas consumen la API con la sesión del usuario: no se prerenderizan.
   {
-    // Las rutas privadas consumen la API: se renderizan en el navegador, no se prerenderizan.
     path: 'admin/**',
     renderMode: RenderMode.Client,
   },

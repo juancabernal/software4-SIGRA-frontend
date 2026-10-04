@@ -374,11 +374,17 @@ location / {
 
 El workspace de Angular ya está generado (esqueleto inicial, con SSR habilitado y rutas aún vacías) y la estructura de carpetas está creada, por ahora vacía: `core/` con sus carpetas de guards, interceptores, layout, modelos y servicios; doce carpetas de `features/`, cada una con `components`, `models` y `services`; y `shared/` con `pipes` y `ui`. Faltan `shared/components/` y `features/semestres/`.
 
+Ya está lista la base técnica que usa todo el equipo:
+
+- **Archivos de entorno** (`src/environments/`) con `apiUrl`: `environment.ts` para producción y `environment.development.ts` para desarrollo local.
+- **`provideHttpClient(withFetch())`** registrado en `app.config.ts`.
+- **`app.html`** reducido a `<router-outlet />`, sin el contenido de ejemplo de Angular.
+
 Quedan por entregar, en este orden:
 
 1. **Guards e interceptores de `core/`.** Bloquean al resto del equipo, así que conviene cerrarlos primero: `AuthGuard`, `RoleGuard`, el interceptor que adjunta el token y el que maneja `401` y `403`.
 2. **Shell de `core/layout/`** con el menú lateral distinto por rol, según los mockups.
-3. **Archivos de entorno** con `apiUrl`, generados con `ng generate environments`.
+3. ~~**Archivos de entorno** con `apiUrl`, generados con `ng generate environments`.~~ Hecho.
 4. **Piezas de `shared/ui/`** que usan casi todas las vistas: badge de nivel de logro, badge de estado, botón y campo de formulario.
 5. **Piezas de `shared/components/`**: tabla paginada con filtros, bloque de estado vacío y diálogo de confirmación.
 6. **Guía de estilos visual** (colores y tipografías), que sigue **pendiente de aprobación del cliente** según el Apéndice 4.4 del SRS y debe respetar los mínimos de accesibilidad de RNF-21. Mientras no se apruebe, define los colores como variables en `styles.scss` para poder cambiarlos en un solo lugar.

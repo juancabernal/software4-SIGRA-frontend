@@ -10,7 +10,6 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideClientHydration(),
-    // withFetch: recomendado por Angular cuando la app usa SSR.
     provideHttpClient(withFetch()),
   ],
 };
