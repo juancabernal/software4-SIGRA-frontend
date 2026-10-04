@@ -1,0 +1,136 @@
+<section class="pagina" aria-labelledby="titulo-semestres">
+  <header class="cabecera">
+    <div class="cabecera__texto">
+      <h1 id="titulo-semestres">Semestres académicos</h1>
+      <p>
+        Cada semestre está activo solo mientras la fecha actual esté dentro de su rango. Dos
+        semestres no pueden compartir días, y un semestre registrado solo puede extender su fecha
+        de fin.
+      </p>
+    </div>
+    <button type="button" class="btn btn--primario" (click)="abrirRegistro()">
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+        <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      Registrar semestre
+    </button>
+  </header>
+
+  <div class="aviso-zona" role="status" aria-live="polite">
+    @if (aviso(); as texto) {
+      <div class="aviso">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>{{ texto }}</span>
+        <button type="button" class="aviso__cerrar" (click)="cerrarAviso()" aria-label="Cerrar aviso">
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+            <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+    }
+  </div>
+
+  @if (!cargando() && !errorCarga()) {
+    <p class="hoy">
+      <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+        <rect x="2" y="3" width="12" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" />
+        <path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+      </svg>
+      @if (filaActiva(); as activa) {
+        <span>
+          Semestre en curso: <strong class="codigo">{{ activa.semestre.codigo }}</strong>, termina el
+          {{ activa.fin }}.
+        </span>
+      } @else {
+        <span>Hoy no hay ningún semestre en curso.</span>
+      }
+    </p>
+  }
+
+  <div class="tarjeta">
+    @if (cargando()) {
+      <p class="estado-vista" aria-busy="true">Cargando semestres…</p>
+    } @else if (errorCarga(); as error) {
+      <div class="estado-vista estado-vista--error" role="alert">
+        <p>{{ error.mensaje }}</p>
+        <button type="button" class="btn" (click)="cargar()">Reintentar</button>
+      </div>
+    } @else if (filas().length === 0) {
+      <div class="estado-vista">
+        <p class="estado-vista__titulo">Todavía no hay semestres registrados</p>
+        <p>Registra el primero indicando su código y su rango de fechas.</p>
+        <button type="button" class="btn btn--primario" (click)="abrirRegistro()">
+          Registrar semestre
+        </button>
+      </div>
+    } @else {
+      <div class="tabla-contenedor">
+        <table>
+          <caption class="solo-lectores">
+            Semestres registrados, del más reciente al más antiguo
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Código</th>
+              <th scope="col">Inicio</th>
+              <th scope="col">Fin</th>
+              <th scope="col" class="num">Duración</th>
+              <th scope="col">Estado</th>
+              <th scope="col"><span class="solo-lectores">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (fila of filas(); track fila.semestre.id) {
+              <tr [class.fila--terminada]="fila.terminado">
+                <th scope="row" class="codigo">{{ fila.semestre.codigo }}</th>
+                <td data-etiqueta="Inicio">{{ fila.inicio }}</td>
+                <td data-etiqueta="Fin">{{ fila.fin }}</td>
+                <td data-etiqueta="Duración" class="num">{{ fila.duracion }} días</td>
+                <td data-etiqueta="Estado">
+                  <div>
+                    <app-estado-semestre-badge [estado]="fila.semestre.estado" />
+                    <span class="situacion">{{ fila.situacion }}</span>
+                  </div>
+                </td>
+                <td class="acciones-fila">
+                  @if (fila.terminado) {
+                    <span class="nota">Terminado, no se puede modificar</span>
+                  } @else {
+                    <button
+                      type="button"
+                      class="btn btn--pequeno"
+                      (click)="abrirExtension(fila.semestre)"
+                      [attr.aria-label]="'Extender la fecha de fin de ' + fila.semestre.codigo"
+                    >
+                      Extender fecha de fin
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</section>
+
+@switch (dialogo()?.tipo) {
+  @case ('crear') {
+    <app-semestre-form-dialog (guardado)="alRegistrar($event)" (cerrado)="cerrarDialogo()" />
+  }
+  @case ('extender') {
+    @if (dialogo(); as d) {
+      @if (d.tipo === 'extender') {
+        <app-semestre-extender-dialog
+          [semestre]="d.semestre"
+          (extendido)="alExtender($event)"
+          (cerrado)="cerrarDialogo()"
+        />
+      }
+    }
+  }
+}

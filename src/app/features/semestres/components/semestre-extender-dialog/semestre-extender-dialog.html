@@ -1,0 +1,55 @@
+<dialog #dialogo aria-labelledby="titulo-extender-semestre" (cancel)="alCancelarNativo($event)">
+  <form (submit)="$event.preventDefault(); guardar()" novalidate>
+    <div class="encabezado">
+      <h2 id="titulo-extender-semestre">Extender el semestre {{ semestre().codigo }}</h2>
+      <p>
+        Va del {{ inicioTexto() }} al {{ finTexto() }}. Solo se puede mover la fecha de fin hacia
+        adelante, y sin cruzarse con el semestre siguiente.
+      </p>
+    </div>
+
+    @if (errorApi(); as error) {
+      <div class="alerta" role="alert">
+        {{ error.mensaje }}
+        @if (error.detalles.length) {
+          <ul>
+            @for (detalle of error.detalles; track $index) {
+              <li>{{ detalle }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+
+    <div class="campo">
+      <label for="semestre-nueva-fin">Nueva fecha de fin</label>
+      <input
+        id="semestre-nueva-fin"
+        type="date"
+        [formControl]="fechaFin"
+        [min]="minimo()"
+        autofocus
+        [attr.aria-invalid]="mostrarError()"
+        aria-describedby="semestre-nueva-fin-error"
+      />
+      @if (mostrarError()) {
+        <p class="error-campo" id="semestre-nueva-fin-error">
+          @if (fechaFin.hasError('required')) {
+            Selecciona la nueva fecha de fin.
+          } @else {
+            Elige una fecha posterior al {{ finTexto() }}.
+          }
+        </p>
+      }
+    </div>
+
+    <div class="acciones">
+      <button type="button" class="btn" (click)="cancelar()" [disabled]="guardando()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn btn--primario" [disabled]="guardando()">
+        {{ guardando() ? 'Extendiendo…' : 'Extender fecha de fin' }}
+      </button>
+    </div>
+  </form>
+</dialog>
