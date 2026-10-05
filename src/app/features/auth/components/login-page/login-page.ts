@@ -7,8 +7,12 @@ import {
   Validators,
 } from '@angular/forms';
 
+import { Router } from '@angular/router';
+
 import { SessionService } from '../../../../core/services/session.service';
+import { SesionService } from '../../../../core/services/sesion';
 import { UsuarioSesion } from '../../../../core/models/sesion.model';
+import { RUTA_INICIAL, rolDesdeUsuario } from '../../../../core/models/rol';
 import { AuthService } from '../../services/auth.service';
 import { mensajeDeErrorLogin } from '../../services/login-error';
 
@@ -30,8 +34,11 @@ export function correoInstitucionalValidator(control: AbstractControl): Validati
 
 /**
  * Pantalla de inicio de sesión (RF-04). Coordina el formulario, el AuthService y el SessionService.
- * No aplica autorización: la redirección por rol llegará con RF-05.
- * POST_LOGIN_DESTINATION_PENDING: tras el login solo se muestra la confirmación en esta página.
+ *
+ * Tras guardar la sesión entra a la pantalla por defecto del rol (§7.2), que `SesionService`
+ * resuelve. Sigue sin aplicar autorización: los guards son RF-05 y la autorización real la impone
+ * el backend en cada endpoint (RNF-13). El bloque de confirmación de la plantilla queda como
+ * estado visible mientras se resuelve la navegación, y como salida si esta no se concreta.
  */
 @Component({
   selector: 'app-login-page',
@@ -43,6 +50,8 @@ export function correoInstitucionalValidator(control: AbstractControl): Validati
 export class LoginPage {
   private readonly auth = inject(AuthService);
   private readonly sesion = inject(SessionService);
+  private readonly shell = inject(SesionService);
+  private readonly router = inject(Router);
 
   protected readonly cargando = signal(false);
   protected readonly errorApi = signal<string | null>(null);
@@ -78,6 +87,10 @@ export class LoginPage {
           this.form.controls.contrasena.reset('');
           this.cargando.set(false);
           this.usuarioAutenticado.set(respuesta.usuario);
+          // La sesión vive en sessionStorage, que no avisa cuando cambia: hay que releerla antes
+          // de navegar para que el shell pinte el menú del rol correcto en el primer render.
+          this.shell.refrescar();
+          void this.router.navigateByUrl(RUTA_INICIAL[rolDesdeUsuario(respuesta.usuario.rol)]);
         },
         error: (error: unknown) => {
           this.cargando.set(false);

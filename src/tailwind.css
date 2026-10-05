@@ -1,0 +1,82 @@
+/* Entrada de Tailwind CSS v4.
+ *
+ * Va aparte de `styles.scss` a propósito: así Sass nunca ve el `@import "tailwindcss"` y no hay
+ * que pelear con la interoperabilidad entre Sass y PostCSS. Los dos archivos están registrados en
+ * `angular.json`, este primero.
+ *
+ * **Sin Preflight, deliberadamente.** `@import "tailwindcss"` traería también el reset de
+ * Tailwind, que redefine `h1`, `ul`, `button`, `table` y demás. Las pantallas que ya existen
+ * (`features/auth/components/login-page`, `features/semestres`, el shell) están escritas contra
+ * los valores por omisión del navegador: activar Preflight hoy les cambiaría el aspecto sin que
+ * nadie lo haya pedido. Se importan solo el tema y las utilidades.
+ *
+ * Para activar Preflight más adelante —decisión de equipo, y con las pantallas revisadas una por
+ * una— basta agregar:
+ *
+ *     @import 'tailwindcss/preflight.css' layer(base);
+ *
+ * El orden de capas ya está declarado abajo para que entre en su lugar sin sorpresas.
+ */
+
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/* Dónde buscar nombres de clase. Explícito en lugar de la detección automática, para que no
+ * dependa de lo que haya o no en `.gitignore`. */
+@source './app/**/*.{html,ts}';
+@source './index.html';
+
+/* El tema de Tailwind apunta a los tokens de `styles.scss`, que siguen siendo la única fuente de
+ * verdad de la paleta (§3 de la especificación visual). Así `bg-navy` y `var(--sg-navy)` nunca se
+ * pueden contradecir, y la guía visual se cambia en un solo archivo cuando el cliente la apruebe.
+ */
+@theme {
+  /* Paleta base (§3.1) */
+  --color-navy: var(--sg-navy);
+  --color-navy-hover: var(--sg-navy-hover);
+  --color-teal: var(--sg-teal); /* solo éxito y validación — nunca decorativo */
+  --color-bg: var(--sg-bg);
+  --color-card: var(--sg-card);
+  --color-error: var(--sg-error);
+  --color-warning: var(--sg-warning);
+  --color-info: var(--sg-info);
+
+  /* Neutros (§3.2). `line` en vez de `border` para no generar un `border-border` confuso. */
+  --color-line: var(--sg-border);
+  --color-field: var(--sg-field);
+  --color-divider: var(--sg-divider);
+  --color-row-hover: var(--sg-row-hover);
+  --color-ink: var(--sg-ink);
+  --color-ink-body: var(--sg-ink-body);
+  --color-ink-muted: var(--sg-ink-muted);
+  --color-ink-soft: var(--sg-ink-soft);
+  --color-ink-disabled: var(--sg-ink-disabled);
+
+  /* Pares color/fondo de estado — se usan siempre juntos (§3.3) */
+  --color-ok-fg: var(--sg-ok-fg);
+  --color-ok-bg: var(--sg-ok-bg);
+  --color-error-fg: var(--sg-error-fg);
+  --color-error-bg: var(--sg-error-bg);
+  --color-warning-fg: var(--sg-warning-fg);
+  --color-warning-bg: var(--sg-warning-bg);
+  --color-info-fg: var(--sg-info-fg);
+  --color-info-bg: var(--sg-info-bg);
+  --color-neutral-fg: var(--sg-neutral-fg);
+  --color-neutral-bg: var(--sg-neutral-bg);
+
+  /* Tipografía (§3.4): `font-titulo` = Manrope, `font-cuerpo` = Inter */
+  --font-titulo: var(--sg-font-titulo);
+  --font-cuerpo: var(--sg-font-cuerpo);
+
+  /* Radios (§3.5): esquinas muy redondeadas, rasgo distintivo del sistema */
+  --radius-card: var(--sg-radius-card);
+  --radius-control: var(--sg-radius-control);
+  --radius-tabs: var(--sg-radius-tabs);
+  --radius-micro: var(--sg-radius-micro);
+
+  /* Sombras (§3.6) */
+  --shadow-card: var(--sg-shadow-card);
+  --shadow-float: var(--sg-shadow-float);
+}

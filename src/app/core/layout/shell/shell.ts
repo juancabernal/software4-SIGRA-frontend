@@ -51,7 +51,9 @@ export class Shell {
 
   protected readonly roles = ROLES;
   protected readonly rol = this.sesion.rol;
-  protected readonly perfil = this.sesion.perfil;
+  protected readonly identidad = this.sesion.identidad;
+  protected readonly etiquetaRol = this.sesion.etiquetaRol;
+  protected readonly autenticado = this.sesion.autenticado;
 
   /** Sidebar reducido a solo íconos. Aplica únicamente en escritorio. */
   protected readonly colapsado = signal(false);
@@ -118,6 +120,10 @@ export class Shell {
 
   protected cambiarRol(rol: Rol): void {
     this.sesion.cambiarRol(rol);
+  }
+
+  protected cerrarSesion(): void {
+    this.sesion.cerrarSesion();
   }
 
   protected perfilDe(rol: Rol): PerfilRol {

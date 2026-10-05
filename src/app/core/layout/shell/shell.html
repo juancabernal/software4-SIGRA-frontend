@@ -18,29 +18,32 @@
     </span>
   </div>
 
-  <!-- Selector de rol: solo del prototipo. Desaparece cuando exista la sesión real (RF-04). -->
-  <div class="barra__roles">
-    <p class="barra__roles-titulo" id="titulo-roles">Vista de demostración</p>
-    <div class="segmentado" role="group" aria-labelledby="titulo-roles">
-      @for (opcion of roles; track opcion) {
-        <button
-          type="button"
-          class="segmentado__opcion"
-          [class.segmentado__opcion--activa]="opcion === rol()"
-          [attr.aria-pressed]="opcion === rol()"
-          [title]="perfilDe(opcion).etiqueta"
-          (click)="cambiarRol(opcion)"
-        >
-          <span class="segmentado__largo">{{ perfilDe(opcion).etiqueta }}</span>
-          <span class="segmentado__corto" aria-hidden="true">{{ perfilDe(opcion).inicial }}</span>
-        </button>
-      }
+  <!-- Selector de rol: solo del prototipo, para recorrer las pantallas sin backend. Con sesión
+       real desaparece — tener las dos cosas a la vez permitiría contradecirlas. -->
+  @if (!autenticado()) {
+    <div class="barra__roles">
+      <p class="barra__roles-titulo" id="titulo-roles">Vista de demostración</p>
+      <div class="segmentado" role="group" aria-labelledby="titulo-roles">
+        @for (opcion of roles; track opcion) {
+          <button
+            type="button"
+            class="segmentado__opcion"
+            [class.segmentado__opcion--activa]="opcion === rol()"
+            [attr.aria-pressed]="opcion === rol()"
+            [title]="perfilDe(opcion).etiqueta"
+            (click)="cambiarRol(opcion)"
+          >
+            <span class="segmentado__largo">{{ perfilDe(opcion).etiqueta }}</span>
+            <span class="segmentado__corto" aria-hidden="true">{{ perfilDe(opcion).inicial }}</span>
+          </button>
+        }
+      </div>
     </div>
-  </div>
+  }
 
-  <nav class="barra__nav" [attr.aria-label]="'Menú de ' + perfil().etiqueta">
+  <nav class="barra__nav" [attr.aria-label]="'Menú de ' + etiquetaRol()">
     <ul>
-      @for (item of perfil().menu; track item.ruta) {
+      @for (item of identidad().menu; track item.ruta) {
         <li>
           <a
             class="nav-item"
@@ -58,10 +61,10 @@
   </nav>
 
   <div class="barra__usuario">
-    <span class="avatar" aria-hidden="true">{{ perfil().inicial }}</span>
+    <span class="avatar" aria-hidden="true">{{ identidad().inicial }}</span>
     <span class="barra__usuario-texto">
-      <strong>{{ perfil().nombre }}</strong>
-      <small>{{ perfil().subtitulo }}</small>
+      <strong>{{ identidad().nombre }}</strong>
+      <small>{{ identidad().subtitulo }}</small>
     </span>
   </div>
 </aside>
@@ -84,7 +87,7 @@
 
     <p class="topbar__contexto">
       <app-bars-motif [tamano]="20" />
-      <span>SIGRA · {{ perfil().etiqueta }}</span>
+      <span>SIGRA</span>
     </p>
 
     <!-- La campana se deja visible pero deshabilitada: no hay notificaciones todavía y un
@@ -93,6 +96,18 @@
       <app-icono nombre="campana" [tamano]="17" />
       <span class="solo-lectores">Notificaciones — aún no disponibles</span>
     </button>
+
+    @if (autenticado()) {
+      <button type="button" class="btn-salir" (click)="cerrarSesion()">
+        <app-icono nombre="salir" [tamano]="15" />
+        <span>Cerrar sesión</span>
+      </button>
+    } @else {
+      <a class="btn-entrar" routerLink="/login">
+        <app-icono nombre="llave" [tamano]="15" />
+        <span>Iniciar sesión</span>
+      </a>
+    }
   </header>
 
   <main id="contenido" class="contenido" tabindex="-1">

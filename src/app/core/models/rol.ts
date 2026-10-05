@@ -8,6 +8,8 @@
  * sidebar y solo cambia lo que se ve. **No es control de acceso**: la autorización la decide el
  * backend en cada endpoint (RF-05, RNF-13).
  */
+import { RolUsuario } from './sesion.model';
+
 export type Rol = 'profesor' | 'admin' | 'estudiante';
 
 export const ROLES: readonly Rol[] = ['profesor', 'admin', 'estudiante'] as const;
@@ -80,4 +82,20 @@ export const RUTA_INICIAL: Readonly<Record<Rol, string>> = {
 export function rolDesdeUrl(url: string): Rol | null {
   const segmento = url.split(/[?#]/)[0].split('/').filter(Boolean)[0];
   return ROLES.find((rol) => rol === segmento) ?? null;
+}
+
+/**
+ * Traduce el rol que entrega el backend al rol que usan las rutas y el menú.
+ *
+ * Son dos vocabularios distintos a propósito: `RolUsuario` es el contrato de la API (RF-04) y
+ * `Rol` es el prefijo de ruta de §7.3. Esta función es el único lugar donde se cruzan, así que si
+ * el backend agrega un rol el compilador obliga a resolverlo acá.
+ */
+export function rolDesdeUsuario(rol: RolUsuario): Rol {
+  const equivalencias: Readonly<Record<RolUsuario, Rol>> = {
+    ADMINISTRADOR: 'admin',
+    PROFESOR: 'profesor',
+    ESTUDIANTE: 'estudiante',
+  };
+  return equivalencias[rol];
 }

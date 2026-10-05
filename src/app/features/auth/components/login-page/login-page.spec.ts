@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Router, provideRouter } from '@angular/router';
 
 import { environment } from '../../../../../environments/environment';
 import { SessionService } from '../../../../core/services/session.service';
@@ -30,7 +31,13 @@ describe('LoginPage', () => {
     sessionStorage.clear();
     TestBed.configureTestingModule({
       imports: [LoginPage],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      // El componente navega a la pantalla del rol tras guardar la sesión (§7.2): sin router no
+      // se puede construir. Se declara la ruta de destino del PROFESOR, que es la del RESPUESTA.
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([{ path: 'profesor/asignaturas', children: [] }]),
+      ],
     });
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(LoginPage);
@@ -186,6 +193,16 @@ describe('LoginPage', () => {
       expect(html.querySelector('[role="status"]')?.textContent).toContain(
         'Bienvenido, Profesor Bruno',
       );
+    });
+
+    it('con 200 entra a la pantalla por defecto del rol (§7.2)', async () => {
+      const router = TestBed.inject(Router);
+      llenarFormularioValido();
+      enviar();
+      http.expectOne(URL).flush(RESPUESTA);
+      await fixture.whenStable();
+
+      expect(router.url).toBe('/profesor/asignaturas');
     });
 
     it('tras un login correcto borra la contraseña del formulario', () => {
