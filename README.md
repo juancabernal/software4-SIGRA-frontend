@@ -238,6 +238,35 @@ Los nombres coinciden con los módulos del backend —`resultadosaprendizaje` en
 | Accesibilidad | axe DevTools y Lighthouse |
 | Gestor de paquetes | npm |
 
+### RF-04 — Inicio de sesión
+
+| Elemento | Implementación |
+| --- | --- |
+| Ruta | `/login` (carga diferida desde `features/auth/components/login-page/`) |
+| Backend | `POST /api/v1/auth/login` con `{ correoInstitucional, contrasena }`; la respuesta 200 trae `token`, `tipo`, `expiraEn` y `usuario` |
+| Servicios | `AuthService` (solo HTTP, en `features/auth/services/`) y `SessionService` (único acceso a la sesión guardada, en `core/services/`) |
+| Modelos | Contrato del login en `features/auth/models/`; `UsuarioSesion`, `RolUsuario` y `SesionAlmacenada` en `core/models/`, porque los usa la sesión de todos los módulos |
+| Almacenamiento | `sessionStorage` bajo la clave `sigra.sesion`, con `token`, `tipo`, `expiraEn` y `usuario`. Nunca se guardan contraseñas ni datos que el backend no entrega |
+| Configuración de API | `environment.apiUrl` (`http://localhost:8080/api` en desarrollo). El servicio agrega solo `/v1/auth/login` |
+| Redirección tras el login | `POST_LOGIN_DESTINATION_PENDING`: la página confirma el inicio de sesión sin navegar, porque aún no hay un panel de inicio por rol |
+
+**Respuestas del backend y mensajes.** La vista decide solo por el status HTTP y nunca muestra el cuerpo de la respuesta (RNF-17):
+
+| Status | Mensaje al usuario |
+| --- | --- |
+| 200 | Confirmación de sesión iniciada; se guarda la sesión |
+| 400 | «Revisa los datos ingresados.» |
+| 401 | «Correo o contraseña incorrectos.» |
+| 423 | «Tu usuario está temporalmente bloqueado. Intenta nuevamente más tarde.» |
+| 0 (sin conexión) | «No fue posible conectar con el servidor. Verifica tu conexión e intenta nuevamente.» |
+| Otro (incluido 500) | «No fue posible iniciar sesión. Intenta nuevamente.» |
+
+**Validaciones del formulario.** El correo es obligatorio y debe terminar en `@uco.net.co` sin distinguir mayúsculas; antes de enviarlo se quitan los espacios de los extremos y se pasa a minúsculas. La contraseña es obligatoria y se envía tal cual se escribió. No se aplican reglas de creación de contraseña porque esto es inicio de sesión, no registro.
+
+**Pruebas.** `npx ng test --no-watch` cubre `AuthService`, `SessionService`, el mapeo de errores y la página de login. Ninguna prueba llama al backend real.
+
+**Pendiente.** RF-05 — autorización, guards e interceptor: `NOT_STARTED`. Todavía no hay `AuthGuard`, `RoleGuard`, interceptor de Bearer, manejo global de 401/403 ni redirección por rol.
+
 ---
 
 ## 6. Cómo ejecutar el proyecto
