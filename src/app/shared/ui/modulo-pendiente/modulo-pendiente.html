@@ -1,0 +1,22 @@
+<section class="pagina" aria-labelledby="titulo-modulo">
+  <header class="cabecera">
+    <div>
+      <h1 id="titulo-modulo">{{ titulo() }}</h1>
+      @if (subtitulo()) {
+        <p class="cabecera__sub">{{ subtitulo() }}</p>
+      }
+    </div>
+    @if (requisito()) {
+      <span class="requisito tabular">{{ requisito() }}</span>
+    }
+  </header>
+
+  <div class="pendiente">
+    <app-bars-motif [tamano]="40" />
+    <p class="pendiente__titulo">Módulo en construcción</p>
+    <p class="pendiente__texto">
+      Aquí va el contenido de <strong>{{ titulo() }}</strong> cuando el módulo se construya. El
+      andamiaje de navegación ya está en su lugar.
+    </p>
+  </div>
+</section>

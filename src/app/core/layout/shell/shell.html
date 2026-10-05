@@ -1,0 +1,101 @@
+<a class="saltar" href="#contenido">Saltar al contenido</a>
+
+<!-- Velo del cajón lateral: solo existe en pantallas angostas. -->
+<div class="velo" (click)="cerrarCajon()" aria-hidden="true"></div>
+
+<aside
+  #barraLateral
+  id="barra-lateral"
+  class="barra"
+  tabindex="-1"
+  [attr.inert]="barraInerte() ? '' : null"
+>
+  <div class="barra__marca">
+    <app-bars-motif [tamano]="32" />
+    <span class="barra__marca-texto">
+      <strong>SIGRA</strong>
+      <small>Resultados de aprendizaje</small>
+    </span>
+  </div>
+
+  <!-- Selector de rol: solo del prototipo. Desaparece cuando exista la sesión real (RF-04). -->
+  <div class="barra__roles">
+    <p class="barra__roles-titulo" id="titulo-roles">Vista de demostración</p>
+    <div class="segmentado" role="group" aria-labelledby="titulo-roles">
+      @for (opcion of roles; track opcion) {
+        <button
+          type="button"
+          class="segmentado__opcion"
+          [class.segmentado__opcion--activa]="opcion === rol()"
+          [attr.aria-pressed]="opcion === rol()"
+          [title]="perfilDe(opcion).etiqueta"
+          (click)="cambiarRol(opcion)"
+        >
+          <span class="segmentado__largo">{{ perfilDe(opcion).etiqueta }}</span>
+          <span class="segmentado__corto" aria-hidden="true">{{ perfilDe(opcion).inicial }}</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <nav class="barra__nav" [attr.aria-label]="'Menú de ' + perfil().etiqueta">
+    <ul>
+      @for (item of perfil().menu; track item.ruta) {
+        <li>
+          <a
+            class="nav-item"
+            [routerLink]="item.ruta"
+            routerLinkActive="nav-item--activo"
+            ariaCurrentWhenActive="page"
+            [title]="item.etiqueta"
+          >
+            <app-icono [nombre]="item.icono" [tamano]="18" />
+            <span class="nav-item__etiqueta">{{ item.etiqueta }}</span>
+          </a>
+        </li>
+      }
+    </ul>
+  </nav>
+
+  <div class="barra__usuario">
+    <span class="avatar" aria-hidden="true">{{ perfil().inicial }}</span>
+    <span class="barra__usuario-texto">
+      <strong>{{ perfil().nombre }}</strong>
+      <small>{{ perfil().subtitulo }}</small>
+    </span>
+  </div>
+</aside>
+
+<div class="panel">
+  <header class="topbar">
+    <button
+      #botonMenu
+      type="button"
+      class="hamburguesa"
+      [attr.aria-expanded]="menuExpandido()"
+      aria-controls="barra-lateral"
+      (click)="alternarMenu()"
+    >
+      <span class="hamburguesa__trazos" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </span>
+      <span class="solo-lectores">{{ menuExpandido() ? 'Ocultar menú' : 'Mostrar menú' }}</span>
+    </button>
+
+    <p class="topbar__contexto">
+      <app-bars-motif [tamano]="20" />
+      <span>SIGRA · {{ perfil().etiqueta }}</span>
+    </p>
+
+    <!-- La campana se deja visible pero deshabilitada: no hay notificaciones todavía y un
+         punto rojo decorativo anunciaría algo que no existe. -->
+    <button type="button" class="campana" disabled title="Notificaciones — aún no disponibles">
+      <app-icono nombre="campana" [tamano]="17" />
+      <span class="solo-lectores">Notificaciones — aún no disponibles</span>
+    </button>
+  </header>
+
+  <main id="contenido" class="contenido" tabindex="-1">
+    <router-outlet />
+  </main>
+</div>
