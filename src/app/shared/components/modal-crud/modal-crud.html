@@ -1,0 +1,56 @@
+<dialog
+  #dialogo
+  class="modal"
+  [attr.aria-labelledby]="idTitulo"
+  (cancel)="alCancelarNativo($event)"
+>
+  <form #formulario class="modal__form" novalidate (submit)="alEnviar($event)">
+    <header class="modal__cabecera">
+      <h2 [id]="idTitulo">{{ titulo() }}</h2>
+      <button
+        type="button"
+        class="modal__cerrar"
+        aria-label="Cerrar"
+        [disabled]="procesando()"
+        (click)="alCancelar()"
+      >
+        <app-icono nombre="cerrar" [tamano]="18" />
+      </button>
+    </header>
+
+    <div class="modal__cuerpo">
+      @if (error(); as mensaje) {
+        <div class="modal__error" role="alert">
+          <p>{{ mensaje }}</p>
+          @if (detalles().length) {
+            <ul>
+              @for (detalle of detalles(); track $index) {
+                <li>{{ detalle }}</li>
+              }
+            </ul>
+          }
+        </div>
+      }
+
+      <ng-content />
+    </div>
+
+    <footer class="modal__acciones">
+      <button
+        type="button"
+        class="modal__cancelar"
+        [disabled]="procesando()"
+        (click)="alCancelar()"
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        class="modal__enviar"
+        [attr.aria-disabled]="bloqueado() ? 'true' : null"
+      >
+        {{ procesando() ? 'Procesando…' : etiquetaEnviar() }}
+      </button>
+    </footer>
+  </form>
+</dialog>
