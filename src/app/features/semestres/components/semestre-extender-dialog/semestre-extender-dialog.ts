@@ -16,6 +16,7 @@ import { Semestre } from '../../models/semestre.model';
 import { formatearFecha, sumarDias } from '../../models/semestre-fechas';
 import { MensajeError, mensajeDeError } from '../../services/semestre-error';
 import { SemestreService } from '../../services/semestre.service';
+import { SemestreIcono } from '../semestre-icono/semestre-icono';
 
 /**
  * Única modificación permitida: extender la fecha de fin. Validación de experiencia de usuario
@@ -31,7 +32,7 @@ export function posteriorA(fechaActual: () => string): ValidatorFn {
 
 @Component({
   selector: 'app-semestre-extender-dialog',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, SemestreIcono],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './semestre-extender-dialog.html',
   styleUrl: './semestre-extender-dialog.scss',

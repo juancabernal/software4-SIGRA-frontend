@@ -11,6 +11,7 @@ import { Semestre } from '../../models/semestre.model';
 import { duracionEnDias, formatearFecha, hoyIso } from '../../models/semestre-fechas';
 import { MensajeError, mensajeDeError } from '../../services/semestre-error';
 import { SemestreService } from '../../services/semestre.service';
+import { SemestreIcono } from '../semestre-icono/semestre-icono';
 import { EstadoSemestreBadge } from '../estado-semestre-badge/estado-semestre-badge';
 import { SemestreExtenderDialog } from '../semestre-extender-dialog/semestre-extender-dialog';
 import { SemestreFormDialog } from '../semestre-form-dialog/semestre-form-dialog';
@@ -36,7 +37,7 @@ const DURACION_AVISO_MS = 6000;
  */
 @Component({
   selector: 'app-semestres-page',
-  imports: [EstadoSemestreBadge, SemestreFormDialog, SemestreExtenderDialog],
+  imports: [EstadoSemestreBadge, SemestreFormDialog, SemestreExtenderDialog, SemestreIcono],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './semestres-page.html',
   styleUrl: './semestres-page.scss',
