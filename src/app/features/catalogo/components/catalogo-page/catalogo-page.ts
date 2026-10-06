@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 
 import { MateriasTab } from '../../../asignaturas/components/materias-tab/materias-tab';
+import { ProgramasTab } from '../../../programas/components/programas-tab/programas-tab';
 import { Icono } from '../../../../shared/ui/icono/icono';
 import { ModuloPendiente } from '../../../../shared/ui/modulo-pendiente/modulo-pendiente';
 
@@ -31,7 +32,7 @@ export const PESTANAS: readonly Pestana[] = [
  */
 @Component({
   selector: 'app-catalogo-page',
-  imports: [Icono, MateriasTab, ModuloPendiente],
+  imports: [Icono, MateriasTab, ModuloPendiente, ProgramasTab],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './catalogo-page.html',
   styleUrl: './catalogo-page.scss',
