@@ -1,0 +1,126 @@
+<app-modal-crud
+  [abierto]="abierto()"
+  [titulo]="modo() === 'crear' ? 'Registrar materia' : 'Modificar materia'"
+  [etiquetaEnviar]="modo() === 'crear' ? 'Registrar' : 'Guardar cambios'"
+  [procesando]="procesando()"
+  [error]="errorApi()?.mensaje ?? null"
+  [detalles]="errorApi()?.detalles ?? []"
+  [enviarDeshabilitado]="enviarDeshabilitado()"
+  (enviar)="enviar()"
+  (cancelar)="cancelar.emit()"
+  (envioBloqueado)="alIntentarEnviarInvalido()"
+>
+  <div class="campos" [formGroup]="form">
+    <div class="campo">
+      <label for="materia-nombre"
+        >Nombre <span class="obligatorio" aria-hidden="true">*</span></label
+      >
+      <input
+        id="materia-nombre"
+        formControlName="nombre"
+        placeholder="Ej. Cálculo Integral"
+        autocomplete="off"
+        aria-required="true"
+        [attr.maxlength]="nombreMax"
+        [attr.aria-invalid]="mostrarError('nombre')"
+        aria-describedby="materia-nombre-ayuda materia-nombre-error"
+      />
+      <p class="ayuda" id="materia-nombre-ayuda">Máximo 100 caracteres</p>
+      @if (mostrarError('nombre')) {
+        <p class="error-campo" id="materia-nombre-error">
+          @if (form.controls.nombre.hasError('required')) {
+            Escribe el nombre de la materia.
+          } @else {
+            El nombre no puede superar los 100 caracteres.
+          }
+        </p>
+      }
+    </div>
+
+    @if (modo() === 'crear') {
+      <div class="campo">
+        <label for="materia-codigo"
+          >Código <span class="obligatorio" aria-hidden="true">*</span></label
+        >
+        <input
+          id="materia-codigo"
+          class="mayusculas"
+          formControlName="codigo"
+          placeholder="Ej. MAT-401"
+          autocomplete="off"
+          aria-required="true"
+          [attr.maxlength]="codigoMax"
+          [attr.aria-invalid]="mostrarError('codigo')"
+          aria-describedby="materia-codigo-error"
+        />
+        @if (mostrarError('codigo')) {
+          <p class="error-campo" id="materia-codigo-error">
+            @if (form.controls.codigo.hasError('required')) {
+              Escribe el código de la materia.
+            } @else if (form.controls.codigo.hasError('duplicado')) {
+              Ya existe una materia con este código.
+            } @else if (form.controls.codigo.hasError('maxlength')) {
+              El código no puede superar los 20 caracteres.
+            } @else {
+              Usa solo letras, números y guion.
+            }
+          </p>
+        }
+      </div>
+
+      <div class="campo">
+        <label for="materia-programa">
+          Programa académico <span class="obligatorio" aria-hidden="true">*</span>
+        </label>
+        <select
+          id="materia-programa"
+          formControlName="programaId"
+          aria-required="true"
+          [attr.aria-invalid]="mostrarError('programaId') || errorProgramas() !== null"
+          aria-describedby="materia-programa-error"
+        >
+          <option value="">
+            {{ cargandoProgramas() ? 'Cargando programas…' : 'Selecciona...' }}
+          </option>
+          @for (programa of programas(); track programa.id) {
+            <option [value]="programa.id">{{ programa.nombre }}</option>
+          }
+        </select>
+        @if (errorProgramas(); as mensaje) {
+          <p class="error-campo" id="materia-programa-error">{{ mensaje }}</p>
+        } @else if (mostrarError('programaId')) {
+          <p class="error-campo" id="materia-programa-error">Selecciona un programa académico.</p>
+        }
+      </div>
+    } @else if (asignatura(); as a) {
+      <div class="campo">
+        <label for="materia-codigo-fijo">Código</label>
+        <div class="bloqueado">
+          <app-icono nombre="candado" [tamano]="15" />
+          <input
+            id="materia-codigo-fijo"
+            class="codigo"
+            readonly
+            [value]="a.codigo"
+            aria-describedby="materia-codigo-fijo-nota"
+          />
+        </div>
+        <p class="ayuda" id="materia-codigo-fijo-nota">No se puede modificar</p>
+      </div>
+
+      <div class="campo">
+        <label for="materia-programa-fijo">Programa académico</label>
+        <div class="bloqueado">
+          <app-icono nombre="candado" [tamano]="15" />
+          <input
+            id="materia-programa-fijo"
+            readonly
+            [value]="a.programaNombre"
+            aria-describedby="materia-programa-fijo-nota"
+          />
+        </div>
+        <p class="ayuda" id="materia-programa-fijo-nota">No se puede modificar</p>
+      </div>
+    }
+  </div>
+</app-modal-crud>

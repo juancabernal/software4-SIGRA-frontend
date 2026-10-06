@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
-import { Asignatura, FiltrosAsignaturas } from '../models/asignatura.model';
+import { Asignatura, AsignaturaRequest, FiltrosAsignaturas } from '../models/asignatura.model';
 
 /** Acceso HTTP a /api/v1/asignaturas. Las reglas de negocio las aplica el backend. */
 @Injectable({ providedIn: 'root' })
@@ -35,6 +35,15 @@ export class AsignaturaService {
 
   obtener(id: string): Observable<Asignatura> {
     return this.http.get<Asignatura>(`${this.baseUrl}/${encodeURIComponent(id)}`);
+  }
+
+  crear(asignatura: AsignaturaRequest): Observable<Asignatura> {
+    return this.http.post<Asignatura>(this.baseUrl, asignatura);
+  }
+
+  /** Solo el nombre es modificable: código y programa son inmutables (RF-03c). */
+  modificar(id: string, nombre: string): Observable<Asignatura> {
+    return this.http.put<Asignatura>(`${this.baseUrl}/${encodeURIComponent(id)}`, { nombre });
   }
 
   activar(id: string): Observable<Asignatura> {
