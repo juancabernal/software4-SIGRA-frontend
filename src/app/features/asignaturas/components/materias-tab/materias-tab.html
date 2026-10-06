@@ -45,17 +45,10 @@
       }
     </select>
 
-    <!-- Parte 2: el botón abrirá el formulario de registro. -->
-    <button
-      type="button"
-      class="btn btn--primario barra__registrar"
-      aria-disabled="true"
-      aria-describedby="materias-proximamente"
-    >
+    <button type="button" class="btn btn--primario barra__registrar" (click)="abrirRegistro()">
       <app-icono nombre="mas" [tamano]="16" />
       Registrar
     </button>
-    <span class="solo-lectores" id="materias-proximamente">Disponible próximamente</span>
   </div>
 
   @if (cargando()) {
@@ -79,12 +72,7 @@
       <div class="estado-vista">
         <p class="estado-vista__titulo">Aún no hay materias registradas</p>
         <p>Registra la primera materia del catálogo.</p>
-        <button
-          type="button"
-          class="btn btn--primario"
-          aria-disabled="true"
-          aria-describedby="materias-proximamente"
-        >
+        <button type="button" class="btn btn--primario" (click)="abrirRegistro()">
           <app-icono nombre="mas" [tamano]="16" />
           Registrar
         </button>
@@ -132,13 +120,11 @@
                     <span>Consultar</span>
                   </button>
 
-                  <!-- Parte 2: abrirá el formulario de modificación. -->
                   <button
                     type="button"
                     class="btn-ghost"
-                    aria-disabled="true"
-                    aria-describedby="materias-proximamente"
                     [attr.aria-label]="'Modificar ' + a.nombre"
+                    (click)="abrirEdicion(a)"
                   >
                     <app-icono nombre="lapiz" [tamano]="16" />
                     <span>Modificar</span>
@@ -175,6 +161,17 @@
                         (click)="pedirInactivar(a)"
                       >
                         Inactivar
+                      </button>
+                    }
+                    @case ('INACTIVA') {
+                      <button
+                        type="button"
+                        class="btn btn--secundario btn--pequeno"
+                        [attr.aria-label]="'Reactivar ' + a.nombre"
+                        [attr.aria-disabled]="activandoId() === a.id ? 'true' : null"
+                        (click)="reactivar(a)"
+                      >
+                        {{ activandoId() === a.id ? 'Reactivando…' : 'Reactivar' }}
                       </button>
                     }
                   }
@@ -231,6 +228,13 @@
     </p>
   }
 </app-panel-lateral>
+
+<app-asignatura-form-dialog
+  [abierto]="formularioAbierto()"
+  [asignatura]="enEdicion()"
+  (guardado)="alGuardar($event)"
+  (cancelar)="cerrarFormulario()"
+/>
 
 <app-dialogo-confirmacion
   [abierto]="aInactivar() !== null"

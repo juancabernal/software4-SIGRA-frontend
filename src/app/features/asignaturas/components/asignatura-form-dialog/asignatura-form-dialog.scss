@@ -1,0 +1,88 @@
+.campos {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.campo {
+  display: grid;
+  gap: 0.35rem;
+
+  label {
+    color: var(--sg-ink-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  input,
+  select {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--sg-border);
+    border-radius: var(--sg-radius-control);
+    background: var(--sg-field);
+    color: var(--sg-ink);
+    font: inherit;
+    font-size: 0.875rem;
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--sg-navy);
+      background: var(--sg-card);
+    }
+
+    &[aria-invalid='true'] {
+      border-color: var(--sg-error-fg);
+    }
+  }
+}
+
+.obligatorio {
+  color: var(--sg-error-fg);
+}
+
+// El código se muestra en mayúsculas (el backend también lo normaliza), salvo el ejemplo.
+.mayusculas {
+  text-transform: uppercase;
+
+  &::placeholder {
+    text-transform: none;
+  }
+}
+
+.ayuda {
+  margin: 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.75rem;
+}
+
+.error-campo {
+  margin: 0;
+  color: var(--sg-error-fg);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+// Campo de solo lectura con candado: código y programa no se modifican (RF-03c).
+.bloqueado {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-left: 0.75rem;
+  border: 1px dashed var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-divider);
+  color: var(--sg-ink-muted);
+
+  input {
+    border: 0;
+    background: transparent;
+    color: var(--sg-ink-body);
+    cursor: default;
+  }
+}
+
+.codigo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}

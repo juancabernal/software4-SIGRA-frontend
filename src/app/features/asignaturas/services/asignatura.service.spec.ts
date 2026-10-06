@@ -77,6 +77,32 @@ describe('AsignaturaService', () => {
     req.flush(ASIGNATURA);
   });
 
+  it('registra con POST /v1/asignaturas y el cuerpo exacto', () => {
+    let resultado: Asignatura | undefined;
+    service
+      .crear({ codigo: 'MAT-401', nombre: 'Cálculo Integral', programaId: 'p1' })
+      .subscribe((r) => (resultado = r));
+
+    const req = http.expectOne(URL);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      codigo: 'MAT-401',
+      nombre: 'Cálculo Integral',
+      programaId: 'p1',
+    });
+    req.flush({ ...ASIGNATURA, cantidadRa: 0 });
+    expect(resultado?.estado).toBe('BORRADOR');
+  });
+
+  it('modifica con PUT /v1/asignaturas/{id} enviando SOLO el nombre', () => {
+    service.modificar(ASIGNATURA.id, 'Nuevo nombre').subscribe();
+
+    const req = http.expectOne(`${URL}/${ASIGNATURA.id}`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ nombre: 'Nuevo nombre' });
+    req.flush({ ...ASIGNATURA, nombre: 'Nuevo nombre' });
+  });
+
   it('activa con PATCH /v1/asignaturas/{id}/activar', () => {
     let resultado: Asignatura | undefined;
     service.activar(ASIGNATURA.id).subscribe((r) => (resultado = r));
