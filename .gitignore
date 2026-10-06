@@ -48,3 +48,6 @@ Thumbs.db
 /scripts
 /openspec
 .agents
+.dockerignore
+Dockerfile
+CLAUDE.md
