@@ -1,86 +1,99 @@
 <dialog #dialogo aria-labelledby="titulo-registrar-semestre" (cancel)="alCancelarNativo($event)">
   <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
-    <div class="encabezado">
-      <h2 id="titulo-registrar-semestre">Registrar semestre</h2>
-      <p>
-        El estado se calcula con las fechas: el semestre queda activo solo mientras la fecha
-        actual esté dentro de su rango. No puede cruzarse con otro semestre.
-      </p>
-    </div>
-
-    @if (errorApi(); as error) {
-      <div class="alerta" role="alert">
-        {{ error.mensaje }}
-        @if (error.detalles.length) {
-          <ul>
-            @for (detalle of error.detalles; track $index) {
-              <li>{{ detalle }}</li>
-            }
-          </ul>
-        }
-      </div>
-    }
-
-    <div class="campo">
-      <label for="semestre-codigo">Código del semestre</label>
-      <input
-        id="semestre-codigo"
-        formControlName="codigo"
-        placeholder="2027-1"
-        autocomplete="off"
-        inputmode="numeric"
-        maxlength="6"
-        autofocus
-        [attr.aria-invalid]="mostrarError('codigo')"
-        aria-describedby="semestre-codigo-ayuda semestre-codigo-error"
-      />
-      <p class="ayuda" id="semestre-codigo-ayuda">
-        Año y periodo, por ejemplo 2027-1 o 2027-2. El año debe ser el de la fecha de inicio.
-      </p>
-      @if (mostrarError('codigo')) {
-        <p class="error-campo" id="semestre-codigo-error">
-          @if (form.controls.codigo.hasError('required')) {
-            Escribe el código del semestre.
-          } @else {
-            Usa el formato AAAA-1 o AAAA-2.
-          }
+    <header class="encabezado">
+      <div>
+        <h2 id="titulo-registrar-semestre">Registrar semestre</h2>
+        <p>
+          El estado se calcula con las fechas: el semestre queda activo solo mientras la fecha
+          actual esté dentro de su rango. No puede cruzarse con otro semestre.
         </p>
-      }
-    </div>
-
-    <div class="fila">
-      <div class="campo">
-        <label for="semestre-inicio">Fecha de inicio</label>
-        <input
-          id="semestre-inicio"
-          type="date"
-          formControlName="fechaInicio"
-          [min]="hoy"
-          [attr.aria-invalid]="mostrarError('fechaInicio')"
-          aria-describedby="semestre-inicio-error"
-        />
-        @if (mostrarError('fechaInicio')) {
-          <p class="error-campo" id="semestre-inicio-error">Selecciona la fecha de inicio.</p>
-        }
       </div>
+      <button
+        type="button"
+        class="cerrar"
+        (click)="cancelar()"
+        [disabled]="guardando()"
+        aria-label="Cerrar el registro de semestre"
+      >
+        <app-semestre-icono nombre="x" />
+      </button>
+    </header>
+
+    <div class="cuerpo">
+      @if (errorApi(); as error) {
+        <div class="alerta" role="alert">
+          {{ error.mensaje }}
+          @if (error.detalles.length) {
+            <ul>
+              @for (detalle of error.detalles; track $index) {
+                <li>{{ detalle }}</li>
+              }
+            </ul>
+          }
+        </div>
+      }
 
       <div class="campo">
-        <label for="semestre-fin">Fecha de fin</label>
+        <label for="semestre-codigo">Código del semestre</label>
         <input
-          id="semestre-fin"
-          type="date"
-          formControlName="fechaFin"
-          [min]="form.controls.fechaInicio.value || hoy"
-          [attr.aria-invalid]="mostrarError('fechaFin') || mostrarErrorRango()"
-          aria-describedby="semestre-fin-error"
+          id="semestre-codigo"
+          formControlName="codigo"
+          placeholder="2027-1"
+          autocomplete="off"
+          inputmode="numeric"
+          maxlength="6"
+          autofocus
+          [attr.aria-invalid]="mostrarError('codigo')"
+          aria-describedby="semestre-codigo-ayuda semestre-codigo-error"
         />
-        @if (mostrarError('fechaFin')) {
-          <p class="error-campo" id="semestre-fin-error">Selecciona la fecha de fin.</p>
-        } @else if (mostrarErrorRango()) {
-          <p class="error-campo" id="semestre-fin-error">
-            La fecha de fin debe ser posterior a la de inicio.
+        <p class="ayuda" id="semestre-codigo-ayuda">
+          Año y periodo, por ejemplo 2027-1 o 2027-2. El año debe ser el de la fecha de inicio.
+        </p>
+        @if (mostrarError('codigo')) {
+          <p class="error-campo" id="semestre-codigo-error">
+            @if (form.controls.codigo.hasError('required')) {
+              Escribe el código del semestre.
+            } @else {
+              Usa el formato AAAA-1 o AAAA-2.
+            }
           </p>
         }
+      </div>
+
+      <div class="fila">
+        <div class="campo">
+          <label for="semestre-inicio">Fecha de inicio</label>
+          <input
+            id="semestre-inicio"
+            type="date"
+            formControlName="fechaInicio"
+            [min]="hoy"
+            [attr.aria-invalid]="mostrarError('fechaInicio')"
+            aria-describedby="semestre-inicio-error"
+          />
+          @if (mostrarError('fechaInicio')) {
+            <p class="error-campo" id="semestre-inicio-error">Selecciona la fecha de inicio.</p>
+          }
+        </div>
+
+        <div class="campo">
+          <label for="semestre-fin">Fecha de fin</label>
+          <input
+            id="semestre-fin"
+            type="date"
+            formControlName="fechaFin"
+            [min]="form.controls.fechaInicio.value || hoy"
+            [attr.aria-invalid]="mostrarError('fechaFin') || mostrarErrorRango()"
+            aria-describedby="semestre-fin-error"
+          />
+          @if (mostrarError('fechaFin')) {
+            <p class="error-campo" id="semestre-fin-error">Selecciona la fecha de fin.</p>
+          } @else if (mostrarErrorRango()) {
+            <p class="error-campo" id="semestre-fin-error">
+              La fecha de fin debe ser posterior a la de inicio.
+            </p>
+          }
+        </div>
       </div>
     </div>
 

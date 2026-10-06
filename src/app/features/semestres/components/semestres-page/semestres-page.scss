@@ -1,45 +1,42 @@
-// Tokens tomados del mock del equipo (verde institucional sobre neutros slate).
-// Se declaran aquí, con prefijo --sem-, porque la guía visual global sigue pendiente de
-// aprobación (README). Los diálogos y el badge los heredan por estar dentro de este host.
+// Sistema visual institucional SIGRA (paleta azul marino + turquesa).
+// Las variables --sem-* apuntan a los tokens globales --sg-* de styles.scss; el valor
+// literal es solo respaldo. --sem-ink usa #1A2332 de la guía (el token global difiere).
+// Los diálogos y el badge las heredan por estar dentro de este host.
 :host {
-  --sem-bg: #f1f5f9;
-  --sem-surface: #ffffff;
-  --sem-surface-2: #f8fafc;
-  --sem-hover: #f1f5f9;
-  --sem-ink: #0f172a;
-  --sem-ink-2: #334155;
-  --sem-muted: #64748b;
-  --sem-line: #e2e8f0;
-  --sem-accent: #008f4c;
-  --sem-accent-hover: #007a41;
-  --sem-accent-ring: rgba(0, 143, 76, 0.18);
-  --sem-field: #f6f8fb;
-  --sem-field-line: #a3b0c2;
-  --sem-field-line-hover: #7d8da3;
-  --sem-ok: #047857;
-  --sem-ok-bg: #ecfdf5;
-  --sem-ok-line: #a7f3d0;
-  --sem-danger: #b91c1c;
-  --sem-danger-bg: #fef2f2;
-  --sem-danger-line: #fecaca;
-  --sem-na: #475569;
-  --sem-na-bg: #f8fafc;
-  --sem-na-line: #e2e8f0;
-  --sem-radius: 12px;
-  --sem-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sem-navy: var(--sg-navy, #1b3a5c);
+  --sem-navy-hover: var(--sg-navy-hover, #15304e);
+  --sem-navy-ring: rgba(27, 58, 92, 0.2);
+  --sem-surface: var(--sg-card, #fff);
+  --sem-field: var(--sg-field, #f8fafc);
+  --sem-hover: var(--sg-divider, #f1f5f9);
+  --sem-row-hover: var(--sg-row-hover, #fafbff);
+  --sem-line: var(--sg-border, #e2e8f0);
+  --sem-divider: var(--sg-divider, #f1f5f9);
+  --sem-ink: #1a2332;
+  --sem-muted: var(--sg-ink-muted, #64748b);
+  --sem-soft: var(--sg-ink-soft, #94a3b8);
+  --sem-ok: var(--sg-ok-fg, #16b8a0);
+  --sem-ok-bg: var(--sg-ok-bg, #e6f8f6);
+  --sem-danger: var(--sg-error-fg, #c0392b);
+  --sem-danger-bg: var(--sg-error-bg, #fdecea);
+  --sem-neutral-bg: var(--sg-divider, #f1f5f9);
+  --sem-radius-card: var(--sg-radius-card, 20px);
+  --sem-radius-control: var(--sg-radius-control, 12px);
+  --sem-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --sem-font-titulo: var(--sg-font-titulo, Manrope, system-ui, sans-serif);
+  --sem-font-cuerpo: var(--sg-font-cuerpo, Inter, system-ui, sans-serif);
+  --sem-t: 150ms ease;
 
   display: block;
-  min-height: 100dvh;
-  background: var(--sem-bg);
   color: var(--sem-ink);
-  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  font-size: 0.9375rem;
+  font-family: var(--sem-font-cuerpo);
+  font-size: 0.875rem;
 }
 
 .pagina {
   max-width: 72rem;
   margin: 0 auto;
-  padding: 2rem clamp(1rem, 4vw, 2.5rem) 3rem;
+  padding: 24px;
   display: grid;
   gap: 1.25rem;
 }
@@ -58,13 +55,15 @@
 
 h1 {
   margin: 0;
-  font-size: clamp(1.5rem, 1.2rem + 1vw, 1.875rem);
+  color: var(--sem-navy);
+  font-family: var(--sem-font-titulo);
+  font-size: 1.5rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .cabecera p {
-  margin: 0.5rem 0 0;
+  margin: 0.4rem 0 0;
   color: var(--sem-muted);
   line-height: 1.55;
 }
@@ -74,23 +73,24 @@ h1 {
   align-items: center;
   gap: 0.5rem;
   margin: 0;
-  color: var(--sem-ink-2);
+  color: var(--sem-muted);
 }
 
-.hoy svg {
-  color: var(--sem-accent);
-  flex: none;
+.hoy app-semestre-icono {
+  color: var(--sem-navy);
 }
 
 .codigo {
-  font-family: var(--sem-mono);
+  color: var(--sem-navy);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .tarjeta {
   background: var(--sem-surface);
   border: 1px solid var(--sem-line);
-  border-radius: var(--sem-radius);
+  border-radius: var(--sem-radius-card);
+  box-shadow: var(--sem-shadow);
   overflow: hidden;
 }
 
@@ -100,52 +100,68 @@ h1 {
 
 table {
   width: 100%;
+  min-width: 46rem;
   border-collapse: collapse;
 }
 
 th,
 td {
-  padding: 0.85rem 1rem;
+  padding: 0.875rem 1.25rem;
   text-align: left;
   vertical-align: middle;
-  border-bottom: 1px solid var(--sem-line);
+  border-bottom: 1px solid var(--sem-divider);
 }
 
 thead th {
-  background: var(--sem-surface-2);
+  background: var(--sem-field);
+  border-bottom-color: var(--sem-line);
   color: var(--sem-muted);
-  font-size: 0.8rem;
+  font-family: var(--sem-font-titulo);
+  font-size: 0.75rem;
   font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+tbody tr {
+  transition: background var(--sem-t);
+}
+
+tbody tr:hover {
+  background: var(--sem-row-hover);
 }
 
 tbody tr:last-child > * {
   border-bottom: 0;
 }
 
-.fila--terminada {
+.fila--terminada td {
   color: var(--sem-muted);
+}
+
+.num,
+td {
+  font-variant-numeric: tabular-nums;
 }
 
 .num {
   text-align: right;
-  font-variant-numeric: tabular-nums;
+}
+
+.situacion,
+.nota {
+  color: var(--sem-soft);
+  font-size: 0.75rem;
 }
 
 .situacion {
   display: block;
   margin-top: 0.3rem;
-  color: var(--sem-muted);
-  font-size: 0.8rem;
 }
 
 .acciones-fila {
   text-align: right;
   white-space: nowrap;
-}
-
-.nota {
-  color: var(--sem-muted);
-  font-size: 0.8rem;
 }
 
 .estado-vista {
@@ -163,8 +179,10 @@ tbody tr:last-child > * {
 }
 
 .estado-vista__titulo {
-  color: var(--sem-ink);
-  font-weight: 600;
+  color: var(--sem-navy);
+  font-family: var(--sem-font-titulo);
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 .estado-vista--error p {
@@ -179,9 +197,8 @@ tbody tr:last-child > * {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.75rem 0.9rem;
-  border: 1px solid var(--sem-ok-line);
-  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  border-radius: var(--sem-radius-control);
   background: var(--sem-ok-bg);
   color: var(--sem-ok);
   font-weight: 500;
@@ -194,110 +211,75 @@ tbody tr:last-child > * {
 .aviso__cerrar {
   display: grid;
   place-items: center;
-  padding: 0.3rem;
+  width: 1.75rem;
+  height: 1.75rem;
   border: 0;
-  border-radius: 6px;
+  border-radius: 999px;
   background: transparent;
   color: inherit;
   cursor: pointer;
+  transition: background var(--sem-t);
+}
+
+.aviso__cerrar:hover {
+  background: rgba(22, 184, 160, 0.12);
 }
 
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.45rem;
-  font: inherit;
+  padding: 0.625rem 1rem;
+  border: 1px solid rgba(27, 58, 92, 0.2);
+  border-radius: var(--sem-radius-control);
+  background: var(--sem-surface);
+  color: var(--sem-navy);
+  font-family: var(--sem-font-titulo);
   font-size: 0.875rem;
   font-weight: 600;
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
-  border: 1px solid var(--sem-line);
-  background: var(--sem-surface);
-  color: var(--sem-ink-2);
+  line-height: 1.2;
   cursor: pointer;
+  transition:
+    background var(--sem-t),
+    border-color var(--sem-t),
+    transform var(--sem-t);
 }
 
 .btn:hover {
   background: var(--sem-hover);
+  border-color: rgba(27, 58, 92, 0.35);
+}
+
+.btn:active {
+  transform: scale(0.98);
 }
 
 .btn--primario {
-  border-color: var(--sem-accent);
-  background: var(--sem-accent);
+  border-color: var(--sem-navy);
+  background: var(--sem-navy);
   color: #fff;
 }
 
 .btn--primario:hover {
-  background: var(--sem-accent-hover);
+  border-color: var(--sem-navy-hover);
+  background: var(--sem-navy-hover);
 }
 
 .btn--pequeno {
   padding: 0.4rem 0.75rem;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
 }
 
 .btn:focus-visible,
 .aviso__cerrar:focus-visible {
-  outline: 3px solid var(--sem-accent-ring);
+  outline: 2px solid var(--sem-navy);
   outline-offset: 2px;
-}
-
-.solo-lectores {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-// En pantallas angostas cada semestre se muestra como un bloque apilado.
-@media (max-width: 40rem) {
-  thead {
-    display: none;
-  }
-
-  table,
-  tbody,
-  tr,
-  th,
-  td {
-    display: block;
-  }
-
-  tbody tr {
-    padding: 0.9rem 1rem;
-    border-bottom: 1px solid var(--sem-line);
-  }
-
-  th,
-  td {
-    padding: 0.2rem 0;
-    border: 0;
-  }
-
-  td[data-etiqueta] {
-    display: grid;
-    grid-template-columns: 6.5rem 1fr;
-    gap: 0.5rem;
-    text-align: left;
-  }
-
-  td[data-etiqueta]::before {
-    content: attr(data-etiqueta);
-    color: var(--sem-muted);
-    font-size: 0.8rem;
-  }
-
-  .acciones-fila {
-    padding-top: 0.6rem;
-    text-align: left;
-  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .aviso {
-    animation: aparecer 160ms ease-out;
+    animation: aparecer 180ms ease-out;
   }
 
   @keyframes aparecer {
