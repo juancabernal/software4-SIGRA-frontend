@@ -1,0 +1,114 @@
+<dialog #dialogo aria-labelledby="titulo-form-profesor" (cancel)="alCancelarNativo($event)">
+  <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+    <div class="encabezado">
+      <h2 id="titulo-form-profesor">{{ titulo() }}</h2>
+      <p>El correo institucional debe tener el formato usuario&#64;uco.net.co.</p>
+    </div>
+
+    @if (errorApi(); as error) {
+      <div class="alerta" role="alert">
+        {{ error.mensaje }}
+        @if (error.detalles.length) {
+          <ul>
+            @for (detalle of error.detalles; track $index) {
+              <li>{{ detalle }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+
+    <div class="campo">
+      <label for="profesor-tipo-documento">Tipo de documento</label>
+      <select
+        id="profesor-tipo-documento"
+        formControlName="tipoDocumentoId"
+        autofocus
+        [attr.aria-invalid]="mostrarError('tipoDocumentoId')"
+        aria-describedby="profesor-tipo-documento-error"
+      >
+        <option value="" disabled>
+          {{ cargandoTiposDocumento() ? 'Cargando…' : 'Selecciona un tipo de documento' }}
+        </option>
+        @for (tipo of tiposDocumento(); track tipo.id) {
+          <option [value]="tipo.id">{{ tipo.nombre }}</option>
+        }
+      </select>
+      @if (mostrarError('tipoDocumentoId')) {
+        <p class="error-campo" id="profesor-tipo-documento-error">
+          Selecciona el tipo de documento.
+        </p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="profesor-numero-documento">Número de documento</label>
+      <input
+        id="profesor-numero-documento"
+        formControlName="numeroDocumento"
+        placeholder="1017245136"
+        autocomplete="off"
+        inputmode="numeric"
+        maxlength="10"
+        [attr.aria-invalid]="mostrarError('numeroDocumento')"
+        aria-describedby="profesor-numero-documento-ayuda profesor-numero-documento-error"
+      />
+      <p class="ayuda" id="profesor-numero-documento-ayuda">Entre 6 y 10 dígitos numéricos.</p>
+      @if (mostrarError('numeroDocumento')) {
+        <p class="error-campo" id="profesor-numero-documento-error">
+          @if (form.controls.numeroDocumento.hasError('required')) {
+            Escribe el número de documento.
+          } @else {
+            Usa solo dígitos, entre 6 y 10 caracteres.
+          }
+        </p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="profesor-nombre">Nombre completo</label>
+      <input
+        id="profesor-nombre"
+        formControlName="nombreCompleto"
+        placeholder="Jean Paul Ortiz Restrepo"
+        autocomplete="off"
+        [attr.aria-invalid]="mostrarError('nombreCompleto')"
+        aria-describedby="profesor-nombre-error"
+      />
+      @if (mostrarError('nombreCompleto')) {
+        <p class="error-campo" id="profesor-nombre-error">Escribe el nombre completo.</p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="profesor-correo">Correo institucional</label>
+      <input
+        id="profesor-correo"
+        type="email"
+        formControlName="correoInstitucional"
+        placeholder="usuario&#64;uco.net.co"
+        autocomplete="off"
+        [attr.aria-invalid]="mostrarError('correoInstitucional')"
+        aria-describedby="profesor-correo-error"
+      />
+      @if (mostrarError('correoInstitucional')) {
+        <p class="error-campo" id="profesor-correo-error">
+          @if (form.controls.correoInstitucional.hasError('required')) {
+            Escribe el correo institucional.
+          } @else {
+            Usa el formato usuario&#64;uco.net.co.
+          }
+        </p>
+      }
+    </div>
+
+    <div class="acciones">
+      <button type="button" class="btn" (click)="cancelar()" [disabled]="guardando()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn btn--primario" [disabled]="guardando()">
+        {{ etiquetaGuardar() }}
+      </button>
+    </div>
+  </form>
+</dialog>
