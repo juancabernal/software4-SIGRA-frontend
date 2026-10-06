@@ -1,0 +1,245 @@
+<div class="aviso-zona" role="status" aria-live="polite">
+  @if (aviso(); as a) {
+    <div class="aviso" [class.aviso--error]="a.tono === 'error'">
+      <app-icono [nombre]="a.tono === 'ok' ? 'check' : 'advertencia'" [tamano]="16" />
+      <span>{{ a.texto }}</span>
+      <button type="button" class="aviso__cerrar" aria-label="Cerrar aviso" (click)="cerrarAviso()">
+        <app-icono nombre="cerrar" [tamano]="14" />
+      </button>
+    </div>
+  }
+</div>
+
+<div class="tarjeta">
+  <div class="barra">
+    <div class="buscador">
+      <app-icono nombre="buscar" [tamano]="16" />
+      <input
+        type="search"
+        placeholder="Buscar..."
+        aria-label="Buscar materias por nombre o código"
+        [value]="texto()"
+        (input)="alEscribir($event)"
+      />
+    </div>
+
+    <label class="solo-lectores" for="filtro-programa">Programa</label>
+    <select
+      id="filtro-programa"
+      class="selector"
+      [value]="programaId()"
+      (change)="alCambiarPrograma($event)"
+    >
+      <option value="">Todos los programas</option>
+      @for (programa of programas(); track programa.id) {
+        <option [value]="programa.id">
+          {{ programa.nombre }}{{ programa.estado === 'INACTIVO' ? ' (inactivo)' : '' }}
+        </option>
+      }
+    </select>
+
+    <label class="solo-lectores" for="filtro-ra">Cantidad de RA</label>
+    <select id="filtro-ra" class="selector" [value]="rango()" (change)="alCambiarRango($event)">
+      @for (opcion of rangos; track opcion.valor) {
+        <option [value]="opcion.valor">{{ opcion.etiqueta }}</option>
+      }
+    </select>
+
+    <!-- Parte 2: el botón abrirá el formulario de registro. -->
+    <button
+      type="button"
+      class="btn btn--primario barra__registrar"
+      aria-disabled="true"
+      aria-describedby="materias-proximamente"
+    >
+      <app-icono nombre="mas" [tamano]="16" />
+      Registrar
+    </button>
+    <span class="solo-lectores" id="materias-proximamente">Disponible próximamente</span>
+  </div>
+
+  @if (cargando()) {
+    <p class="estado-vista" role="status">Cargando materias…</p>
+  } @else if (errorCarga(); as error) {
+    <div class="estado-vista estado-vista--error" role="alert">
+      <p>{{ error.mensaje }}</p>
+      <button type="button" class="btn" (click)="recargar()">
+        <app-icono nombre="recargar" [tamano]="16" />
+        Reintentar
+      </button>
+    </div>
+  } @else if (asignaturas().length === 0) {
+    @if (hayFiltros()) {
+      <div class="estado-vista">
+        <p class="estado-vista__titulo">Sin resultados</p>
+        <p>Ninguna materia coincide con la búsqueda y los filtros aplicados.</p>
+        <button type="button" class="btn" (click)="limpiarFiltros()">Limpiar filtros</button>
+      </div>
+    } @else {
+      <div class="estado-vista">
+        <p class="estado-vista__titulo">Aún no hay materias registradas</p>
+        <p>Registra la primera materia del catálogo.</p>
+        <button
+          type="button"
+          class="btn btn--primario"
+          aria-disabled="true"
+          aria-describedby="materias-proximamente"
+        >
+          <app-icono nombre="mas" [tamano]="16" />
+          Registrar
+        </button>
+      </div>
+    }
+  } @else {
+    <div class="tabla-contenedor">
+      <table>
+        <caption class="solo-lectores">
+          Materias del catálogo académico
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Nombre</th>
+            <th scope="col">Código</th>
+            <th scope="col">Programa</th>
+            <th scope="col" class="num">RA</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of asignaturas(); track a.id) {
+            <tr>
+              <th scope="row" class="nombre">{{ a.nombre }}</th>
+              <td class="codigo">{{ a.codigo }}</td>
+              <td class="programa">{{ a.programaNombre }}</td>
+              <td class="num tabular">{{ a.cantidadRa }}</td>
+              <td>
+                <app-chip-estado
+                  [etiqueta]="presentacion[a.estado].etiqueta"
+                  [variante]="presentacion[a.estado].variante"
+                  [icono]="presentacion[a.estado].icono"
+                />
+              </td>
+              <td>
+                <div class="acciones">
+                  <button
+                    type="button"
+                    class="btn-ghost"
+                    [attr.aria-label]="'Consultar ' + a.nombre"
+                    (click)="consultar(a)"
+                  >
+                    <app-icono nombre="ojo" [tamano]="16" />
+                    <span>Consultar</span>
+                  </button>
+
+                  <!-- Parte 2: abrirá el formulario de modificación. -->
+                  <button
+                    type="button"
+                    class="btn-ghost"
+                    aria-disabled="true"
+                    aria-describedby="materias-proximamente"
+                    [attr.aria-label]="'Modificar ' + a.nombre"
+                  >
+                    <app-icono nombre="lapiz" [tamano]="16" />
+                    <span>Modificar</span>
+                  </button>
+
+                  @switch (a.estado) {
+                    @case ('BORRADOR') {
+                      @let habilitado = puedeActivarse(a);
+                      <span class="con-tooltip">
+                        <button
+                          type="button"
+                          class="btn btn--secundario btn--pequeno"
+                          [attr.aria-label]="'Activar ' + a.nombre"
+                          [attr.aria-disabled]="
+                            !habilitado || activandoId() === a.id ? 'true' : null
+                          "
+                          [attr.aria-describedby]="habilitado ? null : 'tooltip-activar-' + a.id"
+                          (click)="activar(a)"
+                        >
+                          {{ activandoId() === a.id ? 'Activando…' : 'Activar' }}
+                        </button>
+                        @if (!habilitado) {
+                          <span class="tooltip" role="tooltip" [id]="'tooltip-activar-' + a.id">
+                            {{ tooltipActivar }}
+                          </span>
+                        }
+                      </span>
+                    }
+                    @case ('ACTIVA') {
+                      <button
+                        type="button"
+                        class="btn btn--peligro btn--pequeno"
+                        [attr.aria-label]="'Inactivar ' + a.nombre"
+                        (click)="pedirInactivar(a)"
+                      >
+                        Inactivar
+                      </button>
+                    }
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<app-panel-lateral
+  titulo="Detalle de la materia"
+  [abierto]="consultada() !== null"
+  (cerrar)="cerrarConsulta()"
+>
+  @if (consultada(); as c) {
+    <dl class="detalle">
+      <div>
+        <dt>Nombre</dt>
+        <dd class="detalle__nombre">{{ c.nombre }}</dd>
+      </div>
+      <div>
+        <dt>Código</dt>
+        <dd class="codigo">{{ c.codigo }}</dd>
+      </div>
+      <div>
+        <dt>Programa académico</dt>
+        <dd>{{ c.programaNombre }}</dd>
+      </div>
+      <div>
+        <dt>Estado</dt>
+        <dd>
+          <app-chip-estado
+            [etiqueta]="presentacion[c.estado].etiqueta"
+            [variante]="presentacion[c.estado].variante"
+            [icono]="presentacion[c.estado].icono"
+          />
+        </dd>
+      </div>
+      <div>
+        <dt>RA activos</dt>
+        <dd class="tabular">{{ c.cantidadRa }}</dd>
+      </div>
+    </dl>
+    @if (c.estado === 'BORRADOR') {
+      <p class="detalle__nota">Para activar se requieren entre 5 y 7 RA activos.</p>
+    }
+    <p class="detalle__solo-lectura">
+      <app-icono nombre="candado" [tamano]="14" />
+      Solo lectura · no editable desde esta vista
+    </p>
+  }
+</app-panel-lateral>
+
+<app-dialogo-confirmacion
+  [abierto]="aInactivar() !== null"
+  [titulo]="tituloInactivar()"
+  descripcion="Sus resultados de aprendizaje activos también pasarán a inactivos. No se elimina nada y las matrículas y calificaciones existentes no se afectan."
+  etiquetaConfirmar="Inactivar"
+  tono="peligro"
+  [procesando]="inactivando()"
+  [error]="errorInactivar()"
+  (confirmar)="confirmarInactivar()"
+  (cancelar)="cancelarInactivar()"
+/>

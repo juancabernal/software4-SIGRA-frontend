@@ -1,0 +1,40 @@
+<dialog
+  #dialogo
+  class="dialogo"
+  [attr.aria-labelledby]="idTitulo"
+  [attr.aria-describedby]="descripcion() ? idDescripcion : null"
+  (cancel)="alCancelarNativo($event)"
+>
+  <div class="dialogo__contenido">
+    <h2 [id]="idTitulo">{{ titulo() }}</h2>
+    @if (descripcion()) {
+      <p class="dialogo__descripcion" [id]="idDescripcion">{{ descripcion() }}</p>
+    }
+
+    @if (error(); as mensaje) {
+      <div class="dialogo__error" role="alert">{{ mensaje }}</div>
+    }
+
+    <div class="dialogo__acciones">
+      <button
+        #botonCancelar
+        type="button"
+        class="btn"
+        [disabled]="procesando()"
+        (click)="alCancelar()"
+      >
+        {{ etiquetaCancelar() }}
+      </button>
+      <button
+        type="button"
+        class="btn"
+        [class.btn--peligro]="tono() === 'peligro'"
+        [class.btn--primario]="tono() === 'normal'"
+        [disabled]="procesando()"
+        (click)="alConfirmar()"
+      >
+        {{ procesando() ? 'Procesando…' : etiquetaConfirmar() }}
+      </button>
+    </div>
+  </div>
+</dialog>

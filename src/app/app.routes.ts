@@ -94,13 +94,13 @@ export const routes: Routes = [
 
       // ── Administrador ───────────────────────────────────────────────
       {
+        // Pestaña «Materias» implementada (RF-03); Profesores y Programas siguen pendientes.
         path: 'admin/catalogo',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import('./features/catalogo/components/catalogo-page/catalogo-page').then(
+            (m) => m.CatalogoPage,
+          ),
         title: 'Catálogo académico · SIGRA',
-        data: {
-          titulo: 'Catálogo académico',
-          subtitulo: 'Gestión de profesores, programas y materias',
-        },
       },
       {
         // Único módulo ya implementado.
