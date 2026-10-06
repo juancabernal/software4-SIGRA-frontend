@@ -20,6 +20,7 @@ import { Semestre } from '../../models/semestre.model';
 import { hoyIso } from '../../models/semestre-fechas';
 import { MensajeError, mensajeDeError } from '../../services/semestre-error';
 import { SemestreService } from '../../services/semestre.service';
+import { SemestreIcono } from '../semestre-icono/semestre-icono';
 
 /** Mismo patrón que valida el backend: AAAA-1 o AAAA-2. */
 export const PATRON_CODIGO = /^\d{4}-[12]$/;
@@ -37,7 +38,7 @@ export function finPosteriorAInicio(grupo: AbstractControl): ValidationErrors | 
 
 @Component({
   selector: 'app-semestre-form-dialog',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, SemestreIcono],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './semestre-form-dialog.html',
   styleUrl: './semestre-form-dialog.scss',

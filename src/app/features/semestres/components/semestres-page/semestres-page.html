@@ -4,14 +4,12 @@
       <h1 id="titulo-semestres">Semestres académicos</h1>
       <p>
         Cada semestre está activo solo mientras la fecha actual esté dentro de su rango. Dos
-        semestres no pueden compartir días, y un semestre registrado solo puede extender su fecha
-        de fin.
+        semestres no pueden compartir días, y un semestre registrado solo puede extender su fecha de
+        fin.
       </p>
     </div>
     <button type="button" class="btn btn--primario" (click)="abrirRegistro()">
-      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-        <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-      </svg>
+      <app-semestre-icono nombre="plus" />
       Registrar semestre
     </button>
   </header>
@@ -19,15 +17,15 @@
   <div class="aviso-zona" role="status" aria-live="polite">
     @if (aviso(); as texto) {
       <div class="aviso">
-        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-          <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <app-semestre-icono nombre="circle-check" />
         <span>{{ texto }}</span>
-        <button type="button" class="aviso__cerrar" (click)="cerrarAviso()" aria-label="Cerrar aviso">
-          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-            <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-          </svg>
+        <button
+          type="button"
+          class="aviso__cerrar"
+          (click)="cerrarAviso()"
+          aria-label="Cerrar aviso"
+        >
+          <app-semestre-icono nombre="x" [tamano]="14" />
         </button>
       </div>
     }
@@ -35,14 +33,11 @@
 
   @if (!cargando() && !errorCarga()) {
     <p class="hoy">
-      <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
-        <rect x="2" y="3" width="12" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" />
-        <path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-      </svg>
+      <app-semestre-icono nombre="calendar" />
       @if (filaActiva(); as activa) {
         <span>
-          Semestre en curso: <strong class="codigo">{{ activa.semestre.codigo }}</strong>, termina el
-          {{ activa.fin }}.
+          Semestre en curso: <strong class="codigo">{{ activa.semestre.codigo }}</strong
+          >, termina el {{ activa.fin }}.
         </span>
       } @else {
         <span>Hoy no hay ningún semestre en curso.</span>
@@ -55,14 +50,19 @@
       <p class="estado-vista" aria-busy="true">Cargando semestres…</p>
     } @else if (errorCarga(); as error) {
       <div class="estado-vista estado-vista--error" role="alert">
+        <app-semestre-icono nombre="circle-alert" [tamano]="18" />
         <p>{{ error.mensaje }}</p>
-        <button type="button" class="btn" (click)="cargar()">Reintentar</button>
+        <button type="button" class="btn" (click)="cargar()">
+          <app-semestre-icono nombre="rotate-ccw" [tamano]="14" />
+          Reintentar
+        </button>
       </div>
     } @else if (filas().length === 0) {
       <div class="estado-vista">
         <p class="estado-vista__titulo">Todavía no hay semestres registrados</p>
         <p>Registra el primero indicando su código y su rango de fechas.</p>
         <button type="button" class="btn btn--primario" (click)="abrirRegistro()">
+          <app-semestre-icono nombre="plus" />
           Registrar semestre
         </button>
       </div>
