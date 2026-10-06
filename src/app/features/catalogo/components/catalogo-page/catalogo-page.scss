@@ -1,0 +1,63 @@
+// Contenedor de pantalla del sistema (§5.14), igual que el módulo pendiente.
+
+.pagina {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: clamp(1.25rem, 4vw, 1.5rem);
+}
+
+h1 {
+  margin: 0;
+  color: var(--sg-navy);
+  font-size: clamp(1.375rem, 1.2rem + 0.8vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.cabecera__sub {
+  margin: 0.35rem 0 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.875rem;
+}
+
+// Píldora blanca con borde; la pestaña activa va en navy con texto blanco.
+.pestanas {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-self: start;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-tabs);
+  background: var(--sg-card);
+}
+
+.pestana {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.9rem;
+  border: 0;
+  border-radius: calc(var(--sg-radius-tabs) - 4px);
+  background: transparent;
+  color: var(--sg-ink-muted);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--sg-transition),
+    color var(--sg-transition);
+
+  &:hover:not([aria-selected='true']) {
+    background: var(--sg-field);
+    color: var(--sg-ink);
+  }
+
+  &[aria-selected='true'] {
+    background: var(--sg-navy);
+    color: #fff;
+  }
+}
