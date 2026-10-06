@@ -24,6 +24,10 @@ import {
   puedeActivarse,
 } from '../../models/asignatura.model';
 import { AsignaturaService } from '../../services/asignatura.service';
+import {
+  AsignaturaFormDialog,
+  ResultadoFormulario,
+} from '../asignatura-form-dialog/asignatura-form-dialog';
 import { ProgramaOpcionesService } from '../../services/programa-opciones.service';
 
 /** Opciones del selector «Cantidad de RA» (RF-03b) y su equivalencia en raMin/raMax. */
@@ -63,15 +67,17 @@ const RETARDO_BUSQUEDA_MS = 300;
 const DURACION_AVISO_MS = 6000;
 
 /**
- * Pestaña «Materias» del Catálogo académico (RF-03b, RF-03d): listado con búsqueda y filtros,
- * consulta en panel lateral, y activar/inactivar. Registrar y modificar son la parte 2.
+ * Pestaña «Materias» del Catálogo académico (RF-03a a RF-03d): listado con búsqueda y filtros,
+ * registro y modificación en un modal, consulta en panel lateral, y activar, inactivar y
+ * reactivar. Reactivar una INACTIVA es una decisión del equipo de asignaturas (el SRS 3.2.3d solo
+ * define Borrador → Activa): el backend restaura los RA inactivados con ella.
  *
  * Cada cambio de filtro dispara una consulta nueva y `switchMap` cancela la anterior, para que
  * una respuesta lenta no pise a una más reciente. La autorización real la hace el backend.
  */
 @Component({
   selector: 'app-materias-tab',
-  imports: [ChipEstado, DialogoConfirmacion, Icono, PanelLateral],
+  imports: [AsignaturaFormDialog, ChipEstado, DialogoConfirmacion, Icono, PanelLateral],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './materias-tab.html',
   styleUrl: './materias-tab.scss',
@@ -129,6 +135,10 @@ export class MateriasTab {
   protected readonly aInactivar = signal<Asignatura | null>(null);
   protected readonly inactivando = signal(false);
   protected readonly errorInactivar = signal<string | null>(null);
+
+  protected readonly formularioAbierto = signal(false);
+  /** Materia en edición; null cuando el formulario registra una nueva. */
+  protected readonly enEdicion = signal<Asignatura | null>(null);
 
   protected readonly tituloInactivar = computed(() => {
     const asignatura = this.aInactivar();
@@ -195,6 +205,33 @@ export class MateriasTab {
     this.recargas.update((n) => n + 1);
   }
 
+  // ── Registrar y modificar ─────────────────────────────────────────
+  protected abrirRegistro(): void {
+    this.enEdicion.set(null);
+    this.formularioAbierto.set(true);
+  }
+
+  protected abrirEdicion(asignatura: Asignatura): void {
+    this.enEdicion.set(asignatura);
+    this.formularioAbierto.set(true);
+  }
+
+  protected cerrarFormulario(): void {
+    this.formularioAbierto.set(false);
+  }
+
+  protected alGuardar({ asignatura, modo }: ResultadoFormulario): void {
+    this.formularioAbierto.set(false);
+    this.mostrarAviso({
+      texto:
+        modo === 'crear'
+          ? `Materia registrada: ${asignatura.nombre}. Queda en estado Borrador.`
+          : `Materia actualizada: ${asignatura.nombre}.`,
+      tono: 'ok',
+    });
+    this.recargar();
+  }
+
   // ── Consultar ─────────────────────────────────────────────────────
   protected consultar(asignatura: Asignatura): void {
     this.consultada.set(asignatura);
@@ -220,6 +257,33 @@ export class MateriasTab {
           this.activandoId.set(null);
           this.reemplazar(actualizada);
           this.mostrarAviso({ texto: `Materia activada: ${actualizada.nombre}.`, tono: 'ok' });
+        },
+        error: (error: unknown) => {
+          this.activandoId.set(null);
+          this.mostrarAviso({ texto: mensajeDeError(error).mensaje, tono: 'error' });
+          this.recargar();
+        },
+      });
+  }
+
+  // ── Reactivar (INACTIVA → ACTIVA) ──────────────────────────────────
+  /** Siempre habilitado: el backend restaura los RA y valida el rango de 5 a 7. */
+  protected reactivar(asignatura: Asignatura): void {
+    if (this.activandoId()) {
+      return;
+    }
+    this.activandoId.set(asignatura.id);
+    this.service
+      .activar(asignatura.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (actualizada) => {
+          this.activandoId.set(null);
+          this.reemplazar(actualizada);
+          this.mostrarAviso({
+            texto: `Materia reactivada: ${actualizada.nombre}. Se restauraron sus RA.`,
+            tono: 'ok',
+          });
         },
         error: (error: unknown) => {
           this.activandoId.set(null);

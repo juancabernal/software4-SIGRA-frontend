@@ -17,6 +17,18 @@ export interface Asignatura {
   cantidadRa: number;
 }
 
+/** AsignaturaRequestDTO (POST /asignaturas). La materia nace en BORRADOR. */
+export interface AsignaturaRequest {
+  codigo: string;
+  nombre: string;
+  programaId: string;
+}
+
+/** Mismas reglas que valida el backend en AsignaturaRequestDTO. */
+export const NOMBRE_MAX = 100;
+export const CODIGO_MAX = 20;
+export const PATRON_CODIGO = /^[A-Za-z0-9-]+$/;
+
 /** Filtros de GET /asignaturas; todos opcionales y combinados con AND en el backend. */
 export interface FiltrosAsignaturas {
   texto?: string;

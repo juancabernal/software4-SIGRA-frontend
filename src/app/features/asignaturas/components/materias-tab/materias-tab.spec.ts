@@ -319,11 +319,48 @@ describe('MateriasTab', () => {
     expect(html.querySelector('.aviso-zona')?.textContent).toContain('Materia inactivada');
   });
 
-  it('una materia INACTIVA no ofrece Activar ni Inactivar', async () => {
+  it('una materia INACTIVA ofrece Reactivar (siempre habilitado) y no Activar ni Inactivar', async () => {
     await iniciar([INACTIVA]);
     const acciones = fila('BRU11');
     expect(boton(acciones, 'Activar')).toBeUndefined();
     expect(boton(acciones, 'Inactivar')).toBeUndefined();
+    expect(boton(acciones, 'Reactivar').hasAttribute('aria-disabled')).toBe(false);
+  });
+
+  it('Reactivar exitoso actualiza la fila y avisa que se restauraron los RA', async () => {
+    await iniciar([INACTIVA]);
+    boton(fila('BRU11'), 'Reactivar').click();
+    await fixture.whenStable();
+
+    const req = http.expectOne(`${URL}/in/activar`);
+    expect(req.request.method).toBe('PATCH');
+    req.flush({ ...INACTIVA, estado: 'ACTIVA', cantidadRa: 5 });
+    await fixture.whenStable();
+
+    expect(fila('BRU11').textContent).toContain('Activa');
+    expect(html.querySelector('.aviso-zona')?.textContent).toContain(
+      'Materia reactivada: Bruno Inactiva. Se restauraron sus RA.',
+    );
+  });
+
+  it('un error al reactivar muestra el mensaje del backend y recarga el listado', async () => {
+    await iniciar([INACTIVA]);
+    boton(fila('BRU11'), 'Reactivar').click();
+    await fixture.whenStable();
+
+    http.expectOne(`${URL}/in/activar`).flush(
+      {
+        status: 400,
+        error: 'BAD_REQUEST',
+        mensaje:
+          'Para activar la asignatura se requieren al menos 5 resultados de aprendizaje activos y actualmente tiene 3.',
+      },
+      { status: 400, statusText: 'Bad Request' },
+    );
+    await fixture.whenStable();
+
+    expect(html.querySelector('.aviso-zona')?.textContent).toContain('al menos 5');
+    listado().flush([INACTIVA]);
   });
 
   it('Consultar abre el panel lateral con los datos de la materia', async () => {
@@ -341,11 +378,91 @@ describe('MateriasTab', () => {
     expect(panel.textContent).toContain('Solo lectura · no editable desde esta vista');
   });
 
-  it('Modificar y Registrar existen pero quedan deshabilitados hasta la parte 2', async () => {
-    await iniciar([BORRADOR_5]);
-    expect(boton(fila('BRU05'), 'Modificar').getAttribute('aria-disabled')).toBe('true');
-    expect(boton(html.querySelector('.barra')!, 'Registrar').getAttribute('aria-disabled')).toBe(
-      'true',
-    );
+  describe('registrar y modificar', () => {
+    const modal = () =>
+      html.querySelector('app-asignatura-form-dialog dialog') as HTMLDialogElement;
+    const modalAbierto = () => modal().open || modal().hasAttribute('open');
+    const programasActivos = () =>
+      http.expectOne((r) => r.url === URL_PROGRAMAS && r.params.get('estado') === 'ACTIVO');
+
+    async function escribir(id: string, valor: string): Promise<void> {
+      const control = html.querySelector(`#${id}`) as HTMLInputElement | HTMLSelectElement;
+      control.value = valor;
+      control.dispatchEvent(new Event(control instanceof HTMLSelectElement ? 'change' : 'input'));
+      await fixture.whenStable();
+    }
+
+    async function enviarModal(): Promise<void> {
+      modal()
+        .querySelector('form')!
+        .dispatchEvent(new Event('submit', { cancelable: true }));
+      await fixture.whenStable();
+    }
+
+    it('Registrar abre el modal en modo crear y Cancelar lo cierra sin recargar', async () => {
+      await iniciar([BORRADOR_5]);
+      boton(html.querySelector('.barra')!, 'Registrar').click();
+      await fixture.whenStable();
+      programasActivos().flush([PROGRAMA]);
+      await fixture.whenStable();
+
+      expect(modalAbierto()).toBe(true);
+      expect(modal().querySelector('h2')?.textContent).toContain('Registrar materia');
+
+      boton(modal(), 'Cancelar').click();
+      await fixture.whenStable();
+      expect(modalAbierto()).toBe(false);
+      http.expectNone((r) => r.url === URL);
+    });
+
+    it('registrar con éxito cierra el modal, avisa y recarga la lista', async () => {
+      await iniciar([]);
+      boton(html.querySelector('.estado-vista')!, 'Registrar').click();
+      await fixture.whenStable();
+      programasActivos().flush([PROGRAMA]);
+      await fixture.whenStable();
+
+      await escribir('materia-nombre', 'Cálculo Integral');
+      await escribir('materia-codigo', 'MAT-401');
+      await escribir('materia-programa', 'p1');
+      await enviarModal();
+
+      http
+        .expectOne((r) => r.url === URL && r.method === 'POST')
+        .flush(
+          asignatura({ id: 'n1', codigo: 'MAT-401', nombre: 'Cálculo Integral', cantidadRa: 0 }),
+        );
+      await fixture.whenStable();
+
+      expect(modalAbierto()).toBe(false);
+      expect(html.querySelector('.aviso-zona')?.textContent).toContain(
+        'Materia registrada: Cálculo Integral. Queda en estado Borrador.',
+      );
+      listado().flush([]);
+    });
+
+    it('Modificar abre el modal en modo editar y guardar recarga la lista', async () => {
+      await iniciar([ACTIVA]);
+      boton(fila('BRU10'), 'Modificar').click();
+      await fixture.whenStable();
+
+      expect(modalAbierto()).toBe(true);
+      expect(modal().querySelector('h2')?.textContent).toContain('Modificar materia');
+      expect((html.querySelector('#materia-codigo-fijo') as HTMLInputElement).value).toBe('BRU10');
+
+      await escribir('materia-nombre', 'Bruno Renombrada');
+      await enviarModal();
+
+      const req = http.expectOne(`${URL}/ac`);
+      expect(req.request.method).toBe('PUT');
+      req.flush({ ...ACTIVA, nombre: 'Bruno Renombrada' });
+      await fixture.whenStable();
+
+      expect(modalAbierto()).toBe(false);
+      expect(html.querySelector('.aviso-zona')?.textContent).toContain(
+        'Materia actualizada: Bruno Renombrada.',
+      );
+      listado().flush([{ ...ACTIVA, nombre: 'Bruno Renombrada' }]);
+    });
   });
 });
