@@ -1,0 +1,90 @@
+.dialogo {
+  width: min(30rem, calc(100vw - 2rem));
+  padding: 0;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-card);
+  background: var(--sg-card);
+  color: var(--sg-ink);
+  box-shadow: var(--sg-shadow-float);
+}
+
+.dialogo::backdrop {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.dialogo__contenido {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+
+  h2 {
+    margin: 0;
+    color: var(--sg-navy);
+    font-size: 1.125rem;
+    font-weight: 700;
+  }
+}
+
+.dialogo__descripcion {
+  margin: 0;
+  color: var(--sg-ink-body);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.dialogo__error {
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--sg-radius-micro);
+  background: var(--sg-error-bg);
+  color: var(--sg-error-fg);
+  font-size: 0.875rem;
+}
+
+.dialogo__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.btn {
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-card);
+  color: var(--sg-ink-body);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--sg-transition);
+
+  &:hover:not(:disabled) {
+    background: var(--sg-field);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+.btn--primario {
+  border-color: var(--sg-navy);
+  background: var(--sg-navy);
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: var(--sg-navy-hover);
+  }
+}
+
+.btn--peligro {
+  border-color: var(--sg-error-fg);
+  background: var(--sg-error-bg);
+  color: var(--sg-error-fg);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--sg-error-bg) 70%, var(--sg-error-fg));
+  }
+}
