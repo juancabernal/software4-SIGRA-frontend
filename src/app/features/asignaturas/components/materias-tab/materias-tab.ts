@@ -39,6 +39,16 @@ export const RANGOS_RA = [
   { valor: 'mas7', etiqueta: 'Más de 7', raMin: MAX_RA + 1 },
 ] as const;
 
+/** Opciones del selector «Estado» (RF-03b); '' significa todos los estados. */
+export const ESTADOS_FILTRO = [
+  { valor: '', etiqueta: 'Todos los estados' },
+  { valor: 'BORRADOR', etiqueta: 'Borrador' },
+  { valor: 'ACTIVA', etiqueta: 'Activa' },
+  { valor: 'INACTIVA', etiqueta: 'Inactiva' },
+] as const;
+
+type EstadoFiltro = (typeof ESTADOS_FILTRO)[number]['valor'];
+
 type RangoRa = (typeof RANGOS_RA)[number]['valor'];
 
 interface PresentacionEstado {
@@ -89,6 +99,7 @@ export class MateriasTab {
   private temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
 
   protected readonly rangos = RANGOS_RA;
+  protected readonly estados = ESTADOS_FILTRO;
   protected readonly presentacion = PRESENTACION_ESTADO;
   protected readonly tooltipActivar = TOOLTIP_ACTIVAR;
   protected readonly puedeActivarse = puedeActivarse;
@@ -96,6 +107,7 @@ export class MateriasTab {
   // ── Filtros ───────────────────────────────────────────────────────
   protected readonly texto = signal('');
   protected readonly programaId = signal('');
+  protected readonly estado = signal<EstadoFiltro>('');
   protected readonly rango = signal<RangoRa>('todas');
   private readonly recargas = signal(0);
 
@@ -114,13 +126,15 @@ export class MateriasTab {
     return {
       texto: this.textoAplicado() || undefined,
       programaId: this.programaId() || undefined,
+      estado: this.estado() || undefined,
       raMin: rango && 'raMin' in rango ? rango.raMin : undefined,
       raMax: rango && 'raMax' in rango ? rango.raMax : undefined,
     };
   });
 
   protected readonly hayFiltros = computed(
-    () => !!this.textoAplicado() || !!this.programaId() || this.rango() !== 'todas',
+    () =>
+      !!this.textoAplicado() || !!this.programaId() || !!this.estado() || this.rango() !== 'todas',
   );
 
   // ── Datos y estado de la vista ────────────────────────────────────
@@ -191,6 +205,10 @@ export class MateriasTab {
     this.programaId.set((evento.target as HTMLSelectElement).value);
   }
 
+  protected alCambiarEstado(evento: Event): void {
+    this.estado.set((evento.target as HTMLSelectElement).value as EstadoFiltro);
+  }
+
   protected alCambiarRango(evento: Event): void {
     this.rango.set((evento.target as HTMLSelectElement).value as RangoRa);
   }
@@ -198,6 +216,7 @@ export class MateriasTab {
   protected limpiarFiltros(): void {
     this.texto.set('');
     this.programaId.set('');
+    this.estado.set('');
     this.rango.set('todas');
   }
 
