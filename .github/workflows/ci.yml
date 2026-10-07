@@ -1,0 +1,45 @@
+# Integración continua del frontend (SIGRA).
+# Corre en cada push y en cada pull request hacia develop o main.
+# Compila (producción y desarrollo) y ejecuta las pruebas unitarias (Vitest).
+# No necesita secretos ni navegador.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-y-pruebas:
+    name: Build y pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Compilar (producción)
+        run: npx ng build
+
+      - name: Compilar (desarrollo)
+        run: npx ng build --configuration development
+
+      - name: Ejecutar las pruebas unitarias
+        run: npx ng test --no-watch
