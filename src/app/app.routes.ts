@@ -112,13 +112,13 @@ export const routes: Routes = [
         title: 'Semestres académicos · SIGRA',
       },
       {
+        // RF-06: selector de materia (BORRADOR o ACTIVA) y gestión de sus RA.
         path: 'admin/ra',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import(
+            './features/resultadosaprendizaje/components/resultados-aprendizaje-page/resultados-aprendizaje-page',
+          ).then((m) => m.ResultadosAprendizajePage),
         title: 'Gestión de RA · SIGRA',
-        data: {
-          titulo: 'Gestión de Resultados de Aprendizaje',
-          subtitulo: 'Selecciona una materia para gestionar sus RA',
-        },
       },
       {
         path: 'admin/asignacion',
