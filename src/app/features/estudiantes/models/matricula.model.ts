@@ -1,3 +1,5 @@
+import { VarianteChip } from '../../../shared/ui/chip-estado/chip-estado';
+
 /**
  * Modelos del módulo de matrícula, alineados con los DTO del backend
  * (co.edu.uco.sigra.estudiantes.dto). Ruta base: /api/v1/matriculas.
@@ -5,6 +7,22 @@
 
 /** Desvinculación lógica: una matrícula INACTIVA puede reactivarse, nunca se borra. */
 export type EstadoMatricula = 'ACTIVO' | 'INACTIVO';
+
+interface PresentacionEstado {
+  etiqueta: string;
+  variante: VarianteChip;
+  icono: string;
+}
+
+/**
+ * Ícono + texto + color para pintar con `<app-chip-estado>`: el color nunca va solo (RNF-21).
+ * Los textos son los de la matrícula («Activa» / «Desvinculada»), no los del estado crudo.
+ */
+export const PRESENTACION_ESTADO_MATRICULA: Readonly<Record<EstadoMatricula, PresentacionEstado>> =
+  {
+    ACTIVO: { etiqueta: 'Activa', variante: 'ok', icono: 'check' },
+    INACTIVO: { etiqueta: 'Desvinculada', variante: 'neutro', icono: 'prohibido' },
+  };
 
 /** MatriculaRequestDTO (POST /matriculas). */
 export interface MatriculaRequest {

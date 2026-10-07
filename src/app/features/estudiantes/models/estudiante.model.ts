@@ -1,3 +1,5 @@
+import { VarianteChip } from '../../../shared/ui/chip-estado/chip-estado';
+
 /**
  * Modelos del módulo de estudiantes, alineados con los DTO del backend
  * (co.edu.uco.sigra.estudiantes.dto). Ruta base: /api/v1/estudiantes.
@@ -5,6 +7,23 @@
 
 /** Inactivación lógica: un estudiante INACTIVO sigue apareciendo en el listado. */
 export type EstadoEstudiante = 'ACTIVO' | 'INACTIVO';
+
+interface PresentacionEstado {
+  etiqueta: string;
+  variante: VarianteChip;
+  icono: string;
+}
+
+/**
+ * Ícono + texto + color para pintar con `<app-chip-estado>`: el color nunca va solo (RNF-21).
+ * Mismo criterio que `PRESENTACION_ESTADO` en `materias-tab.ts`.
+ */
+export const PRESENTACION_ESTADO_ESTUDIANTE: Readonly<
+  Record<EstadoEstudiante, PresentacionEstado>
+> = {
+  ACTIVO: { etiqueta: 'Activo', variante: 'ok', icono: 'check' },
+  INACTIVO: { etiqueta: 'Inactivo', variante: 'neutro', icono: 'prohibido' },
+};
 
 /** EstudianteRequestDTO (POST y PUT). El documento no se puede modificar tras el registro. */
 export interface EstudianteRequest {
