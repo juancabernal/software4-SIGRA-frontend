@@ -1,0 +1,164 @@
+<section class="pagina" aria-labelledby="titulo-matriculados">
+  <header class="cabecera">
+    <div class="cabecera__texto">
+      <h1 id="titulo-matriculados">Matriculados</h1>
+      <p>Consulta quién está matriculado en una asignatura y un semestre.</p>
+    </div>
+  </header>
+
+  <div class="aviso-zona" role="status" aria-live="polite">
+    @if (aviso(); as a) {
+      <div class="aviso" [class.aviso--error]="a.tono === 'error'">
+        <app-icono [nombre]="a.tono === 'ok' ? 'check' : 'advertencia'" [tamano]="16" />
+        <span>{{ a.texto }}</span>
+        <button
+          type="button"
+          class="aviso__cerrar"
+          aria-label="Cerrar aviso"
+          (click)="cerrarAviso()"
+        >
+          <app-icono nombre="cerrar" [tamano]="14" />
+        </button>
+      </div>
+    }
+  </div>
+
+  <div class="tarjeta">
+    <div class="barra">
+      <label class="campo-filtro">
+        <span>Asignatura</span>
+        <select
+          id="filtro-asignatura"
+          class="selector"
+          [value]="asignaturaId()"
+          (change)="alCambiarAsignatura($event)"
+        >
+          <option value="" disabled>
+            {{ cargandoCatalogos() ? 'Cargando…' : 'Selecciona una asignatura' }}
+          </option>
+          @for (a of asignaturas(); track a.id) {
+            <option [value]="a.id">
+              {{ a.nombre }}{{ a.estado !== 'ACTIVA' ? ' (inactiva)' : '' }}
+            </option>
+          }
+        </select>
+      </label>
+
+      <label class="campo-filtro">
+        <span>Semestre</span>
+        <select
+          id="filtro-semestre"
+          class="selector"
+          [value]="semestreId()"
+          (change)="alCambiarSemestre($event)"
+        >
+          <option value="" disabled>
+            {{ cargandoCatalogos() ? 'Cargando…' : 'Selecciona un semestre' }}
+          </option>
+          @for (s of semestres(); track s.id) {
+            <option [value]="s.id">
+              {{ s.codigo }}{{ s.estado !== 'ACTIVO' ? ' (inactivo)' : '' }}
+            </option>
+          }
+        </select>
+      </label>
+
+      <label class="interruptor">
+        <input
+          type="checkbox"
+          [checked]="incluirInactivas()"
+          (change)="alCambiarIncluirInactivas($event)"
+        />
+        Incluir matrículas inactivas
+      </label>
+    </div>
+
+    @if (errorCatalogos()) {
+      <div class="estado-vista estado-vista--error" role="alert">
+        <p>No se pudieron cargar las opciones de asignatura y semestre.</p>
+        <button type="button" class="btn" (click)="reintentarCatalogos()">
+          <app-icono nombre="recargar" [tamano]="16" />
+          Reintentar
+        </button>
+      </div>
+    } @else if (cargandoCatalogos()) {
+      <p class="estado-vista" aria-busy="true">Cargando opciones de asignatura y semestre…</p>
+    } @else if (!ambosElegidos()) {
+      <div class="estado-vista">
+        <p class="estado-vista__titulo">Elige una asignatura y un semestre</p>
+        <p>Selecciona ambos filtros para ver quién está matriculado.</p>
+      </div>
+    } @else if (cargando()) {
+      <p class="estado-vista" aria-busy="true">Consultando matriculados…</p>
+    } @else if (errorCarga(); as error) {
+      <div class="estado-vista estado-vista--error" role="alert">
+        <p>{{ error.mensaje }}</p>
+        <button type="button" class="btn" (click)="recargar()">
+          <app-icono nombre="recargar" [tamano]="16" />
+          Reintentar
+        </button>
+      </div>
+    } @else if (matriculados().length === 0) {
+      <div class="estado-vista">
+        <p class="estado-vista__titulo">Nadie matriculado en esa asignatura y semestre</p>
+      </div>
+    } @else {
+      <div class="tabla-contenedor">
+        <table>
+          <caption class="solo-lectores">
+            Estudiantes matriculados en la asignatura y el semestre elegidos
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Documento</th>
+              <th scope="col">Nombre completo</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of matriculados(); track m.matriculaId) {
+              <tr>
+                <th scope="row" class="codigo">{{ m.numeroDocumento }}</th>
+                <td class="nombre">{{ m.nombreCompleto }}</td>
+                <td>
+                  <app-chip-estado
+                    [etiqueta]="presentacion[m.estado].etiqueta"
+                    [variante]="presentacion[m.estado].variante"
+                    [icono]="presentacion[m.estado].icono"
+                  />
+                </td>
+                <td>
+                  @if (m.estado === 'ACTIVO') {
+                    <button
+                      type="button"
+                      class="btn btn--peligro btn--pequeno"
+                      [attr.aria-label]="'Desvincular a ' + m.nombreCompleto"
+                      (click)="pedirDesvincular(m)"
+                    >
+                      Desvincular
+                    </button>
+                  } @else {
+                    <span class="nota">Ya desvinculada</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</section>
+
+<app-dialogo-confirmacion
+  [abierto]="aDesvincular() !== null"
+  [titulo]="tituloDesvincular()"
+  descripcion="Las calificaciones registradas en esta matrícula se conservan."
+  etiquetaConfirmar="Desvincular"
+  tono="peligro"
+  [procesando]="desvinculando()"
+  [error]="errorDesvincular()"
+  (confirmar)="confirmarDesvincular()"
+  (cancelar)="cancelarDesvincular()"
+/>

@@ -116,7 +116,8 @@ describe('AsignaturaFormDialog', () => {
       ]);
       expect(campo<HTMLInputElement>('materia-nombre').placeholder).toBe('Ej. Cálculo Integral');
       expect(campo<HTMLInputElement>('materia-codigo').placeholder).toBe('Ej. MAT-401');
-      expect(html.textContent).toContain('Máximo 100 caracteres');
+      expect(campo('materia-nombre-ayuda').textContent?.trim()).toBe('Entre 3 y 100 caracteres');
+      expect(campo('materia-codigo-ayuda').textContent?.trim()).toBe('Entre 3 y 20 caracteres');
     });
 
     it('con el formulario vacío el botón queda atenuado y enviar solo marca los errores', async () => {
@@ -132,20 +133,79 @@ describe('AsignaturaFormDialog', () => {
       expect(campo('materia-nombre').getAttribute('aria-invalid')).toBe('true');
     });
 
-    it('valida los límites: nombre de 100 y código de 20 caracteres', async () => {
+    const errorDe = (id: string) => campo(`${id}-error`)?.textContent?.trim() ?? null;
+    const FORMATO_CODIGO =
+      'Solo letras, números y guiones; sin espacios ni guiones al inicio, al final o seguidos';
+
+    it.each([
+      ['A'.repeat(2), 'Mínimo 3 caracteres'],
+      ['A'.repeat(3), null],
+      ['A'.repeat(20), null],
+      ['A'.repeat(21), 'El código no puede superar los 20 caracteres.'],
+      ['  ab  ', 'Mínimo 3 caracteres'],
+      [` ${'a'.repeat(20)} `, null],
+    ])('código «%s» (límites 2/3/20/21 sobre el valor recortado) → %s', async (valor, error) => {
       await abrirCrear();
+      await escribir('materia-codigo', valor);
+      expect(errorDe('materia-codigo')).toBe(error);
+    });
 
-      await escribir('materia-nombre', 'A'.repeat(101));
-      expect(html.textContent).toContain('El nombre no puede superar los 100 caracteres.');
-      await escribir('materia-nombre', 'A'.repeat(100));
-      expect(html.textContent).not.toContain('El nombre no puede superar');
+    it.each([
+      ['A'.repeat(2), 'Mínimo 3 caracteres'],
+      ['A'.repeat(3), null],
+      ['A'.repeat(100), null],
+      ['A'.repeat(101), 'El nombre no puede superar los 100 caracteres.'],
+      ['  A    B  ', null],
+      [`${'A'.repeat(50)}     ${'A'.repeat(49)}`, null],
+      ['A\t\n B', null],
+      ['   ', 'Escribe el nombre de la materia.'],
+    ])(
+      'nombre «%s» (límites 2/3/100/101 sobre el valor normalizado) → %s',
+      async (valor, error) => {
+        await abrirCrear();
+        await escribir('materia-nombre', valor);
+        expect(errorDe('materia-nombre')).toBe(error);
+      },
+    );
 
-      await escribir('materia-codigo', 'A'.repeat(21));
-      expect(html.textContent).toContain('El código no puede superar los 20 caracteres.');
-      await escribir('materia-codigo', 'IS W4!');
-      expect(html.textContent).toContain('Usa solo letras, números y guion.');
-      await escribir('materia-nombre', '   ');
-      expect(html.textContent).toContain('Escribe el nombre de la materia.');
+    it.each(['AB C', '-AB', 'AB-', 'A--B', 'IS W4!', 'MAT_401', 'CÁL-101'])(
+      'rechaza el código con formato inválido «%s»',
+      async (valor) => {
+        await abrirCrear();
+        await escribir('materia-codigo', valor);
+        expect(errorDe('materia-codigo')).toBe(FORMATO_CODIGO);
+        expect(campo('materia-codigo').getAttribute('aria-invalid')).toBe('true');
+      },
+    );
+
+    it.each(['mat-401', 'MAT401', 'A1-B2-C3', '  is-w4  '])(
+      'acepta el código con formato válido «%s»',
+      async (valor) => {
+        await abrirCrear();
+        await escribir('materia-codigo', valor);
+        expect(errorDe('materia-codigo')).toBeNull();
+      },
+    );
+
+    it.each([
+      ['<script>x</script>', 'con < y >'],
+      ['Cálculo > Álgebra', 'con >'],
+      ['Cálculo\u0007Integral', 'con carácter de control'],
+      ['Cálculo​Integral', 'con carácter de formato invisible'],
+    ])('rechaza el nombre «%s» (%s)', async (valor) => {
+      await abrirCrear();
+      await escribir('materia-nombre', valor);
+      expect(errorDe('materia-nombre')).toBe('El nombre contiene caracteres no permitidos');
+    });
+
+    it('con un campo inválido no se puede enviar', async () => {
+      await abrirCrear();
+      await llenarValido();
+      await escribir('materia-codigo', 'A--B');
+
+      expect(enviarBoton().getAttribute('aria-disabled')).toBe('true');
+      await enviar();
+      http.expectNone(URL);
     });
 
     it('con datos válidos registra en mayúsculas y sin espacios sobrantes', async () => {
@@ -167,6 +227,23 @@ describe('AsignaturaFormDialog', () => {
       await fixture.whenStable();
 
       expect(guardados).toEqual([{ asignatura: creada, modo: 'crear' }]);
+    });
+
+    it('envía el nombre con las rachas de espacios, tabs y saltos de línea reducidos a uno', async () => {
+      await abrirCrear();
+      await escribir('materia-nombre', '  Cálculo \t\n  Integral  ');
+      await escribir('materia-codigo', '  mat-401 ');
+      await escribir('materia-programa', 'p1');
+      await enviar();
+
+      const req = http.expectOne(URL);
+      expect(req.request.body).toEqual({
+        codigo: 'MAT-401',
+        nombre: 'Cálculo Integral',
+        programaId: 'p1',
+      });
+      req.flush({ ...EXISTENTE, codigo: 'MAT-401', estado: 'BORRADOR' as const });
+      await fixture.whenStable();
     });
 
     it('un 400 muestra el mensaje y los detalles conservando lo escrito', async () => {
@@ -265,7 +342,7 @@ describe('AsignaturaFormDialog', () => {
 
     it('guardar envía solo el nombre con PUT', async () => {
       await abrirEditar();
-      await escribir('materia-nombre', ' Cálculo I ');
+      await escribir('materia-nombre', ' Cálculo   \t I ');
       await enviar();
 
       const req = http.expectOne(`${URL}/a1`);
@@ -276,6 +353,21 @@ describe('AsignaturaFormDialog', () => {
       await fixture.whenStable();
 
       expect(guardados).toEqual([{ asignatura: actualizada, modo: 'editar' }]);
+    });
+
+    it('en editar también valida el nombre normalizado y los caracteres prohibidos', async () => {
+      await abrirEditar();
+      await escribir('materia-nombre', ' A  B ');
+      expect(campo('materia-nombre-error')).toBeNull();
+      await escribir('materia-nombre', 'AB');
+      expect(campo('materia-nombre-error')?.textContent?.trim()).toBe('Mínimo 3 caracteres');
+      await escribir('materia-nombre', 'Cálculo <b>');
+      expect(campo('materia-nombre-error')?.textContent?.trim()).toBe(
+        'El nombre contiene caracteres no permitidos',
+      );
+      expect(enviarBoton().getAttribute('aria-disabled')).toBe('true');
+      await enviar();
+      http.expectNone(`${URL}/a1`);
     });
 
     it('con el nombre vacío no envía', async () => {

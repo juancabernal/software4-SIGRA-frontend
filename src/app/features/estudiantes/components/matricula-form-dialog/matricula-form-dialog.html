@@ -1,0 +1,88 @@
+<dialog #dialogo aria-labelledby="titulo-form-matricula" (cancel)="alCancelarNativo($event)">
+  <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+    <div class="encabezado">
+      <h2 id="titulo-form-matricula">Matricular estudiante</h2>
+      @if (estudianteNombre()) {
+        <p>Elige la asignatura y el semestre para {{ estudianteNombre() }}.</p>
+      }
+    </div>
+
+    @if (errorApi(); as error) {
+      <div class="alerta" role="alert">
+        {{ error.mensaje }}
+        @if (error.detalles.length) {
+          <ul>
+            @for (detalle of error.detalles; track $index) {
+              <li>{{ detalle }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+
+    @if (errorCatalogos()) {
+      <div class="alerta" role="alert">
+        <p>No se pudieron cargar las opciones de asignatura y semestre.</p>
+        <button type="button" class="btn" (click)="reintentarCatalogos()">Reintentar</button>
+      </div>
+    }
+
+    <div class="campo">
+      <label for="matricula-asignatura">Asignatura</label>
+      <select
+        id="matricula-asignatura"
+        formControlName="asignaturaId"
+        autofocus
+        [attr.aria-invalid]="mostrarError('asignaturaId')"
+        aria-describedby="matricula-asignatura-error"
+      >
+        <option value="" disabled>
+          {{ cargandoCatalogos() ? 'Cargando…' : 'Selecciona una asignatura' }}
+        </option>
+        @for (a of asignaturas(); track a.id) {
+          <option [value]="a.id">
+            {{ a.nombre }}{{ a.estado !== 'ACTIVA' ? ' (inactiva)' : '' }}
+          </option>
+        }
+      </select>
+      @if (mostrarError('asignaturaId')) {
+        <p class="error-campo" id="matricula-asignatura-error">Selecciona una asignatura.</p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="matricula-semestre">Semestre</label>
+      <select
+        id="matricula-semestre"
+        formControlName="semestreId"
+        [attr.aria-invalid]="mostrarError('semestreId')"
+        aria-describedby="matricula-semestre-error"
+      >
+        <option value="" disabled>
+          {{ cargandoCatalogos() ? 'Cargando…' : 'Selecciona un semestre' }}
+        </option>
+        @for (s of semestres(); track s.id) {
+          <option [value]="s.id">
+            {{ s.codigo }}{{ s.estado !== 'ACTIVO' ? ' (inactivo)' : '' }}
+          </option>
+        }
+      </select>
+      @if (mostrarError('semestreId')) {
+        <p class="error-campo" id="matricula-semestre-error">Selecciona un semestre.</p>
+      }
+    </div>
+
+    <div class="acciones">
+      <button type="button" class="btn" (click)="cancelar()" [disabled]="guardando()">
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        class="btn btn--primario"
+        [disabled]="guardando() || cargandoCatalogos() || errorCatalogos()"
+      >
+        {{ guardando() ? 'Matriculando…' : 'Matricular' }}
+      </button>
+    </div>
+  </form>
+</dialog>

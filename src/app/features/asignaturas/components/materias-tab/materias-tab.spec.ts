@@ -133,6 +133,60 @@ describe('MateriasTab', () => {
     req.flush([BORRADOR_5]);
   });
 
+  it('el selector de estado va entre programa y RA y envía estado al servicio de inmediato', async () => {
+    await iniciar([BORRADOR_5]);
+    const ids = Array.from(html.querySelectorAll('select.selector')).map((s) => s.id);
+    expect(ids).toEqual(['filtro-programa', 'filtro-estado', 'filtro-ra']);
+    expect(html.querySelector('label[for="filtro-estado"]')?.textContent?.trim()).toBe('Estado');
+    const opciones = Array.from(html.querySelectorAll('#filtro-estado option'));
+    expect(opciones.map((o) => o.textContent?.trim())).toEqual([
+      'Todos los estados',
+      'Borrador',
+      'Activa',
+      'Inactiva',
+    ]);
+
+    await cambiarSelect('filtro-estado', 'ACTIVA');
+    const req = listado();
+    expect(req.request.params.get('estado')).toBe('ACTIVA');
+    req.flush([ACTIVA]);
+  });
+
+  it('el estado se combina con los demás filtros y cancela la consulta anterior', async () => {
+    await iniciar([BORRADOR_5]);
+    await cambiarSelect('filtro-programa', 'p1');
+    const primera = listado();
+    await cambiarSelect('filtro-estado', 'BORRADOR');
+    const segunda = listado();
+    expect(primera.cancelled).toBe(true);
+    await cambiarSelect('filtro-ra', 'de5a7');
+    const tercera = listado();
+    expect(segunda.cancelled).toBe(true);
+
+    expect(tercera.request.params.get('programaId')).toBe('p1');
+    expect(tercera.request.params.get('estado')).toBe('BORRADOR');
+    expect(tercera.request.params.get('raMin')).toBe('5');
+    expect(tercera.request.params.get('raMax')).toBe('7');
+    tercera.flush([BORRADOR_5]);
+  });
+
+  it('«Limpiar filtros» restablece el filtro de estado', async () => {
+    await iniciar([BORRADOR_5]);
+    await cambiarSelect('filtro-estado', 'INACTIVA');
+    listado().flush([]);
+    await fixture.whenStable();
+
+    expect(html.textContent).toContain('Sin resultados');
+    boton(html, 'Limpiar filtros').click();
+    await fixture.whenStable();
+
+    const req = listado();
+    expect(req.request.params.has('estado')).toBe(false);
+    req.flush([BORRADOR_5]);
+    await fixture.whenStable();
+    expect((html.querySelector('#filtro-estado') as HTMLSelectElement).value).toBe('');
+  });
+
   it.each([
     ['sin', '0', '0'],
     ['menos5', '0', '4'],

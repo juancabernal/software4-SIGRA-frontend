@@ -1,0 +1,231 @@
+<section class="pagina" aria-labelledby="titulo-ra">
+  <header class="cabecera">
+    <div>
+      <h1 id="titulo-ra">Gestión de Resultados de Aprendizaje</h1>
+      <p class="cabecera__sub">Selecciona una materia para gestionar sus RA</p>
+    </div>
+    <span class="requisito tabular">RF-06</span>
+  </header>
+
+  <div class="aviso-zona" role="status" aria-live="polite">
+    @if (aviso(); as a) {
+      <div class="aviso" [class.aviso--error]="a.tono === 'error'">
+        <app-icono [nombre]="a.tono === 'ok' ? 'check' : 'advertencia'" [tamano]="16" />
+        <span>{{ a.texto }}</span>
+        <button type="button" class="aviso__cerrar" aria-label="Cerrar aviso" (click)="cerrarAviso()">
+          <app-icono nombre="cerrar" [tamano]="14" />
+        </button>
+      </div>
+    }
+  </div>
+
+  <div class="tarjeta">
+    @if (cargandoAsignaturas()) {
+      <p class="estado-vista" role="status">Cargando materias…</p>
+    } @else if (errorAsignaturas(); as error) {
+      <div class="estado-vista estado-vista--error" role="alert">
+        <p>{{ error.mensaje }}</p>
+        <button type="button" class="btn" (click)="cargarAsignaturas()">
+          <app-icono nombre="recargar" [tamano]="16" />
+          Reintentar
+        </button>
+      </div>
+    } @else if (asignaturas().length === 0) {
+      <div class="estado-vista">
+        <p class="estado-vista__titulo">No hay materias para gestionar</p>
+        <p>
+          Los RA se gestionan en materias en borrador o activas. Registra una materia en el
+          Catálogo académico.
+        </p>
+      </div>
+    } @else {
+      <div class="barra">
+        <label for="selector-materia">Materia</label>
+        <select
+          id="selector-materia"
+          class="selector"
+          [value]="asignaturaId()"
+          (change)="alCambiarAsignatura($event)"
+        >
+          <option value="">Selecciona una materia</option>
+          @for (a of asignaturas(); track a.id) {
+            <option [value]="a.id">
+              {{ a.codigo }} · {{ a.nombre }} ({{ presentacionAsignatura[a.estado].etiqueta }})
+            </option>
+          }
+        </select>
+      </div>
+
+      @if (asignatura(); as a) {
+        <div class="resumen">
+          <app-chip-estado
+            [etiqueta]="presentacionAsignatura[a.estado].etiqueta"
+            [variante]="presentacionAsignatura[a.estado].variante"
+            [icono]="presentacionAsignatura[a.estado].icono"
+          />
+          @if (!cargandoResultados() && !errorResultados()) {
+            <span class="resumen__conteo tabular">
+              RA activos: <strong>{{ activos() }}</strong> de {{ maxActivos }}
+            </span>
+            <app-chip-estado
+              [etiqueta]="indicador().texto"
+              [variante]="indicador().variante"
+              [icono]="indicador().icono"
+            />
+            <span class="con-tooltip resumen__registrar">
+              <button
+                type="button"
+                class="btn btn--primario"
+                [attr.aria-disabled]="puedeAgregarActivo() ? null : 'true'"
+                [attr.aria-describedby]="puedeAgregarActivo() ? null : 'tooltip-registrar'"
+                (click)="abrirRegistro()"
+              >
+                <app-icono nombre="mas" [tamano]="16" />
+                Registrar RA
+              </button>
+              @if (!puedeAgregarActivo()) {
+                <span class="tooltip" role="tooltip" id="tooltip-registrar">{{ motivoMaximo }}</span>
+              }
+            </span>
+          }
+        </div>
+
+        @if (cargandoResultados()) {
+          <p class="estado-vista" role="status">Cargando resultados de aprendizaje…</p>
+        } @else if (errorResultados(); as error) {
+          <div class="estado-vista estado-vista--error" role="alert">
+            <p>{{ error.mensaje }}</p>
+            <button type="button" class="btn" (click)="recargarResultados()">
+              <app-icono nombre="recargar" [tamano]="16" />
+              Reintentar
+            </button>
+          </div>
+        } @else if (resultados().length === 0) {
+          <div class="estado-vista">
+            <p class="estado-vista__titulo">Esta materia todavía no tiene RA</p>
+            <p>Registra el primero para empezar a completar el mínimo de 5 RA activos.</p>
+          </div>
+        } @else {
+          <div class="tabla-contenedor">
+            <table>
+              <caption class="solo-lectores">
+                Resultados de aprendizaje de {{ a.nombre }}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Código</th>
+                  <th scope="col">Descripción</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (ra of resultados(); track ra.id) {
+                  <tr [class.fila--inactiva]="ra.estado === 'INACTIVO'">
+                    <th scope="row" class="codigo tabular">{{ ra.codigo }}</th>
+                    <td class="descripcion">{{ ra.descripcion }}</td>
+                    <td>
+                      <app-chip-estado
+                        [etiqueta]="presentacionRa[ra.estado].etiqueta"
+                        [variante]="presentacionRa[ra.estado].variante"
+                        [icono]="presentacionRa[ra.estado].icono"
+                      />
+                    </td>
+                    <td>
+                      <div class="acciones">
+                        @if (ra.estado === 'ACTIVO') {
+                          <button
+                            type="button"
+                            class="btn-ghost"
+                            [attr.aria-label]="'Modificar descripción de ' + ra.codigo"
+                            (click)="abrirEdicion(ra)"
+                          >
+                            <app-icono nombre="lapiz" [tamano]="16" />
+                            <span>Modificar</span>
+                          </button>
+                          <span class="con-tooltip">
+                            <button
+                              type="button"
+                              class="btn-ghost btn-ghost--peligro"
+                              [attr.aria-label]="'Inactivar ' + ra.codigo"
+                              [attr.aria-disabled]="puedeInactivar() ? null : 'true'"
+                              [attr.aria-describedby]="
+                                puedeInactivar() ? null : 'tooltip-inactivar-' + ra.id
+                              "
+                              (click)="pedirInactivar(ra)"
+                            >
+                              <app-icono nombre="prohibido" [tamano]="16" />
+                              <span>Inactivar</span>
+                            </button>
+                            @if (!puedeInactivar()) {
+                              <span class="tooltip" role="tooltip" [id]="'tooltip-inactivar-' + ra.id">
+                                {{ motivoMinimo }}
+                              </span>
+                            }
+                          </span>
+                        } @else {
+                          <span class="con-tooltip">
+                            <button
+                              type="button"
+                              class="btn-ghost"
+                              [attr.aria-label]="'Reactivar ' + ra.codigo"
+                              [attr.aria-disabled]="puedeAgregarActivo() ? null : 'true'"
+                              [attr.aria-describedby]="
+                                puedeAgregarActivo() ? null : 'tooltip-reactivar-' + ra.id
+                              "
+                              (click)="pedirReactivar(ra)"
+                            >
+                              <app-icono nombre="recargar" [tamano]="16" />
+                              <span>Reactivar</span>
+                            </button>
+                            @if (!puedeAgregarActivo()) {
+                              <span class="tooltip" role="tooltip" [id]="'tooltip-reactivar-' + ra.id">
+                                {{ motivoMaximo }}
+                              </span>
+                            }
+                          </span>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <app-resultado-aprendizaje-form-dialog
+          [abierto]="formAbierto()"
+          [asignaturaId]="a.id"
+          [resultado]="raEnEdicion()"
+          (guardado)="alGuardar($event)"
+          (cancelar)="cerrarFormulario()"
+        />
+      } @else {
+        <div class="estado-vista">
+          <p>Elige una materia en el selector para ver y gestionar sus resultados de aprendizaje.</p>
+        </div>
+      }
+    }
+  </div>
+</section>
+
+<app-dialogo-confirmacion
+  [abierto]="confirmacion() !== null"
+  [titulo]="
+    confirmacion()?.tipo === 'inactivar'
+      ? '¿Inactivar ' + confirmacion()?.ra?.codigo + '?'
+      : '¿Reactivar ' + confirmacion()?.ra?.codigo + '?'
+  "
+  [descripcion]="
+    confirmacion()?.tipo === 'inactivar'
+      ? 'El RA deja de contar entre los activos de la materia. No se elimina y se puede reactivar.'
+      : 'El RA vuelve a contar entre los activos de la materia.'
+  "
+  [etiquetaConfirmar]="confirmacion()?.tipo === 'inactivar' ? 'Inactivar' : 'Reactivar'"
+  [tono]="confirmacion()?.tipo === 'inactivar' ? 'peligro' : 'normal'"
+  [procesando]="procesandoConfirmacion()"
+  [error]="errorConfirmacion()"
+  (confirmar)="confirmar()"
+  (cancelar)="cancelarConfirmacion()"
+/>

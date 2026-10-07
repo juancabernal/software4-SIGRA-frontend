@@ -24,10 +24,18 @@ export interface AsignaturaRequest {
   programaId: string;
 }
 
-/** Mismas reglas que valida el backend en AsignaturaRequestDTO. */
+/**
+ * Mismas reglas que valida el backend en AsignaturaRequestDTO. El código se evalúa recortado
+ * (el backend además lo pasa a mayúsculas) y el nombre recortado y con los espacios reducidos.
+ */
+export const NOMBRE_MIN = 3;
 export const NOMBRE_MAX = 100;
+export const CODIGO_MIN = 3;
 export const CODIGO_MAX = 20;
-export const PATRON_CODIGO = /^[A-Za-z0-9-]+$/;
+/** Letras y números en bloques separados por un solo guion: sin espacios ni guiones sueltos. */
+export const PATRON_CODIGO = /^[A-Za-z0-9]+(-[A-Za-z0-9]+)*$/;
+/** Caracteres de control o de formato (\p{Cc}, \p{Cf}) y los signos < y >. */
+export const PATRON_NOMBRE_PROHIBIDO = /[\p{Cc}\p{Cf}<>]/u;
 
 /** Filtros de GET /asignaturas; todos opcionales y combinados con AND en el backend. */
 export interface FiltrosAsignaturas {

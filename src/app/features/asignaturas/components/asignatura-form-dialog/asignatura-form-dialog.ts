@@ -27,8 +27,11 @@ import { Icono } from '../../../../shared/ui/icono/icono';
 import {
   Asignatura,
   CODIGO_MAX,
+  CODIGO_MIN,
   NOMBRE_MAX,
+  NOMBRE_MIN,
   PATRON_CODIGO,
+  PATRON_NOMBRE_PROHIBIDO,
   ProgramaOpcion,
 } from '../../models/asignatura.model';
 import { AsignaturaService } from '../../services/asignatura.service';
@@ -48,6 +51,46 @@ export const ERROR_PROGRAMAS =
 export function textoObligatorio(control: AbstractControl): ValidationErrors | null {
   const valor = control.value as string;
   return typeof valor === 'string' && valor.trim() ? null : { required: true };
+}
+
+/** Código tal como lo guarda el backend: recortado y en mayúsculas. */
+export function normalizarCodigo(valor: string): string {
+  return valor.trim().toUpperCase();
+}
+
+/** Nombre tal como lo guarda el backend: recortado y con cualquier racha de espacios reducida a uno. */
+export function normalizarNombre(valor: string): string {
+  return valor.trim().replace(/\s+/g, ' ');
+}
+
+/** Longitud y formato del código, evaluados sobre el valor recortado. El vacío lo cubre textoObligatorio. */
+export function codigoValido(control: AbstractControl): ValidationErrors | null {
+  const codigo = normalizarCodigo((control.value as string) ?? '');
+  if (!codigo) {
+    return null;
+  }
+  if (codigo.length < CODIGO_MIN) {
+    return { minlength: { requiredLength: CODIGO_MIN, actualLength: codigo.length } };
+  }
+  if (codigo.length > CODIGO_MAX) {
+    return { maxlength: { requiredLength: CODIGO_MAX, actualLength: codigo.length } };
+  }
+  return PATRON_CODIGO.test(codigo) ? null : { formato: true };
+}
+
+/** Longitud y caracteres del nombre, evaluados sobre el valor normalizado. */
+export function nombreValido(control: AbstractControl): ValidationErrors | null {
+  const nombre = normalizarNombre((control.value as string) ?? '');
+  if (!nombre) {
+    return null;
+  }
+  if (nombre.length < NOMBRE_MIN) {
+    return { minlength: { requiredLength: NOMBRE_MIN, actualLength: nombre.length } };
+  }
+  if (nombre.length > NOMBRE_MAX) {
+    return { maxlength: { requiredLength: NOMBRE_MAX, actualLength: nombre.length } };
+  }
+  return PATRON_NOMBRE_PROHIBIDO.test(nombre) ? { caracteres: true } : null;
 }
 
 type Campo = 'nombre' | 'codigo' | 'programaId';
@@ -79,7 +122,9 @@ export class AsignaturaFormDialog {
   readonly guardado = output<ResultadoFormulario>();
   readonly cancelar = output<void>();
 
+  protected readonly nombreMin = NOMBRE_MIN;
   protected readonly nombreMax = NOMBRE_MAX;
+  protected readonly codigoMin = CODIGO_MIN;
   protected readonly codigoMax = CODIGO_MAX;
   protected readonly modo = computed<ModoFormulario>(() =>
     this.asignatura() ? 'editar' : 'crear',
@@ -92,11 +137,8 @@ export class AsignaturaFormDialog {
   protected readonly errorProgramas = signal<string | null>(null);
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
-    nombre: ['', [textoObligatorio, Validators.maxLength(NOMBRE_MAX)]],
-    codigo: [
-      '',
-      [textoObligatorio, Validators.maxLength(CODIGO_MAX), Validators.pattern(PATRON_CODIGO)],
-    ],
+    nombre: ['', [textoObligatorio, nombreValido]],
+    codigo: ['', [textoObligatorio, codigoValido]],
     programaId: ['', Validators.required],
   });
 
@@ -139,10 +181,10 @@ export class AsignaturaFormDialog {
     this.procesando.set(true);
 
     const peticion = asignatura
-      ? this.service.modificar(asignatura.id, valores.nombre.trim())
+      ? this.service.modificar(asignatura.id, normalizarNombre(valores.nombre))
       : this.service.crear({
-          codigo: valores.codigo.trim().toUpperCase(),
-          nombre: valores.nombre.trim(),
+          codigo: normalizarCodigo(valores.codigo),
+          nombre: normalizarNombre(valores.nombre),
           programaId: valores.programaId,
         });
 

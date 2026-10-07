@@ -21,17 +21,22 @@
         placeholder="Ej. Cálculo Integral"
         autocomplete="off"
         aria-required="true"
-        [attr.maxlength]="nombreMax"
         [attr.aria-invalid]="mostrarError('nombre')"
         aria-describedby="materia-nombre-ayuda materia-nombre-error"
       />
-      <p class="ayuda" id="materia-nombre-ayuda">Máximo 100 caracteres</p>
+      <p class="ayuda" id="materia-nombre-ayuda">
+        Entre {{ nombreMin }} y {{ nombreMax }} caracteres
+      </p>
       @if (mostrarError('nombre')) {
         <p class="error-campo" id="materia-nombre-error">
           @if (form.controls.nombre.hasError('required')) {
             Escribe el nombre de la materia.
-          } @else {
+          } @else if (form.controls.nombre.hasError('minlength')) {
+            Mínimo 3 caracteres
+          } @else if (form.controls.nombre.hasError('maxlength')) {
             El nombre no puede superar los 100 caracteres.
+          } @else {
+            El nombre contiene caracteres no permitidos
           }
         </p>
       }
@@ -49,20 +54,24 @@
           placeholder="Ej. MAT-401"
           autocomplete="off"
           aria-required="true"
-          [attr.maxlength]="codigoMax"
           [attr.aria-invalid]="mostrarError('codigo')"
-          aria-describedby="materia-codigo-error"
+          aria-describedby="materia-codigo-ayuda materia-codigo-error"
         />
+        <p class="ayuda" id="materia-codigo-ayuda">
+          Entre {{ codigoMin }} y {{ codigoMax }} caracteres
+        </p>
         @if (mostrarError('codigo')) {
           <p class="error-campo" id="materia-codigo-error">
             @if (form.controls.codigo.hasError('required')) {
               Escribe el código de la materia.
             } @else if (form.controls.codigo.hasError('duplicado')) {
               Ya existe una materia con este código.
+            } @else if (form.controls.codigo.hasError('minlength')) {
+              Mínimo 3 caracteres
             } @else if (form.controls.codigo.hasError('maxlength')) {
               El código no puede superar los 20 caracteres.
             } @else {
-              Usa solo letras, números y guion.
+              Solo letras, números y guiones; sin espacios ni guiones al inicio, al final o seguidos
             }
           </p>
         }
