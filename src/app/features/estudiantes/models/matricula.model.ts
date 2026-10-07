@@ -1,3 +1,5 @@
+import { VarianteChip } from '../../../shared/ui/chip-estado/chip-estado';
+
 /**
  * Modelos del módulo de matrícula, alineados con los DTO del backend
  * (co.edu.uco.sigra.estudiantes.dto). Ruta base: /api/v1/matriculas.
@@ -5,6 +7,22 @@
 
 /** Desvinculación lógica: una matrícula INACTIVA puede reactivarse, nunca se borra. */
 export type EstadoMatricula = 'ACTIVO' | 'INACTIVO';
+
+interface PresentacionEstado {
+  etiqueta: string;
+  variante: VarianteChip;
+  icono: string;
+}
+
+/**
+ * Ícono + texto + color para pintar con `<app-chip-estado>`: el color nunca va solo (RNF-21).
+ * Los textos son los de la matrícula («Activa» / «Desvinculada»), no los del estado crudo.
+ */
+export const PRESENTACION_ESTADO_MATRICULA: Readonly<Record<EstadoMatricula, PresentacionEstado>> =
+  {
+    ACTIVO: { etiqueta: 'Activa', variante: 'ok', icono: 'check' },
+    INACTIVO: { etiqueta: 'Desvinculada', variante: 'neutro', icono: 'prohibido' },
+  };
 
 /** MatriculaRequestDTO (POST /matriculas). */
 export interface MatriculaRequest {
@@ -22,7 +40,14 @@ export interface Matricula {
   estado: EstadoMatricula;
 }
 
-/** EstudianteMatriculadoDTO: fila de GET /matriculas?asignaturaId=&semestreId=. */
+/**
+ * EstudianteMatriculadoDTO: fila de GET /matriculas?asignaturaId=&semestreId=.
+ *
+ * No trae `estudianteId`: alcanza para desvincular (por `matriculaId`), pero impide enlazar esta
+ * fila a la ficha del estudiante (`/admin/estudiantes/:id`) desde `matriculados-page`. Petición
+ * pendiente al equipo del backend, igual que la de `tipos-documento.ts`, para que no se pierda al
+ * archivar este cambio.
+ */
 export interface EstudianteMatriculado {
   matriculaId: string;
   numeroDocumento: string;

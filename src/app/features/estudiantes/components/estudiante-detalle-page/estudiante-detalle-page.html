@@ -1,0 +1,167 @@
+<section class="pagina" aria-labelledby="titulo-detalle-estudiante">
+  <header class="cabecera">
+    <div class="cabecera__texto">
+      <a class="volver" routerLink="/admin/estudiantes">
+        <app-icono nombre="flecha-der" [tamano]="14" />
+        Volver al listado
+      </a>
+      <h1 id="titulo-detalle-estudiante">
+        {{ estudiante()?.nombreCompleto ?? 'Ficha del estudiante' }}
+      </h1>
+    </div>
+  </header>
+
+  <div class="aviso-zona" role="status" aria-live="polite">
+    @if (aviso(); as a) {
+      <div class="aviso" [class.aviso--error]="a.tono === 'error'">
+        <app-icono [nombre]="a.tono === 'ok' ? 'check' : 'advertencia'" [tamano]="16" />
+        <span>{{ a.texto }}</span>
+        <button
+          type="button"
+          class="aviso__cerrar"
+          aria-label="Cerrar aviso"
+          (click)="cerrarAviso()"
+        >
+          <app-icono nombre="cerrar" [tamano]="14" />
+        </button>
+      </div>
+    }
+  </div>
+
+  @if (cargando()) {
+    <p class="estado-vista" aria-busy="true">Cargando la ficha del estudiante…</p>
+  } @else if (noExiste()) {
+    <div class="estado-vista" role="alert">
+      <p class="estado-vista__titulo">Este estudiante no existe</p>
+      <p>Puede que el enlace sea incorrecto o que el estudiante ya no esté disponible.</p>
+      <a class="btn btn--primario" routerLink="/admin/estudiantes">Volver al listado</a>
+    </div>
+  } @else if (errorCarga(); as error) {
+    <div class="estado-vista estado-vista--error" role="alert">
+      <p>{{ error.mensaje }}</p>
+      <button type="button" class="btn" (click)="reintentarFicha()">
+        <app-icono nombre="recargar" [tamano]="16" />
+        Reintentar
+      </button>
+    </div>
+  } @else if (estudiante(); as e) {
+    <div class="tarjeta ficha">
+      <dl class="detalle">
+        <div>
+          <dt>Documento</dt>
+          <dd class="codigo">{{ e.tipoDocumentoNombre }} {{ e.numeroDocumento }}</dd>
+        </div>
+        <div>
+          <dt>Correo institucional</dt>
+          <dd>{{ e.correoInstitucional }}</dd>
+        </div>
+        <div>
+          <dt>Estado</dt>
+          <dd>
+            <app-chip-estado
+              [etiqueta]="presentacionEstudiante[e.estado].etiqueta"
+              [variante]="presentacionEstudiante[e.estado].variante"
+              [icono]="presentacionEstudiante[e.estado].icono"
+            />
+          </dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="tarjeta">
+      <div class="barra">
+        <h2>Historial de asignaturas</h2>
+        <button type="button" class="btn btn--primario barra__registrar" (click)="abrirMatricula()">
+          <app-icono nombre="mas" [tamano]="16" />
+          Matricular
+        </button>
+      </div>
+
+      @if (cargandoHistorial()) {
+        <p class="estado-vista" aria-busy="true">Cargando historial…</p>
+      } @else if (errorHistorial(); as error) {
+        <div class="estado-vista estado-vista--error" role="alert">
+          <p>{{ error.mensaje }}</p>
+          <button type="button" class="btn" (click)="reintentarHistorial()">
+            <app-icono nombre="recargar" [tamano]="16" />
+            Reintentar
+          </button>
+        </div>
+      } @else if (historial().length === 0) {
+        <div class="estado-vista">
+          <p class="estado-vista__titulo">Aún no tiene asignaturas matriculadas</p>
+          <button type="button" class="btn btn--primario" (click)="abrirMatricula()">
+            <app-icono nombre="mas" [tamano]="16" />
+            Matricular
+          </button>
+        </div>
+      } @else {
+        <div class="tabla-contenedor">
+          <table>
+            <caption class="solo-lectores">
+              Asignaturas en las que ha estado matriculado {{ e.nombreCompleto }}
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Asignatura</th>
+                <th scope="col">Semestre</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (m of historial(); track m.matriculaId) {
+                <tr>
+                  <th scope="row" class="nombre">{{ m.asignaturaNombre }}</th>
+                  <td class="codigo">{{ m.semestreCodigo }}</td>
+                  <td>
+                    <app-chip-estado
+                      [etiqueta]="presentacionMatricula[m.estado].etiqueta"
+                      [variante]="presentacionMatricula[m.estado].variante"
+                      [icono]="presentacionMatricula[m.estado].icono"
+                    />
+                  </td>
+                  <td>
+                    @if (m.estado === 'ACTIVO') {
+                      <button
+                        type="button"
+                        class="btn btn--peligro btn--pequeno"
+                        [attr.aria-label]="'Desvincular de ' + m.asignaturaNombre"
+                        (click)="pedirDesvincular(m)"
+                      >
+                        Desvincular
+                      </button>
+                    } @else {
+                      <span class="nota">Ya desvinculada</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+</section>
+
+<app-dialogo-confirmacion
+  [abierto]="aDesvincular() !== null"
+  [titulo]="tituloDesvincular()"
+  descripcion="Las calificaciones registradas en esta matrícula se conservan."
+  etiquetaConfirmar="Desvincular"
+  tono="peligro"
+  [procesando]="desvinculando()"
+  [error]="errorDesvincular()"
+  (confirmar)="confirmarDesvincular()"
+  (cancelar)="cancelarDesvincular()"
+/>
+
+@if (matriculaAbierta() && estudiante(); as e) {
+  <app-matricula-form-dialog
+    [estudianteId]="e.id"
+    [estudianteNombre]="e.nombreCompleto"
+    (matriculado)="alMatricular($event)"
+    (cerrado)="cerrarMatricula()"
+  />
+}

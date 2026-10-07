@@ -1,0 +1,168 @@
+<section class="pagina" aria-labelledby="titulo-estudiantes">
+  <header class="cabecera">
+    <div class="cabecera__texto">
+      <h1 id="titulo-estudiantes">Estudiantes</h1>
+      <p>Registro, consulta e inactivación de la ficha del estudiante.</p>
+    </div>
+    <button type="button" class="btn btn--primario" (click)="abrirRegistro()">
+      <app-icono nombre="mas" [tamano]="16" />
+      Registrar estudiante
+    </button>
+  </header>
+
+  <div class="aviso-zona" role="status" aria-live="polite">
+    @if (aviso(); as a) {
+      <div class="aviso" [class.aviso--error]="a.tono === 'error'">
+        <app-icono [nombre]="a.tono === 'ok' ? 'check' : 'advertencia'" [tamano]="16" />
+        <span>{{ a.texto }}</span>
+        <button
+          type="button"
+          class="aviso__cerrar"
+          aria-label="Cerrar aviso"
+          (click)="cerrarAviso()"
+        >
+          <app-icono nombre="cerrar" [tamano]="14" />
+        </button>
+      </div>
+    }
+  </div>
+
+  <div class="tarjeta">
+    <div class="barra">
+      <div class="buscador">
+        <app-icono nombre="buscar" [tamano]="16" />
+        <input
+          type="search"
+          placeholder="Buscar por nombre o documento..."
+          aria-label="Buscar estudiantes por nombre o número de documento"
+          [value]="texto()"
+          (input)="alEscribir($event)"
+        />
+      </div>
+    </div>
+
+    @if (cargando()) {
+      <p class="estado-vista" aria-busy="true">Cargando estudiantes…</p>
+    } @else if (errorCarga(); as error) {
+      <div class="estado-vista estado-vista--error" role="alert">
+        <p>{{ error.mensaje }}</p>
+        <button type="button" class="btn" (click)="recargar()">
+          <app-icono nombre="recargar" [tamano]="16" />
+          Reintentar
+        </button>
+      </div>
+    } @else if (estudiantes().length === 0) {
+      @if (hayFiltros()) {
+        <div class="estado-vista">
+          <p class="estado-vista__titulo">Sin resultados</p>
+          <p>Ningún estudiante coincide con esa búsqueda.</p>
+          <button type="button" class="btn" (click)="limpiarFiltros()">Limpiar búsqueda</button>
+        </div>
+      } @else {
+        <div class="estado-vista">
+          <p class="estado-vista__titulo">Aún no hay estudiantes registrados</p>
+          <p>Registra el primer estudiante del programa.</p>
+          <button type="button" class="btn btn--primario" (click)="abrirRegistro()">
+            <app-icono nombre="mas" [tamano]="16" />
+            Registrar estudiante
+          </button>
+        </div>
+      }
+    } @else {
+      <div class="tabla-contenedor">
+        <table>
+          <caption class="solo-lectores">
+            Estudiantes registrados
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Documento</th>
+              <th scope="col">Nombre completo</th>
+              <th scope="col">Correo institucional</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (e of estudiantes(); track e.id) {
+              <tr>
+                <th scope="row" class="codigo">{{ e.tipoDocumentoNombre }} {{ e.numeroDocumento }}</th>
+                <td class="nombre">{{ e.nombreCompleto }}</td>
+                <td>{{ e.correoInstitucional }}</td>
+                <td>
+                  <app-chip-estado
+                    [etiqueta]="presentacion[e.estado].etiqueta"
+                    [variante]="presentacion[e.estado].variante"
+                    [icono]="presentacion[e.estado].icono"
+                  />
+                </td>
+                <td>
+                  <div class="acciones">
+                    <a
+                      class="btn-ghost"
+                      [routerLink]="['/admin/estudiantes', e.id]"
+                      [attr.aria-label]="'Ver ficha de ' + e.nombreCompleto"
+                    >
+                      <app-icono nombre="ojo" [tamano]="16" />
+                      <span>Ver ficha</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      class="btn-ghost"
+                      [attr.aria-label]="'Modificar ' + e.nombreCompleto"
+                      (click)="abrirModificacion(e)"
+                    >
+                      <app-icono nombre="lapiz" [tamano]="16" />
+                      <span>Modificar</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      class="btn btn--peligro btn--pequeno"
+                      [attr.aria-label]="'Inactivar ' + e.nombreCompleto"
+                      (click)="pedirInactivar(e)"
+                    >
+                      Inactivar
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</section>
+
+<app-dialogo-confirmacion
+  [abierto]="aInactivar() !== null"
+  [titulo]="tituloInactivar()"
+  descripcion="El estudiante pasará a estado inactivo. No se elimina nada y su historial académico se conserva."
+  etiquetaConfirmar="Inactivar"
+  tono="peligro"
+  [procesando]="inactivando()"
+  [error]="errorInactivar()"
+  (confirmar)="confirmarInactivar()"
+  (cancelar)="cancelarInactivar()"
+/>
+
+@switch (dialogo()?.tipo) {
+  @case ('registrar') {
+    <app-estudiante-form-dialog
+      (guardado)="alGuardar($event)"
+      (cerrado)="cerrarDialogoFormulario()"
+    />
+  }
+  @case ('modificar') {
+    @let d = dialogo();
+    @if (d && d.tipo === 'modificar') {
+      <app-estudiante-form-dialog
+        [estudiante]="d.estudiante"
+        (guardado)="alGuardar($event)"
+        (cerrado)="cerrarDialogoFormulario()"
+      />
+    }
+  }
+}
