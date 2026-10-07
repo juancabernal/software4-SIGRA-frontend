@@ -128,9 +128,7 @@ describe('EstudianteFormDialog', () => {
 
     expect(html.querySelector('h2')?.textContent).toContain('Modificar estudiante');
     expect(campo<HTMLSelectElement>('estudiante-tipo-documento').disabled).toBe(true);
-    expect(campo<HTMLSelectElement>('estudiante-tipo-documento').value).toBe(
-      TIPOS_DOCUMENTO[0].id,
-    );
+    expect(campo<HTMLSelectElement>('estudiante-tipo-documento').value).toBe(TIPOS_DOCUMENTO[0].id);
     expect(campo<HTMLInputElement>('estudiante-numero-documento').disabled).toBe(true);
     expect(campo<HTMLInputElement>('estudiante-numero-documento').value).toBe('1234567890');
     expect(campo<HTMLInputElement>('estudiante-nombre').disabled).toBe(false);
@@ -140,16 +138,14 @@ describe('EstudianteFormDialog', () => {
     await llenarValido();
     await enviar();
 
-    http
-      .expectOne(URL)
-      .flush(
-        {
-          status: 409,
-          error: 'CONFLICT',
-          mensaje: 'Ya existe un estudiante registrado con ese documento',
-        },
-        { status: 409, statusText: 'Conflict' },
-      );
+    http.expectOne(URL).flush(
+      {
+        status: 409,
+        error: 'CONFLICT',
+        mensaje: 'Ya existe un estudiante registrado con ese documento',
+      },
+      { status: 409, statusText: 'Conflict' },
+    );
     await fixture.whenStable();
 
     expect(html.querySelector('[role="alert"]')?.textContent).toContain(
@@ -161,10 +157,87 @@ describe('EstudianteFormDialog', () => {
     await abrirEditar({ ...ESTUDIANTE, tipoDocumentoNombre: 'Pasaporte' });
 
     expect(html.textContent).toContain('no se pudo resolver');
-    expect((html.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBe(
-      true,
-    );
+    expect((html.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBe(true);
     await enviar();
     http.expectNone(URL);
+  });
+
+  it('el nombre completo vacío muestra su error y no permite enviar', async () => {
+    await llenarValido();
+    escribir('estudiante-nombre', '');
+    await fixture.whenStable();
+
+    expect(html.textContent).toContain('Escribe el nombre completo.');
+
+    await enviar();
+    http.expectNone(URL);
+  });
+
+  it('el botón "Cancelar" cierra el diálogo y emite "cerrado"', async () => {
+    let cerrado = false;
+    fixture.componentInstance.cerrado.subscribe(() => (cerrado = true));
+    await llenarValido();
+
+    (html.querySelector('button[type="button"]') as HTMLButtonElement).click();
+    await fixture.whenStable();
+
+    expect(cerrado).toBe(true);
+    http.expectNone(URL);
+  });
+
+  it('el evento nativo "cancel" del <dialog> también cierra y emite "cerrado"', async () => {
+    let cerrado = false;
+    fixture.componentInstance.cerrado.subscribe(() => (cerrado = true));
+    await llenarValido();
+
+    const dialogo = html.querySelector('dialog') as HTMLDialogElement;
+    dialogo.dispatchEvent(new Event('cancel', { cancelable: true }));
+    await fixture.whenStable();
+
+    expect(cerrado).toBe(true);
+    http.expectNone(URL);
+  });
+
+  it('mientras se registra, el botón de envío muestra "Registrando…" y queda deshabilitado', async () => {
+    await llenarValido();
+    await enviar();
+
+    const submit = html.querySelector('button[type="submit"]') as HTMLButtonElement;
+    expect(submit.textContent?.trim()).toBe('Registrando…');
+    expect(submit.disabled).toBe(true);
+
+    http.expectOne(URL).flush(ESTUDIANTE, { status: 201, statusText: 'Created' });
+  });
+
+  it('mientras se modifica, el botón de envío muestra "Guardando…" y queda deshabilitado', async () => {
+    await abrirEditar();
+    escribir('estudiante-nombre', 'Ana María Gómez Actualizada');
+    await enviar();
+
+    const submit = html.querySelector('button[type="submit"]') as HTMLButtonElement;
+    expect(submit.textContent?.trim()).toBe('Guardando…');
+    expect(submit.disabled).toBe(true);
+
+    http.expectOne(`${URL}/${ESTUDIANTE.id}`).flush(ESTUDIANTE, { status: 200, statusText: 'OK' });
+  });
+
+  it('un error 500 del backend muestra el mensaje genérico, sin detalles técnicos', async () => {
+    await llenarValido();
+    await enviar();
+
+    http.expectOne(URL).flush(
+      {
+        status: 500,
+        error: 'INTERNAL_SERVER_ERROR',
+        mensaje: 'NullPointerException en co.edu.uco.sigra.EstudianteService:42',
+      },
+      { status: 500, statusText: 'Internal Server Error' },
+    );
+    await fixture.whenStable();
+
+    expect(html.querySelector('[role="alert"]')?.textContent).toContain(
+      'Ocurrió un error inesperado. Intenta de nuevo en unos minutos.',
+    );
+    expect(html.textContent).not.toContain('NullPointerException');
   });
 });

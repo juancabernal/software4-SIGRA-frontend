@@ -189,4 +189,36 @@ describe('EstudiantesPage', () => {
     await fixture.whenStable();
     expect(fila('Ana María Gómez').textContent).toContain('Inactivo');
   });
+
+  it('abrir "Registrar estudiante" deja el diálogo abierto, y cancelarlo no llama al servicio de guardado', async () => {
+    await iniciar([ANA]);
+    boton(html, 'Registrar estudiante').click();
+    await fixture.whenStable();
+
+    const dialogo = html.querySelector('app-estudiante-form-dialog dialog') as HTMLDialogElement;
+    expect(dialogo).toBeTruthy();
+    expect(dialogo.querySelector('h2')?.textContent).toContain('Registrar estudiante');
+
+    boton(dialogo, 'Cancelar').click();
+    await fixture.whenStable();
+
+    expect(html.querySelector('app-estudiante-form-dialog')).toBeNull();
+    http.expectNone((r) => r.url === URL && r.method === 'POST');
+  });
+
+  it('abrir "Modificar" sobre una fila deja el diálogo abierto, y cancelarlo no llama al servicio de guardado', async () => {
+    await iniciar([ANA]);
+    boton(fila('Ana María Gómez'), 'Modificar').click();
+    await fixture.whenStable();
+
+    const dialogo = html.querySelector('app-estudiante-form-dialog dialog') as HTMLDialogElement;
+    expect(dialogo).toBeTruthy();
+    expect(dialogo.querySelector('h2')?.textContent).toContain('Modificar estudiante');
+
+    boton(dialogo, 'Cancelar').click();
+    await fixture.whenStable();
+
+    expect(html.querySelector('app-estudiante-form-dialog')).toBeNull();
+    http.expectNone((r) => r.url === `${URL}/e1` && r.method === 'PUT');
+  });
 });

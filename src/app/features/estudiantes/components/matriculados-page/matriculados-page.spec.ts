@@ -144,6 +144,7 @@ describe('MatriculadosPage', () => {
     await fixture.whenStable();
 
     expect(dialogo.textContent).toContain('La matrícula ya estaba desvinculada');
+    expect(dialogo.hasAttribute('open')).toBe(true);
     consultaMatriculados().flush([{ ...ANA, estado: 'INACTIVO' }]);
   });
 });
