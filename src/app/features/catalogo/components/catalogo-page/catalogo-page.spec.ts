@@ -53,16 +53,22 @@ describe('CatalogoPage', () => {
     expect(html.querySelector('app-materias-tab')).not.toBeNull();
   });
 
-  it('las pestañas sin implementar muestran el módulo pendiente con su requisito', async () => {
-    pestanas()[0].click();
+  it('cada pestaña muestra su propio módulo implementado', async () => {
+    pestanas()[0].click(); // Profesores (RF-01)
     await fixture.whenStable();
+    expect(html.querySelector('app-profesores-tab')).not.toBeNull();
     expect(html.querySelector('app-materias-tab')).toBeNull();
-    expect(html.querySelector('app-modulo-pendiente')?.textContent).toContain('RF-01');
-
-    pestanas()[1].click();
-    await fixture.whenStable();
     expect(html.querySelector('app-modulo-pendiente')).toBeNull();
+
+    pestanas()[1].click(); // Programas académicos (RF-02)
+    await fixture.whenStable();
     expect(html.querySelector('app-programas-tab')).not.toBeNull();
+    expect(html.querySelector('app-profesores-tab')).toBeNull();
+
+    pestanas()[2].click(); // Materias (RF-03)
+    await fixture.whenStable();
+    expect(html.querySelector('app-materias-tab')).not.toBeNull();
+    expect(html.querySelector('app-programas-tab')).toBeNull();
   });
 
   it('las flechas, Inicio y Fin mueven la selección y el foco', async () => {
