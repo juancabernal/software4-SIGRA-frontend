@@ -1,0 +1,90 @@
+<app-modal-crud
+  [abierto]="abierto()"
+  [titulo]="modo() === 'crear' ? 'Registrar resultado de aprendizaje' : 'Modificar descripción'"
+  [etiquetaEnviar]="modo() === 'crear' ? 'Registrar' : 'Guardar cambios'"
+  [procesando]="procesando()"
+  [error]="errorApi()?.mensaje ?? null"
+  [detalles]="errorApi()?.detalles ?? []"
+  [enviarDeshabilitado]="enviarDeshabilitado()"
+  (enviar)="enviar()"
+  (cancelar)="cancelar.emit()"
+  (envioBloqueado)="alIntentarEnviarInvalido()"
+>
+  <div class="campos" [formGroup]="form">
+    @if (modo() === 'crear') {
+      <div class="campo">
+        <label for="ra-codigo">Código <span class="obligatorio" aria-hidden="true">*</span></label>
+        <input
+          id="ra-codigo"
+          class="mayusculas codigo"
+          formControlName="codigo"
+          placeholder="Ej. RA1"
+          autocomplete="off"
+          aria-required="true"
+          [attr.maxlength]="codigoMax"
+          [attr.aria-invalid]="mostrarError('codigo')"
+          aria-describedby="ra-codigo-ayuda ra-codigo-error"
+        />
+        <p class="ayuda" id="ra-codigo-ayuda">
+          Máximo {{ codigoMax }} caracteres, sin espacios. Único dentro de la materia.
+        </p>
+        @if (mostrarError('codigo')) {
+          <p class="error-campo" id="ra-codigo-error">
+            @if (form.controls.codigo.hasError('required')) {
+              Escribe el código del RA.
+            } @else if (form.controls.codigo.hasError('duplicado')) {
+              Ya existe un RA con este código en la materia.
+            } @else if (form.controls.codigo.hasError('maxlength')) {
+              El código no puede superar los {{ codigoMax }} caracteres.
+            } @else {
+              El código no puede contener espacios.
+            }
+          </p>
+        }
+      </div>
+    } @else if (resultado(); as ra) {
+      <div class="campo">
+        <label for="ra-codigo-fijo">Código</label>
+        <div class="bloqueado">
+          <app-icono nombre="candado" [tamano]="15" />
+          <input
+            id="ra-codigo-fijo"
+            class="codigo"
+            readonly
+            [value]="ra.codigo"
+            aria-describedby="ra-codigo-fijo-nota"
+          />
+        </div>
+        <p class="ayuda" id="ra-codigo-fijo-nota">No se puede modificar</p>
+      </div>
+    }
+
+    <div class="campo">
+      <label for="ra-descripcion">
+        Descripción <span class="obligatorio" aria-hidden="true">*</span>
+      </label>
+      <textarea
+        id="ra-descripcion"
+        formControlName="descripcion"
+        rows="5"
+        placeholder="Ej. Analiza los requisitos de un sistema de software."
+        aria-required="true"
+        [attr.maxlength]="descripcionMax"
+        [attr.aria-invalid]="mostrarError('descripcion')"
+        aria-describedby="ra-descripcion-ayuda ra-descripcion-error"
+      ></textarea>
+      <p class="ayuda tabular" id="ra-descripcion-ayuda">
+        {{ largoDescripcion() }} / {{ descripcionMax }} caracteres
+      </p>
+      @if (mostrarError('descripcion')) {
+        <p class="error-campo" id="ra-descripcion-error">
+          @if (form.controls.descripcion.hasError('required')) {
+            Escribe la descripción del RA.
+          } @else {
+            La descripción no puede superar los {{ descripcionMax }} caracteres.
+          }
+        </p>
+      }
+    </div>
+  </div>
+</app-modal-crud>
