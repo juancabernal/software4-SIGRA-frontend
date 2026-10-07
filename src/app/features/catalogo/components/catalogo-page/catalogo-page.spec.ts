@@ -61,7 +61,8 @@ describe('CatalogoPage', () => {
 
     pestanas()[1].click();
     await fixture.whenStable();
-    expect(html.querySelector('app-modulo-pendiente')?.textContent).toContain('RF-02');
+    expect(html.querySelector('app-modulo-pendiente')).toBeNull();
+    expect(html.querySelector('app-programas-tab')).not.toBeNull();
   });
 
   it('las flechas, Inicio y Fin mueven la selección y el foco', async () => {
