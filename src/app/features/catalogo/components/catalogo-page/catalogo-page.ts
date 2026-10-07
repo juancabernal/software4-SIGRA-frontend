@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 
 import { MateriasTab } from '../../../asignaturas/components/materias-tab/materias-tab';
+import { ProfesoresTab } from '../../../profesores/components/profesores-tab/profesores-tab';
 import { Icono } from '../../../../shared/ui/icono/icono';
 import { ModuloPendiente } from '../../../../shared/ui/modulo-pendiente/modulo-pendiente';
 
@@ -26,12 +27,13 @@ export const PESTANAS: readonly Pestana[] = [
 
 /**
  * Catálogo académico del Administrador con tres pestañas (patrón ARIA de tabs con activación
- * automática: flechas, Inicio y Fin mueven el foco y seleccionan). Solo «Materias» (RF-03) está
- * implementada; Profesores (RF-01) y Programas académicos (RF-02) muestran el módulo pendiente.
+ * automática: flechas, Inicio y Fin mueven el foco y seleccionan). «Materias» (RF-03) y
+ * «Profesores» (RF-01) están implementadas; Programas académicos (RF-02) muestra el módulo
+ * pendiente.
  */
 @Component({
   selector: 'app-catalogo-page',
-  imports: [Icono, MateriasTab, ModuloPendiente],
+  imports: [Icono, MateriasTab, ProfesoresTab, ModuloPendiente],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './catalogo-page.html',
   styleUrl: './catalogo-page.scss',
@@ -39,8 +41,9 @@ export const PESTANAS: readonly Pestana[] = [
 export class CatalogoPage {
   protected readonly pestanas = PESTANAS;
 
-  // Arranca en «Materias» porque es la única implementada. Cuando existan las otras pestañas,
-  // volver al orden del diseño (Profesores primero).
+  // Arranca en «Materias» para no reordenar el punto de entrada actual del equipo.
+  // Cuando Programas académicos también esté lista, volver al orden del diseño
+  // (Profesores primero).
   protected readonly activa = signal<IdPestana>('materias');
 
   private readonly botones = viewChildren<ElementRef<HTMLButtonElement>>('pestana');

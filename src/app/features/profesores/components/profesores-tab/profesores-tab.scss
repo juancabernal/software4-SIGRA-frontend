@@ -1,0 +1,379 @@
+:host {
+  display: grid;
+  gap: 1rem;
+}
+
+// ── Avisos ────────────────────────────────────────────────────────────
+.aviso-zona:empty {
+  display: none;
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-ok-bg);
+  color: color-mix(in srgb, var(--sg-ok-fg) 55%, black);
+  font-size: 0.875rem;
+  font-weight: 500;
+
+  span {
+    flex: 1;
+  }
+}
+
+.aviso--error {
+  background: var(--sg-error-bg);
+  color: var(--sg-error-fg);
+}
+
+.aviso__cerrar {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: var(--sg-radius-micro);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+// ── Tarjeta y barra de filtros ───────────────────────────────────────
+.tarjeta {
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-card);
+  background: var(--sg-card);
+  box-shadow: var(--sg-shadow-card);
+  overflow: hidden;
+}
+
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--sg-divider);
+}
+
+.buscador {
+  display: flex;
+  flex: 1 1 14rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
+  color: var(--sg-ink-soft);
+
+  &:focus-within {
+    border-color: var(--sg-navy);
+    background: var(--sg-card);
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.55rem 0;
+    border: 0;
+    background: transparent;
+    color: var(--sg-ink);
+    font: inherit;
+    font-size: 0.875rem;
+
+    &:focus-visible {
+      outline: none;
+    }
+
+    &::placeholder {
+      color: var(--sg-ink-muted);
+    }
+  }
+}
+
+.selector {
+  max-width: 14rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
+  color: var(--sg-ink-body);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.barra__registrar {
+  margin-left: auto;
+}
+
+// ── Botones ──────────────────────────────────────────────────────────
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-card);
+  color: var(--sg-ink-body);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--sg-transition),
+    border-color var(--sg-transition);
+
+  &:hover:not([aria-disabled='true']) {
+    background: var(--sg-field);
+  }
+}
+
+.btn--pequeno {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.btn--primario {
+  border-color: var(--sg-navy);
+  background: var(--sg-navy);
+  color: #fff;
+
+  &:hover:not([aria-disabled='true']) {
+    background: var(--sg-navy-hover);
+  }
+}
+
+.btn--secundario {
+  border-color: var(--sg-navy);
+  color: var(--sg-navy);
+
+  &:hover:not([aria-disabled='true']) {
+    background: var(--sg-secondary-hover);
+  }
+}
+
+.btn--peligro {
+  border-color: var(--sg-error-fg);
+  background: var(--sg-error-bg);
+  color: var(--sg-error-fg);
+
+  &:hover {
+    background: color-mix(in srgb, var(--sg-error-bg) 70%, var(--sg-error-fg));
+  }
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.55rem;
+  border: 0;
+  border-radius: var(--sg-radius-micro);
+  background: transparent;
+  color: var(--sg-ink-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover:not([aria-disabled='true']) {
+    background: var(--sg-divider);
+    color: var(--sg-navy);
+  }
+}
+
+// aria-disabled: el botón sigue enfocable para poder explicar por qué no está disponible.
+[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+// ── Tooltip de «Activar» (hover y foco de teclado) ───────────────────
+.con-tooltip {
+  position: relative;
+  display: inline-flex;
+}
+
+.tooltip {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.4rem);
+  z-index: 2;
+  width: max-content;
+  max-width: 14rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--sg-radius-micro);
+  background: var(--sg-ink);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.35;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--sg-transition);
+}
+
+.con-tooltip:hover .tooltip,
+.con-tooltip:focus-within .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+// ── Tabla ────────────────────────────────────────────────────────────
+.tabla-contenedor {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+thead th {
+  padding: 0.65rem 1.25rem;
+  background: var(--sg-field);
+  color: var(--sg-ink-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+tbody th,
+tbody td {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--sg-divider);
+  text-align: left;
+  vertical-align: middle;
+}
+
+tbody tr:hover {
+  background: var(--sg-row-hover);
+}
+
+.num {
+  text-align: right;
+}
+
+.nombre {
+  color: var(--sg-ink);
+  font-family: var(--sg-font-titulo);
+  font-weight: 600;
+}
+
+.codigo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+}
+
+.programa {
+  color: var(--sg-ink-muted);
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+// ── Estados de la vista ──────────────────────────────────────────────
+.estado-vista {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 3rem 1.5rem;
+  color: var(--sg-ink-muted);
+  text-align: center;
+
+  p {
+    margin: 0;
+  }
+}
+
+.estado-vista__titulo {
+  color: var(--sg-navy);
+  font-family: var(--sg-font-titulo);
+  font-weight: 700;
+}
+
+.estado-vista--error {
+  color: var(--sg-error-fg);
+}
+
+// ── Panel de consulta ────────────────────────────────────────────────
+.detalle {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+
+  dt {
+    color: var(--sg-ink-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin: 0.2rem 0 0;
+    color: var(--sg-ink);
+  }
+}
+
+.detalle__nombre {
+  font-family: var(--sg-font-titulo);
+  font-weight: 600;
+}
+
+.detalle__nota {
+  margin: 1.25rem 0 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--sg-radius-micro);
+  background: var(--sg-info-bg);
+  // #2e74b5 sobre #eaf1fb queda en ≈4.3:1: se oscurece el texto para llegar a AA.
+  color: color-mix(in srgb, var(--sg-info-fg) 80%, black);
+  font-size: 0.8125rem;
+}
+
+.detalle__solo-lectura {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 1.5rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--sg-divider);
+  color: var(--sg-ink-muted);
+  font-size: 0.75rem;
+}
+
+// ── Lista de asignaturas asociadas (panel de consulta) ──────────────
+.lista-asignaturas {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--sg-divider);
+    border-radius: var(--sg-radius-control);
+  }
+}
