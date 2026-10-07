@@ -215,4 +215,65 @@ describe('MatriculaFormDialog', () => {
     expect(html.textContent).not.toContain('No se pudieron cargar las opciones');
     expect(boton('Matricular').disabled).toBe(false);
   });
+
+  it('el botón "Cancelar" cierra el diálogo y emite "cerrado"', async () => {
+    let cerrado = false;
+    fixture.componentInstance.cerrado.subscribe(() => (cerrado = true));
+    await abrirConCatalogos();
+
+    boton('Cancelar').click();
+    await fixture.whenStable();
+
+    expect(cerrado).toBe(true);
+    http.expectNone(URL_MATRICULAS);
+  });
+
+  it('el evento nativo "cancel" del <dialog> también cierra y emite "cerrado"', async () => {
+    let cerrado = false;
+    fixture.componentInstance.cerrado.subscribe(() => (cerrado = true));
+    await abrirConCatalogos();
+
+    const dialogo = html.querySelector('dialog') as HTMLDialogElement;
+    dialogo.dispatchEvent(new Event('cancel', { cancelable: true }));
+    await fixture.whenStable();
+
+    expect(cerrado).toBe(true);
+    http.expectNone(URL_MATRICULAS);
+  });
+
+  it('mientras se matricula, el botón de envío queda deshabilitado y muestra "Matriculando…"', async () => {
+    await abrirConCatalogos();
+
+    const selectAsignatura = html.querySelector('#matricula-asignatura') as HTMLSelectElement;
+    selectAsignatura.value = 'a1';
+    selectAsignatura.dispatchEvent(new Event('change'));
+    const selectSemestre = html.querySelector('#matricula-semestre') as HTMLSelectElement;
+    selectSemestre.value = 's1';
+    selectSemestre.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+
+    enviar();
+    await fixture.whenStable();
+
+    const submit = html.querySelector('button[type="submit"]') as HTMLButtonElement;
+    expect(submit.textContent?.trim()).toBe('Matriculando…');
+    expect(submit.disabled).toBe(true);
+
+    http
+      .expectOne(URL_MATRICULAS)
+      .flush(
+        { id: 'm1', estudianteId: 'e1', asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVO' },
+        { status: 201, statusText: 'Created' },
+      );
+  });
+
+  it('si fallan los dos catálogos a la vez, muestra un solo aviso de reintento', async () => {
+    await fixture.whenStable();
+    catalogoAsignaturas().flush(null, { status: 0, statusText: 'Unknown Error' });
+    catalogoSemestres().flush(null, { status: 0, statusText: 'Unknown Error' });
+    await fixture.whenStable();
+
+    expect(html.querySelectorAll('.alerta').length).toBe(1);
+    expect(html.textContent).toContain('No se pudieron cargar las opciones');
+  });
 });

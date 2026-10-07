@@ -10,6 +10,8 @@ import { EstudianteDetallePage } from './estudiante-detalle-page';
 
 const URL_ESTUDIANTES = `${environment.apiUrl}/v1/estudiantes`;
 const URL_MATRICULAS = `${environment.apiUrl}/v1/matriculas`;
+const URL_ASIGNATURAS = `${environment.apiUrl}/v1/asignaturas`;
+const URL_SEMESTRES = `${environment.apiUrl}/v1/semestres`;
 
 const ANA: Estudiante = {
   id: 'e1',
@@ -119,9 +121,7 @@ describe('EstudianteDetallePage', () => {
     req.flush(null, { status: 204, statusText: 'No Content' });
     await fixture.whenStable();
 
-    expect(html.querySelector('.aviso-zona')?.textContent).toContain(
-      'Desvinculado de «Cálculo I»',
-    );
+    expect(html.querySelector('.aviso-zona')?.textContent).toContain('Desvinculado de «Cálculo I»');
     historial().flush([{ ...MATRICULA, estado: 'INACTIVO' }]);
     await fixture.whenStable();
     expect(html.textContent).toContain('Ya desvinculada');
@@ -142,5 +142,29 @@ describe('EstudianteDetallePage', () => {
     await fixture.whenStable();
 
     http.expectNone((r) => r.url === `${URL_MATRICULAS}/m1`);
+  });
+
+  it('abrir "Matricular" deja el diálogo abierto, y cancelarlo no llama al servicio de matrícula', async () => {
+    await abrir();
+    ficha().flush(ANA);
+    await fixture.whenStable();
+    historial().flush([MATRICULA]);
+    await fixture.whenStable();
+
+    boton(html, 'Matricular').click();
+    await fixture.whenStable();
+
+    const dialogo = html.querySelector('app-matricula-form-dialog dialog') as HTMLDialogElement;
+    expect(dialogo).toBeTruthy();
+
+    http.expectOne((r) => r.url === URL_ASIGNATURAS).flush([]);
+    http.expectOne((r) => r.url === URL_SEMESTRES).flush([]);
+    await fixture.whenStable();
+
+    boton(dialogo, 'Cancelar').click();
+    await fixture.whenStable();
+
+    expect(html.querySelector('app-matricula-form-dialog')).toBeNull();
+    http.expectNone((r) => r.url === URL_MATRICULAS && r.method === 'POST');
   });
 });
