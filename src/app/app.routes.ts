@@ -130,24 +130,29 @@ export const routes: Routes = [
         },
       },
       {
+        // Único módulo ya implementado junto con `admin/semestres`.
         path: 'admin/estudiantes',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import('./features/estudiantes/components/estudiantes-page/estudiantes-page').then(
+            (m) => m.EstudiantesPage,
+          ),
         title: 'Estudiantes · SIGRA',
-        data: {
-          titulo: 'Estudiantes',
-          subtitulo: 'Registro, consulta e inactivación de la ficha del estudiante',
-          requisito: 'RF-09a',
-        },
+      },
+      {
+        path: 'admin/estudiantes/:id',
+        loadComponent: () =>
+          import('./features/estudiantes/components/estudiante-detalle-page/estudiante-detalle-page').then(
+            (m) => m.EstudianteDetallePage,
+          ),
+        title: 'Ficha del estudiante · SIGRA',
       },
       {
         path: 'admin/matricula',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import('./features/estudiantes/components/matriculados-page/matriculados-page').then(
+            (m) => m.MatriculadosPage,
+          ),
         title: 'Matrícula y desvinculación · SIGRA',
-        data: {
-          titulo: 'Matrícula y desvinculación',
-          subtitulo: 'Gestión de estudiantes por materia',
-          requisito: 'RF-08 · RF-09',
-        },
       },
       {
         path: 'admin/reportes',

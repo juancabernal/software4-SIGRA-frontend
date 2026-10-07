@@ -121,12 +121,18 @@ describe('EstudiantesPage', () => {
     TestBed.tick();
     listado().flush([]);
     vi.useRealTimers();
+    // Forzar una pasada de detección de cambios aquí: al volver a relojes reales justo después
+    // de un flush bajo relojes falsos, la vista puede quedar un ciclo atrás de las señales
+    // (seguía mostrando «Cargando…») y `whenStable()` no lo corrige por sí solo.
+    TestBed.tick();
     await fixture.whenStable();
 
     expect(html.textContent).toContain('Sin resultados');
     expect(html.textContent).toContain('Ningún estudiante coincide con esa búsqueda.');
 
     boton(html, 'Limpiar búsqueda').click();
+    // El debounce de 300 ms vuelve a correr con relojes reales tras «Limpiar búsqueda».
+    await new Promise((resolver) => setTimeout(resolver, 350));
     await fixture.whenStable();
     const req = listado();
     expect(req.request.params.has('filtro')).toBe(false);

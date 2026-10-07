@@ -40,7 +40,14 @@ export interface Matricula {
   estado: EstadoMatricula;
 }
 
-/** EstudianteMatriculadoDTO: fila de GET /matriculas?asignaturaId=&semestreId=. */
+/**
+ * EstudianteMatriculadoDTO: fila de GET /matriculas?asignaturaId=&semestreId=.
+ *
+ * No trae `estudianteId`: alcanza para desvincular (por `matriculaId`), pero impide enlazar esta
+ * fila a la ficha del estudiante (`/admin/estudiantes/:id`) desde `matriculados-page`. Petición
+ * pendiente al equipo del backend, igual que la de `tipos-documento.ts`, para que no se pierda al
+ * archivar este cambio.
+ */
 export interface EstudianteMatriculado {
   matriculaId: string;
   numeroDocumento: string;
