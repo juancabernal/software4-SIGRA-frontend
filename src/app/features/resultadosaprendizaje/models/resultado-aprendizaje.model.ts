@@ -38,6 +38,8 @@ export interface AsignaturaOpcion {
   id: string;
   codigo: string;
   nombre: string;
+  programaId: string;
+  programaNombre: string;
   estado: EstadoAsignaturaOpcion;
   cantidadRa: number;
 }
@@ -45,11 +47,29 @@ export interface AsignaturaOpcion {
 /** Estados de asignatura en los que se gestionan RA: en BORRADOR se cargan para poder activarla. */
 export const ESTADOS_GESTIONABLES: readonly EstadoAsignaturaOpcion[] = ['BORRADOR', 'ACTIVA'];
 
-/** Mismas reglas que valida el backend en los DTO (longitudes del MER). */
+/**
+ * Mismas reglas que valida el backend (ReglasEntradaResultadoAprendizaje). Ambos campos se evalúan
+ * ya normalizados, igual que en el backend: código recortado y en mayúsculas; descripción con los
+ * espacios repetidos (incluidos saltos de línea) reducidos a uno y recortada.
+ */
 export const CODIGO_MAX = 10;
-export const DESCRIPCION_MAX = 500;
-/** Sin espacios internos (mismo patrón del backend); se guarda recortado y en mayúsculas. */
-export const PATRON_CODIGO = /^\s*\S+\s*$/;
+export const DESCRIPCION_MIN = 10;
+export const DESCRIPCION_MAX = 100;
+/** Letras sin tilde y números, con guiones solo entre ellos (por ejemplo RA-01). */
+export const PATRON_CODIGO = /^[A-Z0-9]+(-[A-Z0-9]+)*$/;
+/** Sin < ni > y sin caracteres de control ni de formato invisibles. */
+export const PATRON_DESCRIPCION_PROHIBIDO = /[<>\p{Cc}\p{Cf}]/u;
+
+export function normalizarCodigo(codigo: string): string {
+  return codigo.trim().toUpperCase();
+}
+
+export function normalizarDescripcion(descripcion: string): string {
+  return descripcion
+    .normalize('NFC')
+    .replace(/[\s\p{Z}]+/gu, ' ')
+    .trim();
+}
 
 /** Rango de RA activos por asignatura. */
 export const MIN_RA_ACTIVOS = 5;

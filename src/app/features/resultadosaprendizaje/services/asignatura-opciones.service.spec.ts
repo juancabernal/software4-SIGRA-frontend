@@ -12,6 +12,8 @@ const BORRADOR: AsignaturaOpcion = {
   id: '00000000-0000-4000-b000-000000000001',
   codigo: 'ZZZ01',
   nombre: 'Materia en borrador',
+  programaId: 'p1',
+  programaNombre: 'Ingeniería de Sistemas',
   estado: 'BORRADOR',
   cantidadRa: 2,
 };
@@ -20,6 +22,8 @@ const ACTIVA: AsignaturaOpcion = {
   id: '00000000-0000-4000-b000-000000000002',
   codigo: 'AAA01',
   nombre: 'Materia activa',
+  programaId: 'p1',
+  programaNombre: 'Ingeniería de Sistemas',
   estado: 'ACTIVA',
   cantidadRa: 5,
 };

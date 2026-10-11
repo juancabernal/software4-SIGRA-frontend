@@ -81,6 +81,19 @@ interface Aviso {
 
 const DURACION_AVISO_MS = 6000;
 
+/** Filas por página de la tabla de RA. */
+export const RA_POR_PAGINA = 5;
+
+export interface ProgramaFiltro {
+  id: string;
+  nombre: string;
+}
+
+/** Texto en minúsculas y sin tildes, para buscar sin importar mayúsculas ni acentos. */
+export function paraBuscar(texto: string): string {
+  return texto.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim();
+}
+
 type CargaResultados =
   | { estado: 'inactivo' }
   | { estado: 'cargando' }
@@ -95,6 +108,10 @@ type CargaResultados =
  * Los botones reflejan las reglas del backend (máximo 7 activos; mínimo 5 si la materia está
  * ACTIVA) para no ofrecer acciones que fallarían, pero quien decide es el backend y su mensaje
  * se muestra siempre.
+ *
+ * Las materias se filtran por programa y por texto (código o nombre) en el navegador, sobre la
+ * lista ya cargada: es un filtro de presentación, no de seguridad. La tabla de RA se pagina en el
+ * navegador porque la lista de una materia es corta y ya llega completa.
  *
  * Los RA se consultan con `switchMap` sobre la materia elegida: si se cambia de materia antes de
  * que llegue la respuesta, la anterior se descarta. Las reglas las aplica el backend.
@@ -125,6 +142,45 @@ export class ResultadosAprendizajePage {
 
   protected readonly asignatura = computed(
     () => this.asignaturas().find((a) => a.id === this.asignaturaId()) ?? null,
+  );
+
+  // ── Filtros del selector ────────────────────────────────────────────
+  protected readonly programaFiltro = signal('');
+  protected readonly textoFiltro = signal('');
+
+  /** Programas que tienen materias gestionables, sin repetir y ordenados por nombre. */
+  protected readonly programas = computed<ProgramaFiltro[]>(() => {
+    const porId = new Map<string, string>();
+    for (const a of this.asignaturas()) {
+      porId.set(a.programaId, a.programaNombre);
+    }
+    return Array.from(porId, ([id, nombre]) => ({ id, nombre })).sort((a, b) =>
+      a.nombre.localeCompare(b.nombre, 'es'),
+    );
+  });
+
+  protected readonly hayFiltros = computed(
+    () => this.programaFiltro() !== '' || paraBuscar(this.textoFiltro()) !== '',
+  );
+
+  /**
+   * Materias que cumplen los filtros. La materia elegida se conserva aunque no los cumpla, para
+   * que filtrar no cambie de materia sin que el usuario lo pida.
+   */
+  protected readonly asignaturasFiltradas = computed(() => {
+    const programa = this.programaFiltro();
+    const texto = paraBuscar(this.textoFiltro());
+    return this.asignaturas().filter(
+      (a) =>
+        a.id === this.asignaturaId() ||
+        ((!programa || a.programaId === programa) &&
+          (!texto || paraBuscar(`${a.codigo} ${a.nombre}`).includes(texto))),
+    );
+  });
+
+  /** Materias que cumplen los filtros, sin contar la elegida. */
+  protected readonly coincidencias = computed(
+    () => this.asignaturasFiltradas().filter((a) => a.id !== this.asignaturaId()).length,
   );
 
   // ── RA de la materia elegida ────────────────────────────────────────
@@ -164,6 +220,24 @@ export class ResultadosAprendizajePage {
     () => this.resultados().filter((ra) => ra.estado === 'ACTIVO').length,
   );
   protected readonly indicador = computed(() => indicadorRango(this.activos()));
+
+  // ── Paginación de la tabla ──────────────────────────────────────────
+  private readonly pagina = signal(1);
+  protected readonly totalPaginas = computed(() =>
+    Math.max(1, Math.ceil(this.resultados().length / RA_POR_PAGINA)),
+  );
+  /** Si la lista se acorta (p. ej. tras recargar), la página se ajusta a la última que exista. */
+  protected readonly paginaActual = computed(() => Math.min(this.pagina(), this.totalPaginas()));
+  protected readonly resultadosPagina = computed(() => {
+    const inicio = (this.paginaActual() - 1) * RA_POR_PAGINA;
+    return this.resultados().slice(inicio, inicio + RA_POR_PAGINA);
+  });
+  protected readonly rangoPagina = computed(() => {
+    const total = this.resultados().length;
+    const desde = (this.paginaActual() - 1) * RA_POR_PAGINA + 1;
+    const hasta = Math.min(desde + RA_POR_PAGINA - 1, total);
+    return `Mostrando ${desde}–${hasta} de ${total} RA`;
+  });
 
   // ── Reglas reflejadas en los botones ────────────────────────────────
   /** Registrar y reactivar suman un RA activo: no se permite pasar del máximo. */
@@ -207,6 +281,28 @@ export class ResultadosAprendizajePage {
 
   protected alCambiarAsignatura(evento: Event): void {
     this.asignaturaId.set((evento.target as HTMLSelectElement).value);
+    this.pagina.set(1);
+  }
+
+  protected alCambiarPrograma(evento: Event): void {
+    this.programaFiltro.set((evento.target as HTMLSelectElement).value);
+  }
+
+  protected alEscribir(evento: Event): void {
+    this.textoFiltro.set((evento.target as HTMLInputElement).value);
+  }
+
+  protected limpiarFiltros(): void {
+    this.programaFiltro.set('');
+    this.textoFiltro.set('');
+  }
+
+  protected paginaAnterior(): void {
+    this.pagina.set(Math.max(1, this.paginaActual() - 1));
+  }
+
+  protected paginaSiguiente(): void {
+    this.pagina.set(Math.min(this.totalPaginas(), this.paginaActual() + 1));
   }
 
   protected recargarResultados(): void {
