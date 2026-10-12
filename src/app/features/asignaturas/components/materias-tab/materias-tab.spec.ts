@@ -67,8 +67,11 @@ describe('MateriasTab', () => {
   });
 
   const listado = () => http.expectOne((r) => r.url === URL && r.method === 'GET');
+  // Filas de datos, sin contar los encabezados de grupo por programa (.grupo-fila).
+  const filasDeDatos = () => html.querySelectorAll('tbody tr:not(.grupo-fila)');
+  const encabezadosDeGrupo = () => Array.from(html.querySelectorAll('tbody tr.grupo-fila'));
   const fila = (codigo: string) =>
-    Array.from(html.querySelectorAll('tbody tr')).find((tr) =>
+    Array.from(filasDeDatos()).find((tr) =>
       tr.textContent?.includes(codigo),
     ) as HTMLTableRowElement;
   const boton = (raiz: ParentNode, texto: string) =>
@@ -111,7 +114,7 @@ describe('MateriasTab', () => {
     req.flush([BORRADOR_5, ACTIVA]);
     await fixture.whenStable();
 
-    expect(html.querySelectorAll('tbody tr').length).toBe(2);
+    expect(filasDeDatos().length).toBe(2);
     const primera = fila('BRU05');
     expect(primera.textContent).toContain('Bruno Cinco');
     expect(primera.textContent).toContain('Ingeniería de Sistemas');
@@ -135,7 +138,7 @@ describe('MateriasTab', () => {
 
   it('el selector de estado va entre programa y RA y envía estado al servicio de inmediato', async () => {
     await iniciar([BORRADOR_5]);
-    const ids = Array.from(html.querySelectorAll('select.selector')).map((s) => s.id);
+    const ids = Array.from(html.querySelectorAll('.barra select.selector')).map((s) => s.id);
     expect(ids).toEqual(['filtro-programa', 'filtro-estado', 'filtro-ra']);
     expect(html.querySelector('label[for="filtro-estado"]')?.textContent?.trim()).toBe('Estado');
     const opciones = Array.from(html.querySelectorAll('#filtro-estado option'));
@@ -236,7 +239,7 @@ describe('MateriasTab', () => {
     expect(primera.cancelled).toBe(true);
     segunda.flush([ACTIVA]);
     await fixture.whenStable();
-    expect(html.querySelectorAll('tbody tr').length).toBe(1);
+    expect(filasDeDatos().length).toBe(1);
   });
 
   it('sin materias y sin filtros invita a registrar', async () => {
@@ -275,7 +278,7 @@ describe('MateriasTab', () => {
     await fixture.whenStable();
     listado().flush([BORRADOR_5]);
     await fixture.whenStable();
-    expect(html.querySelectorAll('tbody tr').length).toBe(1);
+    expect(filasDeDatos().length).toBe(1);
   });
 
   it('si fallan los programas, el filtro queda solo con «Todos» y la pantalla funciona', async () => {
@@ -283,7 +286,7 @@ describe('MateriasTab', () => {
 
     const opciones = html.querySelectorAll('#filtro-programa option');
     expect(opciones.length).toBe(1);
-    expect(html.querySelectorAll('tbody tr').length).toBe(1);
+    expect(filasDeDatos().length).toBe(1);
   });
 
   it('Activar queda deshabilitado con aria-disabled y tooltip si no hay entre 5 y 7 RA', async () => {
@@ -517,6 +520,96 @@ describe('MateriasTab', () => {
         'Materia actualizada: Bruno Renombrada.',
       );
       listado().flush([{ ...ACTIVA, nombre: 'Bruno Renombrada' }]);
+    });
+  });
+
+  describe('agrupación por programa', () => {
+    const CIVIL = asignatura({
+      id: 'c1',
+      codigo: 'CIV01',
+      nombre: 'Materia Civil',
+      programaId: 'p2',
+      programaNombre: 'Ingeniería Civil',
+    });
+
+    it('con «Todos los programas» agrupa por programa, en orden alfabético, con el conteo', async () => {
+      await iniciar([BORRADOR_5, ACTIVA, CIVIL]);
+
+      const encabezados = encabezadosDeGrupo().map((tr) => tr.textContent?.trim());
+      expect(encabezados).toEqual([
+        'Ingeniería Civil · 1 materia',
+        'Ingeniería de Sistemas · 2 materias',
+      ]);
+
+      // Dentro de cada grupo, orden alfabético por nombre de materia.
+      const nombres = Array.from(filasDeDatos()).map(
+        (tr) => tr.querySelector('.nombre')?.textContent,
+      );
+      expect(nombres).toEqual(['Materia Civil', 'Bruno Activa', 'Bruno Cinco']);
+    });
+
+    it('con un programa específico elegido no muestra encabezados', async () => {
+      await iniciar([BORRADOR_5, ACTIVA]);
+      await cambiarSelect('filtro-programa', 'p1');
+      listado().flush([BORRADOR_5, ACTIVA]);
+      await fixture.whenStable();
+
+      expect(encabezadosDeGrupo().length).toBe(0);
+      expect(filasDeDatos().length).toBe(2);
+    });
+  });
+
+  describe('paginación', () => {
+    const lista40 = Array.from({ length: 40 }, (_, i) =>
+      asignatura({
+        id: `m${i}`,
+        codigo: `MAT${String(i).padStart(2, '0')}`,
+        nombre: `Materia ${String(i).padStart(2, '0')}`,
+      }),
+    );
+
+    it('muestra 10 por página por defecto, navega y no se pasa de los extremos', async () => {
+      await iniciar(lista40);
+
+      expect(filasDeDatos().length).toBe(10);
+      expect(html.querySelector('.paginador__texto')?.textContent).toBe('Página 1 de 4');
+      expect(boton(html, 'Anterior').getAttribute('aria-disabled')).toBe('true');
+
+      boton(html, 'Siguiente').click();
+      await fixture.whenStable();
+      expect(html.querySelector('.paginador__texto')?.textContent).toBe('Página 2 de 4');
+      expect(filasDeDatos()[0].textContent).toContain('Materia 10');
+
+      boton(html, 'Anterior').click();
+      await fixture.whenStable();
+      expect(html.querySelector('.paginador__texto')?.textContent).toBe('Página 1 de 4');
+    });
+
+    it('cambiar el tamaño de página muestra más filas y vuelve a la página 1', async () => {
+      await iniciar(lista40);
+      boton(html, 'Siguiente').click();
+      await fixture.whenStable();
+
+      const select = html.querySelector('#paginador-tamano') as HTMLSelectElement;
+      select.value = '25';
+      select.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+
+      expect(filasDeDatos().length).toBe(25);
+      expect(html.querySelector('.paginador__texto')?.textContent).toBe('Página 1 de 2');
+    });
+
+    it('cambiar cualquier filtro vuelve a la página 1', async () => {
+      await iniciar(lista40);
+      boton(html, 'Siguiente').click();
+      await fixture.whenStable();
+      expect(html.querySelector('.paginador__texto')?.textContent).toBe('Página 2 de 4');
+
+      await cambiarSelect('filtro-estado', 'BORRADOR');
+      listado().flush(lista40);
+      await fixture.whenStable();
+
+      expect(html.querySelector('.paginador__texto')?.textContent).toBe('Página 1 de 4');
     });
   });
 });

@@ -107,93 +107,110 @@
           </tr>
         </thead>
         <tbody>
-          @for (a of asignaturas(); track a.id) {
-            <tr>
-              <th scope="row" class="nombre">{{ a.nombre }}</th>
-              <td class="codigo">{{ a.codigo }}</td>
-              <td class="programa">{{ a.programaNombre }}</td>
-              <td class="num tabular">{{ a.cantidadRa }}</td>
-              <td>
-                <app-chip-estado
-                  [etiqueta]="presentacion[a.estado].etiqueta"
-                  [variante]="presentacion[a.estado].variante"
-                  [icono]="presentacion[a.estado].icono"
-                />
-              </td>
-              <td>
-                <div class="acciones">
-                  <button
-                    type="button"
-                    class="btn-ghost"
-                    [attr.aria-label]="'Consultar ' + a.nombre"
-                    (click)="consultar(a)"
-                  >
-                    <app-icono nombre="ojo" [tamano]="16" />
-                    <span>Consultar</span>
-                  </button>
+          @for (
+            f of filasTabla();
+            track f.tipo === 'encabezado' ? 'g-' + f.texto : f.asignatura.id
+          ) {
+            @if (f.tipo === 'encabezado') {
+              <tr class="grupo-fila">
+                <th scope="colgroup" colspan="6">{{ f.texto }}</th>
+              </tr>
+            } @else {
+              @let a = f.asignatura;
+              <tr>
+                <th scope="row" class="nombre">{{ a.nombre }}</th>
+                <td class="codigo">{{ a.codigo }}</td>
+                <td class="programa">{{ a.programaNombre }}</td>
+                <td class="num tabular">{{ a.cantidadRa }}</td>
+                <td>
+                  <app-chip-estado
+                    [etiqueta]="presentacion[a.estado].etiqueta"
+                    [variante]="presentacion[a.estado].variante"
+                    [icono]="presentacion[a.estado].icono"
+                  />
+                </td>
+                <td>
+                  <div class="acciones">
+                    <button
+                      type="button"
+                      class="btn-ghost"
+                      [attr.aria-label]="'Consultar ' + a.nombre"
+                      (click)="consultar(a)"
+                    >
+                      <app-icono nombre="ojo" [tamano]="16" />
+                      <span>Consultar</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    class="btn-ghost"
-                    [attr.aria-label]="'Modificar ' + a.nombre"
-                    (click)="abrirEdicion(a)"
-                  >
-                    <app-icono nombre="lapiz" [tamano]="16" />
-                    <span>Modificar</span>
-                  </button>
+                    <button
+                      type="button"
+                      class="btn-ghost"
+                      [attr.aria-label]="'Modificar ' + a.nombre"
+                      (click)="abrirEdicion(a)"
+                    >
+                      <app-icono nombre="lapiz" [tamano]="16" />
+                      <span>Modificar</span>
+                    </button>
 
-                  @switch (a.estado) {
-                    @case ('BORRADOR') {
-                      @let habilitado = puedeActivarse(a);
-                      <span class="con-tooltip">
+                    @switch (a.estado) {
+                      @case ('BORRADOR') {
+                        @let habilitado = puedeActivarse(a);
+                        <span class="con-tooltip">
+                          <button
+                            type="button"
+                            class="btn btn--secundario btn--pequeno"
+                            [attr.aria-label]="'Activar ' + a.nombre"
+                            [attr.aria-disabled]="
+                              !habilitado || activandoId() === a.id ? 'true' : null
+                            "
+                            [attr.aria-describedby]="habilitado ? null : 'tooltip-activar-' + a.id"
+                            (click)="activar(a)"
+                          >
+                            {{ activandoId() === a.id ? 'Activando…' : 'Activar' }}
+                          </button>
+                          @if (!habilitado) {
+                            <span class="tooltip" role="tooltip" [id]="'tooltip-activar-' + a.id">
+                              {{ tooltipActivar }}
+                            </span>
+                          }
+                        </span>
+                      }
+                      @case ('ACTIVA') {
+                        <button
+                          type="button"
+                          class="btn btn--peligro btn--pequeno"
+                          [attr.aria-label]="'Inactivar ' + a.nombre"
+                          (click)="pedirInactivar(a)"
+                        >
+                          Inactivar
+                        </button>
+                      }
+                      @case ('INACTIVA') {
                         <button
                           type="button"
                           class="btn btn--secundario btn--pequeno"
-                          [attr.aria-label]="'Activar ' + a.nombre"
-                          [attr.aria-disabled]="
-                            !habilitado || activandoId() === a.id ? 'true' : null
-                          "
-                          [attr.aria-describedby]="habilitado ? null : 'tooltip-activar-' + a.id"
-                          (click)="activar(a)"
+                          [attr.aria-label]="'Reactivar ' + a.nombre"
+                          [attr.aria-disabled]="activandoId() === a.id ? 'true' : null"
+                          (click)="reactivar(a)"
                         >
-                          {{ activandoId() === a.id ? 'Activando…' : 'Activar' }}
+                          {{ activandoId() === a.id ? 'Reactivando…' : 'Reactivar' }}
                         </button>
-                        @if (!habilitado) {
-                          <span class="tooltip" role="tooltip" [id]="'tooltip-activar-' + a.id">
-                            {{ tooltipActivar }}
-                          </span>
-                        }
-                      </span>
+                      }
                     }
-                    @case ('ACTIVA') {
-                      <button
-                        type="button"
-                        class="btn btn--peligro btn--pequeno"
-                        [attr.aria-label]="'Inactivar ' + a.nombre"
-                        (click)="pedirInactivar(a)"
-                      >
-                        Inactivar
-                      </button>
-                    }
-                    @case ('INACTIVA') {
-                      <button
-                        type="button"
-                        class="btn btn--secundario btn--pequeno"
-                        [attr.aria-label]="'Reactivar ' + a.nombre"
-                        [attr.aria-disabled]="activandoId() === a.id ? 'true' : null"
-                        (click)="reactivar(a)"
-                      >
-                        {{ activandoId() === a.id ? 'Reactivando…' : 'Reactivar' }}
-                      </button>
-                    }
-                  }
-                </div>
-              </td>
-            </tr>
+                  </div>
+                </td>
+              </tr>
+            }
           }
         </tbody>
       </table>
     </div>
+    <app-paginador
+      [total]="totalFilas()"
+      [pagina]="paginaSegura()"
+      [tamanoPagina]="tamanoPagina()"
+      (cambioPagina)="alCambiarPagina($event)"
+      (cambioTamano)="alCambiarTamanoPagina($event)"
+    />
   }
 </div>
 
