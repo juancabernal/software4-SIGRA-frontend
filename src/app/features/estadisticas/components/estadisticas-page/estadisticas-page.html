@@ -99,7 +99,9 @@
           >
             <option value="">Selecciona un semestre</option>
             @for (s of semestres(); track s.id) {
-              <option [value]="s.id">{{ s.codigo }}{{ s.estado === 'ACTIVO' ? ' (activo)' : '' }}</option>
+              <option [value]="s.id" [selected]="s.id === semestreId()">
+                {{ s.codigo }}{{ s.estado === 'ACTIVO' ? ' (activo)' : '' }}
+              </option>
             }
           </select>
         }
