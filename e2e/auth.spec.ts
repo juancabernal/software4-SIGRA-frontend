@@ -80,6 +80,14 @@ test.describe('autenticación y RBAC en navegador real', () => {
       await expect(page).toHaveURL(new RegExp(`${usuarios[rol].ruta.replace('/', '\\/')}(?:[?#]|$)`));
       await expect(page.getByRole('navigation')).toContainText(usuarios[rol].etiquetaMenu);
 
+      // Regresión: después del login, un refresh real debe preservar la ruta y el rol.
+      const recarga = await page.reload({ waitUntil: 'domcontentloaded' });
+      expect(recarga?.status()).toBe(200);
+      await expect(page).toHaveURL(
+        new RegExp(`${usuarios[rol].ruta.replace('/', '\\/')}(?:[?#]|$)`),
+      );
+      await expect(page.getByRole('navigation')).toContainText(usuarios[rol].etiquetaMenu);
+
       for (const url of peticionesApi) {
         const destino = new URL(url);
         expect(destino.pathname.startsWith('/api/v1/')).toBe(true);
@@ -95,6 +103,17 @@ test.describe('autenticación y RBAC en navegador real', () => {
     await expect(page).toHaveURL(/\/acceso-denegado/);
     await expect(page.getByRole('button', { name: /volver a mi inicio/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /cerrar sesión/i })).toBeVisible();
+  });
+
+  test('un profesor no puede abrir /admin/ra ni después de recargar', async ({ page }) => {
+    test.skip(!usuarioDisponible('profesor'), 'Requiere usuario profesor seed.');
+
+    await iniciarSesion(page, 'profesor');
+    await page.goto('/admin/ra');
+    await expect(page).toHaveURL(/\/acceso-denegado/);
+    const respuesta = await page.reload();
+    expect(respuesta?.status()).toBe(200);
+    await expect(page).toHaveURL(/\/acceso-denegado/);
   });
 
   test('rechaza returnUrl externo y conserva el inicio del rol', async ({ page }) => {

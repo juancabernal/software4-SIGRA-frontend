@@ -12,7 +12,8 @@
     "e2e:install": "playwright install chromium firefox",
     "e2e:preflight": "node scripts/e2e-preflight.mjs",
     "smoke:ssr": "node scripts/smoke-ssr.mjs",
-    "serve:ssr:software4-SIGRA-frontend": "node dist/software4-SIGRA-frontend/server/server.mjs"
+    "serve:ssr:software4-SIGRA-frontend": "node dist/software4-SIGRA-frontend/server/server.mjs",
+    "smoke:vercel": "node scripts/smoke-vercel-routing.mjs"
   },
   "private": true,
   "packageManager": "npm@11.17.0",
