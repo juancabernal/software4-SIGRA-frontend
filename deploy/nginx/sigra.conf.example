@@ -1,0 +1,55 @@
+# Ejemplo operativo para: Nginx TLS -> Spring Boot (/api) y Node SSR (resto).
+# Sustituir certificados y validar el puerto/origen del backend antes de usarlo.
+
+upstream sigra_frontend_ssr {
+    server 127.0.0.1:4000;
+}
+
+upstream sigra_backend {
+    server 127.0.0.1:8081;
+}
+
+server {
+    listen 80;
+    server_name sigra.example.invalid;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name sigra.example.invalid;
+
+    # Reemplazar por rutas administradas por la plataforma de despliegue.
+    ssl_certificate /etc/letsencrypt/live/sigra.example.invalid/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/sigra.example.invalid/privkey.pem;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    # Angular carga los scripts desde archivos del bundle; no se habilita JavaScript inline.
+    # `unsafe-inline` queda únicamente en estilos porque SSR puede insertar CSS crítico.
+    add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; font-src 'self' data:" always;
+
+    # La API conserva /api/v1/** y nunca cae en Angular SSR.
+    location /api/ {
+        proxy_pass http://sigra_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Request-Id $request_id;
+        add_header Access-Control-Expose-Headers "X-Request-Id" always;
+    }
+
+    location / {
+        proxy_pass http://sigra_frontend_ssr;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Request-Id $request_id;
+    }
+}

@@ -1,4 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://<dominio-del-backend>/api',
+  /** Producción se sirve detrás del reverse proxy que expone la API bajo el mismo origen. */
+  apiUrl: '/api',
 };

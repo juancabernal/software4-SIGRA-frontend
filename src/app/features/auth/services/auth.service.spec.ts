@@ -14,7 +14,7 @@ const SOLICITUD: LoginRequest = {
 };
 
 const RESPUESTA: LoginResponse = {
-  token: 'jwt-de-prueba',
+  token: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiZXhwIjo0MTAyNDQ0ODAwfQ.signature',
   tipo: 'Bearer',
   expiraEn: 3600,
   usuario: {

@@ -4,20 +4,14 @@ import { routes } from './app.routes';
 import { Shell } from './core/layout/shell/shell';
 import { PERFILES, ROLES } from './core/models/rol';
 
-/**
- * Estas pruebas miran la tabla de rutas real, no un router armado para el test.
- *
- * Existen porque un merge dejó `app.routes.ts` con dos rutas y nadie se enteró: el build seguía
- * limpio y las pruebas del shell pasaban, porque cada una monta su propio router. Sin algo que
- * afirme el árbol de verdad, perder la navegación completa no rompe nada visible.
- */
 describe('tabla de rutas de la aplicación', () => {
   const shell = routes.find((ruta) => ruta.component === Shell);
   const hijas: Route[] = shell?.children ?? [];
-  const pantallas = hijas.filter((ruta) => ruta.path !== '').map((ruta) => ruta.path);
+  const pantallas = hijas.map((ruta) => ruta.path).filter((path): path is string => Boolean(path));
 
-  it('el shell existe y envuelve a las pantallas privadas', () => {
+  it('el shell existe y protege las pantallas privadas', () => {
     expect(shell).toBeDefined();
+    expect(shell?.canActivate).toHaveLength(1);
     expect(pantallas.length).toBeGreaterThanOrEqual(15);
   });
 
@@ -29,28 +23,35 @@ describe('tabla de rutas de la aplicación', () => {
     }
   });
 
-  it('el login es ruta raíz y no entra al shell', () => {
-    expect(routes.some((ruta) => ruta.path === 'login')).toBe(true);
+  it('el login y acceso denegado están fuera del shell', () => {
+    expect(routes.find((ruta) => ruta.path === 'login')?.canActivate).toHaveLength(1);
+    expect(routes.some((ruta) => ruta.path === 'acceso-denegado')).toBe(true);
     expect(pantallas).not.toContain('login');
   });
 
-  it('la raíz y las rutas desconocidas tienen destino', () => {
-    const raiz = hijas.find((ruta) => ruta.path === '');
-    expect(raiz?.redirectTo).toBe('admin/catalogo');
-    expect(routes.some((ruta) => ruta.path === '**')).toBe(true);
+  it('la raíz decide login o home desde la sesión, nunca desde un rol fijo', () => {
+    const raiz = routes.find((ruta) => ruta.path === '' && ruta.canActivate);
+    expect(raiz?.redirectTo).toBeUndefined();
+    expect(raiz?.canActivate).toHaveLength(1);
+  });
+
+  it('cada pantalla privada declara exactamente sus roles backend', () => {
+    for (const ruta of hijas) {
+      expect(ruta.canActivate, `la ruta ${ruta.path} no tiene guardia`).toBeDefined();
+      expect(ruta.data?.['roles'], `la ruta ${ruta.path} no tiene roles`).toBeDefined();
+      expect(ruta.data?.['roles']).toHaveLength(1);
+    }
   });
 
   it('toda pantalla se carga de forma diferida y lleva título', () => {
     for (const ruta of hijas) {
-      if (ruta.path === '') {
-        continue;
-      }
       expect(ruta.loadComponent, `la ruta ${ruta.path} no es diferida`).toBeDefined();
       expect(ruta.title, `la ruta ${ruta.path} no tiene título`).toBeDefined();
     }
   });
 
-  it('ninguna ruta de pantalla queda duplicada', () => {
+  it('ninguna ruta de pantalla queda duplicada y las desconocidas vuelven a la raíz', () => {
     expect(new Set(pantallas).size).toBe(pantallas.length);
+    expect(routes.some((ruta) => ruta.path === '**' && ruta.redirectTo === '')).toBe(true);
   });
 });

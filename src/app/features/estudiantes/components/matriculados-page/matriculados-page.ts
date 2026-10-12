@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
 import { catchError, forkJoin, map, of, switchMap, tap } from 'rxjs';
 
 import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
@@ -48,8 +49,11 @@ const DURACION_AVISO_MS = 6000;
 export class MatriculadosPage {
   private readonly catalogos = inject(CatalogosMatriculaService);
   private readonly service = inject(MatriculaService);
+  private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly destroyRef = inject(DestroyRef);
   private temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
+  private readonly asignaturaInicial =
+    this.route?.snapshot.queryParamMap.get('asignaturaId') ?? null;
 
   protected readonly presentacion = PRESENTACION_ESTADO_MATRICULA;
   protected readonly aviso = signal<Aviso | null>(null);
@@ -261,6 +265,13 @@ export class MatriculadosPage {
         }
         this.asignaturas.set(asignaturas);
         this.semestres.set(semestres);
+        if (
+          this.asignaturaId() === '' &&
+          this.asignaturaInicial !== null &&
+          asignaturas.some(({ id }) => id === this.asignaturaInicial)
+        ) {
+          this.asignaturaId.set(this.asignaturaInicial);
+        }
       });
   }
 }

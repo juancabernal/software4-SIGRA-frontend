@@ -26,6 +26,7 @@
             id="login-correo"
             type="email"
             formControlName="correoInstitucional"
+            maxlength="254"
             placeholder="nombre@uco.net.co"
             autocomplete="username"
             autocapitalize="none"
@@ -39,6 +40,8 @@
             <p class="error-campo" id="login-correo-error">
               @if (form.controls.correoInstitucional.hasError('required')) {
                 Escribe tu correo institucional.
+              } @else if (form.controls.correoInstitucional.hasError('maxlength')) {
+                El correo no puede superar 254 caracteres.
               } @else {
                 Usa tu correo institucional, que termina en @uco.net.co.
               }
@@ -54,10 +57,17 @@
             formControlName="contrasena"
             autocomplete="current-password"
             [attr.aria-invalid]="mostrarError('contrasena')"
-            aria-describedby="login-contrasena-error"
+            aria-describedby="login-contrasena-ayuda login-contrasena-error"
           />
+          <p class="ayuda" id="login-contrasena-ayuda">Máximo 72 bytes en UTF-8.</p>
           @if (mostrarError('contrasena')) {
-            <p class="error-campo" id="login-contrasena-error">Escribe tu contraseña.</p>
+            <p class="error-campo" id="login-contrasena-error">
+              @if (form.controls.contrasena.hasError('required')) {
+                Escribe tu contraseña.
+              } @else if (form.controls.contrasena.hasError('maxBytes')) {
+                La contraseña no puede superar 72 bytes.
+              }
+            </p>
           }
         </div>
 

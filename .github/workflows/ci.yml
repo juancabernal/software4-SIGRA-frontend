@@ -1,7 +1,6 @@
 # Integración continua del frontend (SIGRA).
 # Corre en cada push y en cada pull request hacia develop o main.
-# Compila (producción y desarrollo) y ejecuta las pruebas unitarias (Vitest).
-# No necesita secretos ni navegador.
+# Compila, ejecuta pruebas unitarias y deja una compuerta E2E integrada separada.
 
 name: CI
 
@@ -41,5 +40,101 @@ jobs:
       - name: Compilar (desarrollo)
         run: npx ng build --configuration development
 
+      - name: Verificar tipos de aplicación, specs y E2E
+        run: |
+          npx tsc --noEmit -p tsconfig.app.json
+          npx tsc --noEmit -p tsconfig.spec.json
+          npm run typecheck:e2e
+
       - name: Ejecutar las pruebas unitarias
         run: npx ng test --no-watch
+
+      - name: Auditoría de dependencias
+        run: npm audit --audit-level=high
+
+      - name: Levantar SSR para smoke HTTP
+        run: |
+          NG_ALLOWED_HOSTS=localhost,127.0.0.1 node dist/software4-SIGRA-frontend/server/server.mjs > ssr.log 2>&1 &
+          echo $! > ssr.pid
+          for intento in {1..30}; do
+            if curl --silent --fail http://127.0.0.1:4000/login > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat ssr.log
+          exit 1
+
+      - name: Smoke SSR (allowlist y contingencia API)
+        env:
+          SIGRA_SSR_URL: http://127.0.0.1:4000
+          SIGRA_SSR_ALLOWED_HOSTS: localhost,127.0.0.1
+        run: npm run smoke:ssr
+
+      - name: Logs SSR
+        if: always()
+        run: |
+          if [ -f ssr.log ]; then cat ssr.log; fi
+
+  e2e-integrada:
+    name: E2E integrada (backend y PostgreSQL efímeros)
+    if: ${{ vars.SIGRA_E2E_ENABLED == '1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SIGRA_E2E_ENABLED: '1'
+      SIGRA_E2E_BASE_URL: ${{ vars.SIGRA_E2E_BASE_URL }}
+      SIGRA_E2E_API_BASE_URL: ${{ vars.SIGRA_E2E_API_BASE_URL }}
+      SIGRA_E2E_BACKEND_SHA: ${{ vars.SIGRA_E2E_BACKEND_SHA }}
+      SIGRA_E2E_POSTGRES_VERSION: ${{ vars.SIGRA_E2E_POSTGRES_VERSION }}
+      SIGRA_E2E_SEED_ID: ${{ vars.SIGRA_E2E_SEED_ID }}
+      SIGRA_E2E_ADMIN_EMAIL: ${{ secrets.SIGRA_E2E_ADMIN_EMAIL }}
+      SIGRA_E2E_ADMIN_PASSWORD: ${{ secrets.SIGRA_E2E_ADMIN_PASSWORD }}
+      SIGRA_E2E_PROFESOR_EMAIL: ${{ secrets.SIGRA_E2E_PROFESOR_EMAIL }}
+      SIGRA_E2E_PROFESOR_PASSWORD: ${{ secrets.SIGRA_E2E_PROFESOR_PASSWORD }}
+      SIGRA_E2E_ESTUDIANTE_EMAIL: ${{ secrets.SIGRA_E2E_ESTUDIANTE_EMAIL }}
+      SIGRA_E2E_ESTUDIANTE_PASSWORD: ${{ secrets.SIGRA_E2E_ESTUDIANTE_PASSWORD }}
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Validar ambiente E2E, SHA y seed
+        run: npm run e2e:preflight
+
+      - name: Instalar Chromium y Firefox
+        run: npx playwright install --with-deps chromium firefox
+
+      - name: Ejecutar Playwright sin omisiones
+        run: npm run e2e
+
+      - name: Publicar reportes Playwright
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sigra-e2e-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+
+  e2e-bloqueada:
+    name: Estado E2E (BLOCKED sin ambiente)
+    if: ${{ vars.SIGRA_E2E_ENABLED != '1' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Registrar bloqueo explícito
+        run: |
+          {
+            echo '## E2E integrada: BLOCKED'
+            echo
+            echo 'No se configuró SIGRA_E2E_ENABLED=1 con backend SHA, PostgreSQL/seed y secretos.'
+            echo 'Este estado no certifica la suite ni permite declarar PASS de integración.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1

@@ -1,10 +1,8 @@
-import { isPlatformBrowser } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
   ElementRef,
-  PLATFORM_ID,
   computed,
   inject,
   signal,
@@ -14,7 +12,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 
-import { PERFILES, ROLES, Rol, type PerfilRol } from '../../models/rol';
 import { SesionService } from '../../services/sesion';
 import { BarsMotif } from '../../../shared/ui/bars-motif/bars-motif';
 import { Icono } from '../../../shared/ui/icono/icono';
@@ -25,8 +22,8 @@ const CONSULTA_ESCRITORIO = '(min-width: 900px)';
 /**
  * Shell de la aplicación: sidebar de navegación + topbar + área de contenido (§6).
  *
- * El menú se arma con el perfil del rol activo, que `SesionService` deriva de la URL. Ocultar
- * ítems del menú **no** es control de acceso: la autorización la hace el backend (RF-05, RNF-13).
+ * El menú se arma con el perfil del usuario autenticado. La autorización real la hace el backend;
+ * la navegación frontend solo evita mostrar rutas incompatibles con el rol.
  */
 @Component({
   selector: 'app-shell',
@@ -43,14 +40,11 @@ const CONSULTA_ESCRITORIO = '(min-width: 900px)';
 export class Shell {
   private readonly sesion = inject(SesionService);
   private readonly router = inject(Router);
-  private readonly esNavegador = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly botonMenu = viewChild<ElementRef<HTMLButtonElement>>('botonMenu');
   private readonly barraLateral = viewChild<ElementRef<HTMLElement>>('barraLateral');
 
-  protected readonly roles = ROLES;
-  protected readonly rol = this.sesion.rol;
   protected readonly identidad = this.sesion.identidad;
   protected readonly etiquetaRol = this.sesion.etiquetaRol;
   protected readonly autenticado = this.sesion.autenticado;
@@ -80,7 +74,7 @@ export class Shell {
     // Se comprueba la función y no solo la plataforma: el entorno de pruebas y algunos
     // navegadores embebidos no traen `matchMedia`. Sin ella se asume escritorio, que es el
     // caso en que el botón del menú colapsa el sidebar en lugar de abrir el cajón.
-    if (this.esNavegador && typeof window.matchMedia === 'function') {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
       const consulta = window.matchMedia(CONSULTA_ESCRITORIO);
       this.esEscritorio.set(consulta.matches);
 
@@ -118,15 +112,7 @@ export class Shell {
     this.botonMenu()?.nativeElement.focus();
   }
 
-  protected cambiarRol(rol: Rol): void {
-    this.sesion.cambiarRol(rol);
-  }
-
   protected cerrarSesion(): void {
     this.sesion.cerrarSesion();
-  }
-
-  protected perfilDe(rol: Rol): PerfilRol {
-    return PERFILES[rol];
   }
 }
