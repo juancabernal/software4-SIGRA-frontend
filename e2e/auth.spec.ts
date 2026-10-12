@@ -43,7 +43,7 @@ async function iniciarSesion(page: Page, rol: Rol, returnUrl?: string): Promise<
   const usuario = usuarios[rol];
   await page.goto(destino);
   await page.getByLabel('Correo institucional').fill(usuario.correo);
-  await page.getByLabel('Contraseña').fill(usuario.contrasena);
+  await page.getByLabel('Contraseña', { exact: true }).fill(usuario.contrasena);
   await page.getByRole('button', { name: /iniciar sesión/i }).click();
   await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
 }
