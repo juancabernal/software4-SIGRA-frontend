@@ -21,6 +21,7 @@
         placeholder="Ej. Cálculo Integral"
         autocomplete="off"
         aria-required="true"
+        [attr.maxlength]="nombreMax"
         [attr.aria-invalid]="mostrarError('nombre')"
         aria-describedby="materia-nombre-ayuda materia-nombre-error"
       />
@@ -54,6 +55,7 @@
           placeholder="Ej. MAT-401"
           autocomplete="off"
           aria-required="true"
+          [attr.maxlength]="codigoMax"
           [attr.aria-invalid]="mostrarError('codigo')"
           aria-describedby="materia-codigo-ayuda materia-codigo-error"
         />
