@@ -61,7 +61,10 @@
                 }
               ],
               "outputHashing": "all",
-              "outputMode": "static"
+              "outputMode": "static",
+              "ssr": false,
+              "server": false,
+              "prerender": false
             },
             "development": {
               "optimization": false,

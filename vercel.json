@@ -21,5 +21,8 @@
       "source": "/estudiante/:path*",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "framework": "angular",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/software4-SIGRA-frontend/browser"
 }

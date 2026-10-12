@@ -16,12 +16,12 @@ peticiones HTTP directas al origen de Vercel.
 
 Para este frontend, que consume una API independiente de Render y mantiene
 la sesión en `sessionStorage`, el build de **producción** pasa a
-`outputMode: static`. El build de **desarrollo** mantiene `outputMode: server`
+`outputMode: static`, `ssr: false`, `server: false` y `prerender: false`, evitando `index.csr.html` y produciendo `browser/index.html`. El build de **desarrollo** mantiene `outputMode: server`
 y el smoke SSR existente, pero el routing SSR ya no prerenderiza el
 comodín; todas las vistas permanecen client-side para no hornear
 redirecciones o datos privados por rol.
 
-El `vercel.json` solo reescribe `/login`, `/acceso-denegado`,
+El `vercel.json` fija `buildCommand: npm run build` y `outputDirectory: dist/software4-SIGRA-frontend/browser` (directorio de archivos estáticos). Además, solo reescribe `/login`, `/acceso-denegado`,
 `/admin/:path*`, `/profesor/:path*` y `/estudiante/:path*`
 a `/index.html`; no intercepta assets ni `/api`. La API sigue en
 `https://software4-sigra-backend.onrender.com/api` sin cambios.
@@ -31,7 +31,7 @@ a `/index.html`; no intercepta assets ni `/api`. La API sigue en
 ## Pruebas agregadas
 
 - `npm run smoke:vercel` después del build de producción: comprueba
-  `dist/software4-SIGRA-frontend/index.html`, modo estático,
+  `dist/software4-SIGRA-frontend/browser/index.html`, modo estático,
   rewrites para todos los grupos de roles y ausencia de wildcard global.
 - Playwright: login de ADMINISTRADOR, PROFESOR y ESTUDIANTE, refresh real
   en su ruta inicial; verifica URL y menú, más rechazo persistente del
