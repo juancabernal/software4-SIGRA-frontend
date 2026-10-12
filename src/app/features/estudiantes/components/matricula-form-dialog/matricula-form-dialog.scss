@@ -7,6 +7,7 @@ dialog {
   background: var(--sg-card);
   color: var(--sg-ink);
   box-shadow: var(--sg-shadow-float);
+  overflow-y: auto;
 }
 
 dialog::backdrop {
@@ -53,8 +54,30 @@ form {
   cursor: pointer;
 }
 
-.campo select:hover {
+.campo input {
+  font: inherit;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
+  color: var(--sg-ink);
+  min-width: 0;
+}
+
+.campo select:hover,
+.campo input:hover {
   border-color: var(--sg-navy);
+}
+
+.campo input:focus-visible {
+  outline: none;
+  border-color: var(--sg-navy);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sg-navy) 20%, transparent);
+  background: var(--sg-card);
+}
+
+.campo input[aria-invalid='true'] {
+  border-color: var(--sg-error-fg);
 }
 
 .campo select:focus-visible {
@@ -134,4 +157,135 @@ form {
 
 .btn--primario:hover:not(:disabled) {
   background: var(--sg-navy-hover);
+}
+
+// ── Identificación del estudiante ───────────────────────────────────
+
+// Documento + botón en una línea; en móvil el botón baja y ocupa el ancho.
+.busqueda__linea {
+  display: flex;
+  gap: 0.5rem;
+
+  input {
+    flex: 1 1 auto;
+  }
+
+  @media (max-width: 26rem) {
+    flex-wrap: wrap;
+
+    .btn {
+      flex: 1 1 100%;
+    }
+  }
+}
+
+.busqueda {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.estado-busqueda {
+  margin: 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.85rem;
+}
+
+.no-encontrado {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+  padding: 0.85rem 0.9rem;
+  border: 1px dashed var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
+
+  p {
+    margin: 0;
+    color: var(--sg-ink-body);
+    font-size: 0.875rem;
+  }
+}
+
+// Estudiante ya identificado: encontrado por documento o recién registrado.
+.estudiante-elegido {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: start;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--sg-ok-fg);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-ok-bg);
+}
+
+.estudiante-elegido__titulo {
+  margin: 0;
+  color: var(--sg-ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.estudiante-elegido__nombre {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.estudiante-elegido__dato {
+  margin: 0;
+  color: var(--sg-ink-body);
+  font-size: 0.82rem;
+}
+
+.estudiante-elegido__aviso {
+  margin: 0.3rem 0 0;
+  color: var(--sg-ink-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.estudiante-elegido .btn {
+  margin-top: 0.5rem;
+}
+
+// Alta en un paso: se separa visualmente de los selectores de la matrícula.
+.estudiante-nuevo {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem 0.9rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
+}
+
+.estudiante-nuevo__encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.estudiante-nuevo__titulo {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.estudiante-nuevo .campo input,
+.estudiante-nuevo .campo select {
+  background: var(--sg-card);
+}
+
+// El alta funcionó pero la matrícula no (D14): no es un error rojo a secas, es un estado mixto.
+.alerta--parcial {
+  border-color: var(--sg-warning-fg);
+  background: var(--sg-warning-bg);
+  color: var(--sg-warning-fg);
+}
+
+.btn--pequeno {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
 }

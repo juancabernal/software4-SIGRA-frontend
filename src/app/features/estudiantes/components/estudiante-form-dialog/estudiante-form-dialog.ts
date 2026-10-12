@@ -13,19 +13,17 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 
 import { Estudiante, EstudianteRequest } from '../../models/estudiante.model';
 import { TIPOS_DOCUMENTO, idDeTipoDocumento } from '../../models/tipos-documento';
+import { CampoEstudiante, validadoresEstudiante } from '../../models/validadores-estudiante';
 import { MensajeError, mensajeDeError } from '../../services/estudiante-error';
 import { EstudianteService } from '../../services/estudiante.service';
 
-/** Mismo patrón que valida el backend (@Pattern en EstudianteRequestDTO). */
-export const PATRON_NUMERO_DOCUMENTO = /^\d{6,10}$/;
-/** Admite mayúsculas y espacios alrededor; se recortan antes de enviar. */
-export const PATRON_CORREO_INSTITUCIONAL = /^\s*[\w.-]+@uco\.net\.co\s*$/i;
-
-type Campo = 'tipoDocumentoId' | 'numeroDocumento' | 'nombreCompleto' | 'correoInstitucional';
+// Los patrones del borde viven en `models/validadores-estudiante.ts`: los comparte con el modo
+// «estudiante nuevo» de `matricula-form-dialog`, para no duplicar las expresiones (D14).
+type Campo = CampoEstudiante;
 
 /**
  * Diálogo de Registrar / Modificar estudiante (RF-09a). El mismo componente sirve para las dos
@@ -72,14 +70,12 @@ export class EstudianteFormDialog implements OnInit {
   /** D3: distinto de null solo cuando el tipo de documento del estudiante no resuelve a ningún id. */
   protected readonly errorTipoDocumento = signal<string | null>(null);
 
+  private readonly validadores = validadoresEstudiante();
   protected readonly form = inject(FormBuilder).nonNullable.group({
-    tipoDocumentoId: ['', Validators.required],
-    numeroDocumento: ['', [Validators.required, Validators.pattern(PATRON_NUMERO_DOCUMENTO)]],
-    nombreCompleto: ['', Validators.required],
-    correoInstitucional: [
-      '',
-      [Validators.required, Validators.pattern(PATRON_CORREO_INSTITUCIONAL)],
-    ],
+    tipoDocumentoId: ['', this.validadores.tipoDocumentoId],
+    numeroDocumento: ['', this.validadores.numeroDocumento],
+    nombreCompleto: ['', this.validadores.nombreCompleto],
+    correoInstitucional: ['', this.validadores.correoInstitucional],
   });
 
   constructor() {
