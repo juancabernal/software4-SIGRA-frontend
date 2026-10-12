@@ -188,7 +188,7 @@ describe('EstadisticasPage', () => {
   });
 
   describe('acción de mejora', () => {
-    it('todavía no está implementada: muestra un aviso temporal', async () => {
+    it('abre el diálogo de registro de acción de mejora', async () => {
       await iniciarConSeleccion([ra(1)]);
 
       boton(html, 'Consultar conclusión').click();
@@ -198,9 +198,10 @@ describe('EstadisticasPage', () => {
 
       boton(html, 'Crear acción de mejora').click();
       await fixture.whenStable();
-      expect(html.querySelector('.aviso')?.textContent).toContain(
-        'Esta función estará disponible pronto.',
-      );
+
+      const dialogo = html.querySelector('dialog');
+      expect(dialogo?.hasAttribute('open')).toBe(true);
+      expect(dialogo?.textContent).toContain('Registrar acción de mejora');
     });
   });
 });
