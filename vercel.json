@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/login",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/acceso-denegado",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/profesor/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/estudiante/:path*",
+      "destination": "/index.html"
+    }
+  ]
+}

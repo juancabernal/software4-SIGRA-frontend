@@ -37,6 +37,9 @@ jobs:
       - name: Compilar (producción)
         run: npx ng build
 
+      - name: Validar build estático y rutas profundas de Vercel
+        run: npm run smoke:vercel
+
       - name: Compilar (desarrollo)
         run: npx ng build --configuration development
 
