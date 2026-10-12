@@ -34,7 +34,7 @@ const CALCULO_PREVIA: AsignaturaDeEstudiante = {
   matriculaId: 'm1',
   asignaturaNombre: 'Cálculo I',
   semestreCodigo: '2025-2',
-  estado: 'INACTIVO',
+  estado: 'DESVINCULADA',
 };
 
 const ASIGNATURAS = [{ id: 'a1', nombre: 'Física I', estado: 'ACTIVA' as const }];
@@ -115,7 +115,7 @@ describe('EstudianteDetallePage (integración con MatriculaFormDialog)', () => {
       semestreId: 's1',
     });
     peticion.flush(
-      { id: 'm2', estudianteId: ANA.id, asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVO' },
+      { id: 'm2', estudianteId: ANA.id, asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVA' },
       { status: 201, statusText: 'Created' },
     );
     await fixture.whenStable();
@@ -127,7 +127,7 @@ describe('EstudianteDetallePage (integración con MatriculaFormDialog)', () => {
       matriculaId: 'm2',
       asignaturaNombre: 'Física I',
       semestreCodigo: '2026-1',
-      estado: 'ACTIVO',
+      estado: 'ACTIVA',
     };
     http
       .expectOne((r) => r.url === `${URL_ESTUDIANTES}/${ANA.id}/asignaturas`)
@@ -149,7 +149,7 @@ describe('EstudianteDetallePage (integración con MatriculaFormDialog)', () => {
     http
       .expectOne((r) => r.url === URL_MATRICULAS && r.method === 'POST')
       .flush(
-        { id: 'm2', estudianteId: ANA.id, asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVO' },
+        { id: 'm2', estudianteId: ANA.id, asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVA' },
         { status: 201, statusText: 'Created' },
       );
     await fixture.whenStable();
@@ -190,7 +190,7 @@ describe('EstudianteDetallePage (integración con MatriculaFormDialog)', () => {
         matriculaId: 'm2',
         numeroDocumento: ANA.numeroDocumento,
         nombreCompleto: ANA.nombreCompleto,
-        estado: 'ACTIVO',
+        estado: 'ACTIVA',
       },
     ]);
     await fixtureMatriculados.whenStable();

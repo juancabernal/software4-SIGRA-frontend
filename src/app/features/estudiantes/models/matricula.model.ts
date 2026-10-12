@@ -5,8 +5,14 @@ import { VarianteChip } from '../../../shared/ui/chip-estado/chip-estado';
  * (co.edu.uco.sigra.estudiantes.dto). Ruta base: /api/v1/matriculas.
  */
 
-/** Desvinculación lógica: una matrícula INACTIVA puede reactivarse, nunca se borra. */
-export type EstadoMatricula = 'ACTIVO' | 'INACTIVO';
+/**
+ * Desvinculación lógica: una matrícula DESVINCULADA puede reactivarse, nunca se borra.
+ *
+ * Valores del `enum EstadoMatricula` del backend (co.edu.uco.sigra.estudiantes.entity), deliberadamente
+ * distinto de `EstadoRegistro` (ACTIVO/INACTIVO): una matrícula desvinculada conserva su historial
+ * académico, no es un registro dado de baja.
+ */
+export type EstadoMatricula = 'ACTIVA' | 'DESVINCULADA';
 
 interface PresentacionEstado {
   etiqueta: string;
@@ -20,8 +26,8 @@ interface PresentacionEstado {
  */
 export const PRESENTACION_ESTADO_MATRICULA: Readonly<Record<EstadoMatricula, PresentacionEstado>> =
   {
-    ACTIVO: { etiqueta: 'Activa', variante: 'ok', icono: 'check' },
-    INACTIVO: { etiqueta: 'Desvinculada', variante: 'neutro', icono: 'prohibido' },
+    ACTIVA: { etiqueta: 'Activa', variante: 'ok', icono: 'check' },
+    DESVINCULADA: { etiqueta: 'Desvinculada', variante: 'neutro', icono: 'prohibido' },
   };
 
 /**
