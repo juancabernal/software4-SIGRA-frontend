@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../../../environments/environment';
+import { AccionMejora } from '../../../mejoras/models/accion-mejora.model';
 import { Asignatura } from '../../../asignaturas/models/asignatura.model';
 import { ResultadoAprendizaje } from '../../../resultadosaprendizaje/models/resultado-aprendizaje.model';
 import { Semestre } from '../../../semestres/models/semestre.model';
@@ -13,6 +14,7 @@ const API = `${environment.apiUrl}/v1`;
 const URL_ASIGNATURAS = `${API}/asignaturas`;
 const URL_SEMESTRES = `${API}/semestres`;
 const URL_CONCLUSIONES = `${API}/conclusiones`;
+const URL_ACCIONES_MEJORA = `${API}/acciones-mejora`;
 const urlRa = (asignaturaId: string) => `${API}/asignaturas/${asignaturaId}/resultados-aprendizaje`;
 
 const MATERIA: Asignatura = {
@@ -114,10 +116,15 @@ describe('EstadisticasPage', () => {
     selector.dispatchEvent(new Event('change'));
   }
 
-  async function iniciarConSeleccion(resultados: ResultadoAprendizaje[]) {
+  async function iniciarConSeleccion(
+    resultados: ResultadoAprendizaje[],
+    accionesMejora: AccionMejora[] = [],
+  ) {
     await iniciar([MATERIA], [SEMESTRE_ACTIVO, SEMESTRE_INACTIVO]);
     await elegirMateria(MATERIA, resultados);
     elegirRa('ra-1');
+    await fixture.whenStable();
+    http.expectOne((r) => r.url === URL_ACCIONES_MEJORA).flush(accionesMejora);
     await fixture.whenStable();
   }
 

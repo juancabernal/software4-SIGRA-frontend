@@ -165,6 +165,57 @@
           }
         }
       </div>
+
+      @if (puedeConsultar()) {
+        <div class="acciones-mejora">
+          <h2 class="acciones-mejora__titulo">Acciones de mejora</h2>
+          @switch (accionesEstado()) {
+            @case ('cargando') {
+              <p class="estado-inline" role="status">Cargando acciones de mejora…</p>
+            }
+            @case ('error') {
+              <div class="estado-inline estado-inline--error" role="alert">
+                <p>{{ accionesError()?.mensaje }}</p>
+              </div>
+            }
+            @case ('listo') {
+              @if (accionesMejora().length === 0) {
+                <p class="estado-inline">
+                  No hay acciones de mejora registradas para este RA en este semestre.
+                </p>
+              } @else {
+                <ul class="lista-acciones">
+                  @for (accion of accionesMejora(); track accion.id) {
+                    <li class="accion-mejora">
+                      <div class="accion-mejora__cabecera">
+                        <p class="accion-mejora__nombre">{{ accion.nombre }}</p>
+                        @if (accion.convertida) {
+                          <app-chip-estado etiqueta="Convertida" variante="ok" icono="check" />
+                        } @else {
+                          <app-chip-estado etiqueta="No convertida" variante="neutro" icono="reloj" />
+                        }
+                      </div>
+                      <p class="accion-mejora__descripcion">{{ accion.descripcion }}</p>
+                      <p class="accion-mejora__fecha">Propuesta el {{ accion.fechaPropuesta }}</p>
+                      @if (accion.convertida) {
+                        <!-- TODO: cuando exista el módulo de evaluaciones, mostrar el nombre o un enlace a la evaluación en vez de su id -->
+                        <p class="accion-mejora__evaluacion">
+                          Evaluación generada: {{ accion.evaluacionGeneradaId }}
+                        </p>
+                      } @else {
+                        <button type="button" class="btn" (click)="abrirConversion(accion)">
+                          <app-icono nombre="flecha-der" [tamano]="16" />
+                          Convertir en evaluación
+                        </button>
+                      }
+                    </li>
+                  }
+                </ul>
+              }
+            }
+          }
+        </div>
+      }
     }
   </div>
 
@@ -173,5 +224,12 @@
     [conclusion]="consultaConclusion()"
     (guardado)="alGuardarAccionMejora()"
     (cancelar)="alCancelarAccionMejora()"
+  />
+
+  <app-conversion-accion-mejora-dialog
+    [abierto]="dialogoConversionAbierto()"
+    [accion]="accionEnConversion()"
+    (convertida)="alConvertirAccionMejora()"
+    (cancelar)="alCancelarConversion()"
   />
 </section>
