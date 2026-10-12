@@ -211,4 +211,130 @@ describe('EstadisticasPage', () => {
       expect(dialogo?.textContent).toContain('Registrar acción de mejora');
     });
   });
+
+  describe('listado de acciones de mejora', () => {
+    const NO_CONVERTIDA: AccionMejora = {
+      id: 'am1',
+      nombre: 'Taller de refuerzo',
+      descripcion: 'Taller para reforzar integrales',
+      fechaPropuesta: '2026-06-01',
+      resultadoAprendizajeId: 'ra-1',
+      resultadoAprendizajeCodigo: 'RA1',
+      asignaturaId: MATERIA.id,
+      semestreId: SEMESTRE_ACTIVO.id,
+      semestreCodigo: SEMESTRE_ACTIVO.codigo,
+      conclusionOrigenId: 'c1',
+      evaluacionGeneradaId: null,
+      convertida: false,
+    };
+
+    const CONVERTIDA: AccionMejora = {
+      ...NO_CONVERTIDA,
+      id: 'am2',
+      nombre: 'Guía de ejercicios adicionales',
+      convertida: true,
+      evaluacionGeneradaId: 'ev1',
+    };
+
+    it('muestra el listado de acciones del RA y semestre seleccionados', async () => {
+      await iniciarConSeleccion([ra(1)], [NO_CONVERTIDA, CONVERTIDA]);
+
+      expect(html.textContent).toContain('Taller de refuerzo');
+      expect(html.textContent).toContain('Guía de ejercicios adicionales');
+    });
+
+    it('una acción no convertida ofrece «Convertir en evaluación»', async () => {
+      await iniciarConSeleccion([ra(1)], [NO_CONVERTIDA]);
+
+      const item = html.querySelector('.accion-mejora') as HTMLElement;
+      expect(boton(item, 'Convertir en evaluación')).toBeDefined();
+      expect(item.textContent).toContain('No convertida');
+    });
+
+    it('una acción ya convertida no ofrece «Convertir en evaluación» y muestra el id de la evaluación', async () => {
+      await iniciarConSeleccion([ra(1)], [CONVERTIDA]);
+
+      const item = html.querySelector('.accion-mejora') as HTMLElement;
+      expect(boton(item, 'Convertir en evaluación')).toBeUndefined();
+      expect(item.textContent).toContain('Convertida');
+      expect(item.textContent).toContain('ev1');
+    });
+
+    async function abrirConversion(): Promise<void> {
+      await iniciarConSeleccion([ra(1)], [NO_CONVERTIDA]);
+      boton(html, 'Convertir en evaluación').click();
+      await fixture.whenStable();
+    }
+
+    async function confirmarConversion(porcentaje: string): Promise<void> {
+      const input = html.querySelector('#conversion-porcentaje') as HTMLInputElement;
+      input.value = porcentaje;
+      input.dispatchEvent(new Event('input'));
+      input.dispatchEvent(new Event('blur'));
+      await fixture.whenStable();
+      const dialogoAbierto = html.querySelector('dialog[open]') as HTMLElement;
+      (dialogoAbierto.querySelector('form') as HTMLFormElement).dispatchEvent(
+        new Event('submit', { cancelable: true }),
+      );
+      await fixture.whenStable();
+    }
+
+    const URL_CONVERSION = `${URL_ACCIONES_MEJORA}/${NO_CONVERTIDA.id}/conversion`;
+
+    it('al convertir con éxito el listado se refresca', async () => {
+      await abrirConversion();
+      await confirmarConversion('20');
+
+      const req = http.expectOne((r) => r.url === URL_CONVERSION && r.method === 'POST');
+      const convertida = { ...NO_CONVERTIDA, convertida: true, evaluacionGeneradaId: 'ev1' };
+      req.flush(convertida);
+      await fixture.whenStable();
+
+      http.expectOne((r) => r.url === URL_ACCIONES_MEJORA && r.method === 'GET').flush([convertida]);
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('Acción de mejora convertida en evaluación.');
+      const item = html.querySelector('.accion-mejora') as HTMLElement;
+      expect(item.textContent).toContain('Convertida');
+      expect(item.textContent).toContain('ev1');
+    });
+
+    it('si la conversión responde 400 (supera el 100%) muestra el error y la pantalla sigue usable', async () => {
+      await abrirConversion();
+      await confirmarConversion('90');
+
+      http
+        .expectOne((r) => r.url === URL_CONVERSION && r.method === 'POST')
+        .flush(
+          {
+            status: 400,
+            error: 'BAD_REQUEST',
+            mensaje: 'El porcentaje supera el 100% del RA en el semestre.',
+          },
+          { status: 400, statusText: 'Bad Request' },
+        );
+      await fixture.whenStable();
+
+      const alerta = html.querySelector('[role="alert"]') as HTMLElement;
+      expect(alerta.textContent).toContain('El porcentaje supera el 100% del RA en el semestre.');
+      expect(html.querySelector('.accion-mejora')).not.toBeNull();
+    });
+
+    it('si la conversión responde 409 (ya convertida) muestra el error y la pantalla sigue usable', async () => {
+      await abrirConversion();
+      await confirmarConversion('20');
+
+      http
+        .expectOne((r) => r.url === URL_CONVERSION && r.method === 'POST')
+        .flush(
+          { status: 409, error: 'CONFLICT', mensaje: 'La acción de mejora ya fue convertida.' },
+          { status: 409, statusText: 'Conflict' },
+        );
+      await fixture.whenStable();
+
+      const alerta = html.querySelector('[role="alert"]') as HTMLElement;
+      expect(alerta.textContent).toContain('La acción de mejora ya fue convertida.');
+      expect(html.querySelector('.accion-mejora')).not.toBeNull();
+    });
+  });
 });
