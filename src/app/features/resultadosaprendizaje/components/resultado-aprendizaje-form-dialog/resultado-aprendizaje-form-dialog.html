@@ -16,9 +16,9 @@
         <label for="ra-codigo">Código <span class="obligatorio" aria-hidden="true">*</span></label>
         <input
           id="ra-codigo"
-          class="mayusculas codigo"
+          class="mayusculas"
           formControlName="codigo"
-          placeholder="Ej. RA1"
+          placeholder="Ej. RA-01"
           autocomplete="off"
           aria-required="true"
           [attr.maxlength]="codigoMax"
@@ -26,7 +26,8 @@
           aria-describedby="ra-codigo-ayuda ra-codigo-error"
         />
         <p class="ayuda" id="ra-codigo-ayuda">
-          Máximo {{ codigoMax }} caracteres, sin espacios. Único dentro de la materia.
+          Máximo {{ codigoMax }} caracteres: letras sin tilde, números y guiones entre ellos. Único
+          dentro de la materia.
         </p>
         @if (mostrarError('codigo')) {
           <p class="error-campo" id="ra-codigo-error">
@@ -37,7 +38,7 @@
             } @else if (form.controls.codigo.hasError('maxlength')) {
               El código no puede superar los {{ codigoMax }} caracteres.
             } @else {
-              El código no puede contener espacios.
+              Usa letras sin tilde, números y guiones entre ellos (por ejemplo RA-01).
             }
           </p>
         }
@@ -49,7 +50,7 @@
           <app-icono nombre="candado" [tamano]="15" />
           <input
             id="ra-codigo-fijo"
-            class="codigo"
+            class="solo-lectura"
             readonly
             [value]="ra.codigo"
             aria-describedby="ra-codigo-fijo-nota"
@@ -66,7 +67,7 @@
       <textarea
         id="ra-descripcion"
         formControlName="descripcion"
-        rows="5"
+        rows="3"
         placeholder="Ej. Analiza los requisitos de un sistema de software."
         aria-required="true"
         [attr.maxlength]="descripcionMax"
@@ -74,12 +75,17 @@
         aria-describedby="ra-descripcion-ayuda ra-descripcion-error"
       ></textarea>
       <p class="ayuda tabular" id="ra-descripcion-ayuda">
-        {{ largoDescripcion() }} / {{ descripcionMax }} caracteres
+        Entre {{ descripcionMin }} y {{ descripcionMax }} caracteres · {{ largoDescripcion() }} /
+        {{ descripcionMax }}
       </p>
       @if (mostrarError('descripcion')) {
         <p class="error-campo" id="ra-descripcion-error">
           @if (form.controls.descripcion.hasError('required')) {
             Escribe la descripción del RA.
+          } @else if (form.controls.descripcion.hasError('caracteres')) {
+            La descripción no puede contener los caracteres &lt; o &gt; ni caracteres de control.
+          } @else if (form.controls.descripcion.hasError('minlength')) {
+            La descripción debe tener al menos {{ descripcionMin }} caracteres.
           } @else {
             La descripción no puede superar los {{ descripcionMax }} caracteres.
           }

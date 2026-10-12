@@ -4,7 +4,6 @@
       <h1 id="titulo-ra">Gestión de Resultados de Aprendizaje</h1>
       <p class="cabecera__sub">Selecciona una materia para gestionar sus RA</p>
     </div>
-    <span class="requisito tabular">RF-06</span>
   </header>
 
   <div class="aviso-zona" role="status" aria-live="polite">
@@ -12,7 +11,12 @@
       <div class="aviso" [class.aviso--error]="a.tono === 'error'">
         <app-icono [nombre]="a.tono === 'ok' ? 'check' : 'advertencia'" [tamano]="16" />
         <span>{{ a.texto }}</span>
-        <button type="button" class="aviso__cerrar" aria-label="Cerrar aviso" (click)="cerrarAviso()">
+        <button
+          type="button"
+          class="aviso__cerrar"
+          aria-label="Cerrar aviso"
+          (click)="cerrarAviso()"
+        >
           <app-icono nombre="cerrar" [tamano]="14" />
         </button>
       </div>
@@ -34,11 +38,37 @@
       <div class="estado-vista">
         <p class="estado-vista__titulo">No hay materias para gestionar</p>
         <p>
-          Los RA se gestionan en materias en borrador o activas. Registra una materia en el
-          Catálogo académico.
+          Los RA se gestionan en materias en borrador o activas. Registra una materia en el Catálogo
+          académico.
         </p>
       </div>
     } @else {
+      <div class="barra">
+        <div class="buscador">
+          <app-icono nombre="buscar" [tamano]="16" />
+          <input
+            type="search"
+            placeholder="Buscar materia..."
+            aria-label="Buscar materias por código o nombre"
+            [value]="textoFiltro()"
+            (input)="alEscribir($event)"
+          />
+        </div>
+
+        <label class="solo-lectores" for="filtro-programa">Programa</label>
+        <select
+          id="filtro-programa"
+          class="selector selector--programa"
+          [value]="programaFiltro()"
+          (change)="alCambiarPrograma($event)"
+        >
+          <option value="">Todos los programas</option>
+          @for (programa of programas(); track programa.id) {
+            <option [value]="programa.id">{{ programa.nombre }}</option>
+          }
+        </select>
+      </div>
+
       <div class="barra">
         <label for="selector-materia">Materia</label>
         <select
@@ -46,14 +76,29 @@
           class="selector"
           [value]="asignaturaId()"
           (change)="alCambiarAsignatura($event)"
+          aria-describedby="materias-coincidencias"
         >
           <option value="">Selecciona una materia</option>
-          @for (a of asignaturas(); track a.id) {
+          @for (a of asignaturasFiltradas(); track a.id) {
             <option [value]="a.id">
               {{ a.codigo }} · {{ a.nombre }} ({{ presentacionAsignatura[a.estado].etiqueta }})
             </option>
           }
         </select>
+        @if (hayFiltros()) {
+          <p class="coincidencias" id="materias-coincidencias" role="status">
+            @if (coincidencias() === 0) {
+              Ninguna materia coincide con la búsqueda.
+            } @else {
+              {{ coincidencias() }} materia{{ coincidencias() === 1 ? '' : 's' }} coincide{{
+                coincidencias() === 1 ? '' : 'n'
+              }}.
+            }
+            <button type="button" class="btn-ghost" (click)="limpiarFiltros()">
+              Limpiar filtros
+            </button>
+          </p>
+        }
       </div>
 
       @if (asignatura(); as a) {
@@ -84,7 +129,9 @@
                 Registrar RA
               </button>
               @if (!puedeAgregarActivo()) {
-                <span class="tooltip" role="tooltip" id="tooltip-registrar">{{ motivoMaximo }}</span>
+                <span class="tooltip" role="tooltip" id="tooltip-registrar">{{
+                  motivoMaximo
+                }}</span>
               }
             </span>
           }
@@ -109,7 +156,10 @@
           <div class="tabla-contenedor">
             <table>
               <caption class="solo-lectores">
-                Resultados de aprendizaje de {{ a.nombre }}
+                Resultados de aprendizaje de
+                {{
+                  a.nombre
+                }}
               </caption>
               <thead>
                 <tr>
@@ -120,7 +170,7 @@
                 </tr>
               </thead>
               <tbody>
-                @for (ra of resultados(); track ra.id) {
+                @for (ra of resultadosPagina(); track ra.id) {
                   <tr [class.fila--inactiva]="ra.estado === 'INACTIVO'">
                     <th scope="row" class="codigo tabular">{{ ra.codigo }}</th>
                     <td class="descripcion">{{ ra.descripcion }}</td>
@@ -158,7 +208,11 @@
                               <span>Inactivar</span>
                             </button>
                             @if (!puedeInactivar()) {
-                              <span class="tooltip" role="tooltip" [id]="'tooltip-inactivar-' + ra.id">
+                              <span
+                                class="tooltip"
+                                role="tooltip"
+                                [id]="'tooltip-inactivar-' + ra.id"
+                              >
                                 {{ motivoMinimo }}
                               </span>
                             }
@@ -179,7 +233,11 @@
                               <span>Reactivar</span>
                             </button>
                             @if (!puedeAgregarActivo()) {
-                              <span class="tooltip" role="tooltip" [id]="'tooltip-reactivar-' + ra.id">
+                              <span
+                                class="tooltip"
+                                role="tooltip"
+                                [id]="'tooltip-reactivar-' + ra.id"
+                              >
                                 {{ motivoMaximo }}
                               </span>
                             }
@@ -192,6 +250,33 @@
               </tbody>
             </table>
           </div>
+
+          <nav class="paginacion" aria-label="Paginación de resultados de aprendizaje">
+            <span class="paginacion__rango tabular">{{ rangoPagina() }}</span>
+            @if (totalPaginas() > 1) {
+              <div class="paginacion__controles">
+                <button
+                  type="button"
+                  class="btn btn--pequeno"
+                  [attr.aria-disabled]="paginaActual() === 1 ? 'true' : null"
+                  (click)="paginaAnterior()"
+                >
+                  Anterior
+                </button>
+                <span class="tabular" aria-live="polite">
+                  Página {{ paginaActual() }} de {{ totalPaginas() }}
+                </span>
+                <button
+                  type="button"
+                  class="btn btn--pequeno"
+                  [attr.aria-disabled]="paginaActual() === totalPaginas() ? 'true' : null"
+                  (click)="paginaSiguiente()"
+                >
+                  Siguiente
+                </button>
+              </div>
+            }
+          </nav>
         }
 
         <app-resultado-aprendizaje-form-dialog
@@ -203,7 +288,9 @@
         />
       } @else {
         <div class="estado-vista">
-          <p>Elige una materia en el selector para ver y gestionar sus resultados de aprendizaje.</p>
+          <p>
+            Elige una materia en el selector para ver y gestionar sus resultados de aprendizaje.
+          </p>
         </div>
       }
     }

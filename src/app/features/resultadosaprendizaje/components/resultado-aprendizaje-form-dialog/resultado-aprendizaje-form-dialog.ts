@@ -17,7 +17,6 @@ import {
   FormBuilder,
   ReactiveFormsModule,
   ValidationErrors,
-  Validators,
 } from '@angular/forms';
 import { map } from 'rxjs';
 
@@ -27,8 +26,12 @@ import { Icono } from '../../../../shared/ui/icono/icono';
 import {
   CODIGO_MAX,
   DESCRIPCION_MAX,
+  DESCRIPCION_MIN,
   PATRON_CODIGO,
+  PATRON_DESCRIPCION_PROHIBIDO,
   ResultadoAprendizaje,
+  normalizarCodigo,
+  normalizarDescripcion,
 } from '../../models/resultado-aprendizaje.model';
 import { ResultadoAprendizajeService } from '../../services/resultado-aprendizaje.service';
 
@@ -39,10 +42,31 @@ export interface ResultadoFormularioRa {
   modo: ModoFormularioRa;
 }
 
-/** Obligatorio que rechaza un texto hecho solo de espacios (el backend usa @NotBlank). */
-export function textoObligatorio(control: AbstractControl): ValidationErrors | null {
-  const valor = control.value as string;
-  return typeof valor === 'string' && valor.trim() ? null : { required: true };
+/** Código normalizado (recortado, en mayúsculas): obligatorio, máximo 10 y formato RA-01. */
+export function validarCodigo(control: AbstractControl): ValidationErrors | null {
+  const codigo = normalizarCodigo((control.value as string) ?? '');
+  if (!codigo) {
+    return { required: true };
+  }
+  if (codigo.length > CODIGO_MAX) {
+    return { maxlength: true };
+  }
+  return PATRON_CODIGO.test(codigo) ? null : { pattern: true };
+}
+
+/** Descripción normalizada: obligatoria, entre 10 y 100 caracteres y sin < > ni caracteres de control. */
+export function validarDescripcion(control: AbstractControl): ValidationErrors | null {
+  const descripcion = normalizarDescripcion((control.value as string) ?? '');
+  if (!descripcion) {
+    return { required: true };
+  }
+  if (PATRON_DESCRIPCION_PROHIBIDO.test(descripcion)) {
+    return { caracteres: true };
+  }
+  if (descripcion.length < DESCRIPCION_MIN) {
+    return { minlength: true };
+  }
+  return descripcion.length > DESCRIPCION_MAX ? { maxlength: true } : null;
 }
 
 type Campo = 'codigo' | 'descripcion';
@@ -74,6 +98,7 @@ export class ResultadoAprendizajeFormDialog {
   readonly cancelar = output<void>();
 
   protected readonly codigoMax = CODIGO_MAX;
+  protected readonly descripcionMin = DESCRIPCION_MIN;
   protected readonly descripcionMax = DESCRIPCION_MAX;
   protected readonly modo = computed<ModoFormularioRa>(() =>
     this.resultado() ? 'editar' : 'crear',
@@ -83,11 +108,8 @@ export class ResultadoAprendizajeFormDialog {
   protected readonly errorApi = signal<MensajeError | null>(null);
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
-    codigo: [
-      '',
-      [textoObligatorio, Validators.maxLength(CODIGO_MAX), Validators.pattern(PATRON_CODIGO)],
-    ],
-    descripcion: ['', [textoObligatorio, Validators.maxLength(DESCRIPCION_MAX)]],
+    codigo: ['', validarCodigo],
+    descripcion: ['', validarDescripcion],
   });
 
   private readonly formValido = toSignal(
@@ -95,9 +117,11 @@ export class ResultadoAprendizajeFormDialog {
     { initialValue: false },
   );
 
-  /** Caracteres escritos en la descripción, para el contador visible. */
+  /** Caracteres de la descripción ya normalizada (lo que se guardará), para el contador. */
   protected readonly largoDescripcion = toSignal(
-    this.form.controls.descripcion.valueChanges.pipe(map((valor) => valor.length)),
+    this.form.controls.descripcion.valueChanges.pipe(
+      map((valor) => normalizarDescripcion(valor ?? '').length),
+    ),
     { initialValue: 0 },
   );
 
@@ -133,10 +157,12 @@ export class ResultadoAprendizajeFormDialog {
     this.procesando.set(true);
 
     const peticion = resultado
-      ? this.service.actualizarDescripcion(resultado.id, { descripcion: descripcion.trim() })
+      ? this.service.actualizarDescripcion(resultado.id, {
+          descripcion: normalizarDescripcion(descripcion),
+        })
       : this.service.crear(this.asignaturaId(), {
-          codigo: codigo.trim().toUpperCase(),
-          descripcion: descripcion.trim(),
+          codigo: normalizarCodigo(codigo),
+          descripcion: normalizarDescripcion(descripcion),
         });
 
     peticion.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
