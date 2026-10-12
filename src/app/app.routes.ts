@@ -76,13 +76,13 @@ export const routes: Routes = [
         },
       },
       {
+        // RF-16: consulta de conclusiones (desempeño insuficiente) por materia, RA y semestre.
         path: 'profesor/estadisticas',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import('./features/estadisticas/components/estadisticas-page/estadisticas-page').then(
+            (m) => m.EstadisticasPage,
+          ),
         title: 'Estadísticas y ciclo de mejora · SIGRA',
-        data: {
-          titulo: 'Estadísticas y ciclo de mejora',
-          subtitulo: 'Distribución de logro por RA y acciones de mejora',
-        },
       },
       {
         path: 'profesor/historial',
