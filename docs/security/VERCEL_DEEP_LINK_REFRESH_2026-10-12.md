@@ -31,7 +31,7 @@ a `/index.html`; no intercepta assets ni `/api`. La API sigue en
 ## Pruebas agregadas
 
 - `npm run smoke:vercel` después del build de producción: comprueba
-  `dist/software4-SIGRA-frontend/browser/index.html`, modo estático,
+  `dist/software4-SIGRA-frontend/index.html`, modo estático,
   rewrites para todos los grupos de roles y ausencia de wildcard global.
 - Playwright: login de ADMINISTRADOR, PROFESOR y ESTUDIANTE, refresh real
   en su ruta inicial; verifica URL y menú, más rechazo persistente del
@@ -42,7 +42,7 @@ a `/index.html`; no intercepta assets ni `/api`. La API sigue en
 ## Validación obligatoria en Preview de Vercel (antes del merge)
 
 1. Confirmar que Vercel detecte framework **Angular** y despliegue
-   `dist/software4-SIGRA-frontend/browser` (sitio estático).
+   `dist/software4-SIGRA-frontend` (sitio estático).
 2. Probar apertura directa / refresh (F5, Ctrl+R) de
    `/login`, `/admin/ra`, `/admin/catalogo`,
    `/profesor/asignaturas`, `/estudiante/materias`:
