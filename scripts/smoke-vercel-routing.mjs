@@ -5,7 +5,7 @@ import { join } from 'node:path';
 const angular = JSON.parse(readFileSync('angular.json', 'utf8'));
 const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
 const build = angular.projects['software4-SIGRA-frontend'].architect.build;
-const output = join('dist', 'software4-SIGRA-frontend', 'browser', 'index.html');
+const output = join('dist', 'software4-SIGRA-frontend', 'index.html');
 
 assert.equal(
   build.configurations.production.outputMode,
