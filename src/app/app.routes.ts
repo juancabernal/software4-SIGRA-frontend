@@ -47,13 +47,15 @@ export const routes: Routes = [
         },
       },
       {
+        // Misma pantalla que `admin/matricula`: los requisitos del profesor y del administrador
+        // coinciden y el backend permite los dos roles en /api/v1/matriculas (D12). La ruta no
+        // autoriza a nadie: eso lo decide el backend en cada petición (RF-05, RNF-13).
         path: 'profesor/matricula',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import('./features/estudiantes/components/matriculados-page/matriculados-page').then(
+            (m) => m.MatriculadosPage,
+          ),
         title: 'Matrícula de estudiantes · SIGRA',
-        data: {
-          titulo: 'Matrícula de estudiantes',
-          subtitulo: 'Asocia estudiantes a tu asignatura por número de cédula',
-        },
       },
       {
         path: 'profesor/evaluaciones',
@@ -115,9 +117,9 @@ export const routes: Routes = [
         // RF-06: selector de materia (BORRADOR o ACTIVA) y gestión de sus RA.
         path: 'admin/ra',
         loadComponent: () =>
-          import(
-            './features/resultadosaprendizaje/components/resultados-aprendizaje-page/resultados-aprendizaje-page',
-          ).then((m) => m.ResultadosAprendizajePage),
+          import('./features/resultadosaprendizaje/components/resultados-aprendizaje-page/resultados-aprendizaje-page').then(
+            (m) => m.ResultadosAprendizajePage,
+          ),
         title: 'Gestión de RA · SIGRA',
       },
       {

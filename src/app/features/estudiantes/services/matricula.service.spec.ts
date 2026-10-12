@@ -102,4 +102,47 @@ describe('MatriculaService', () => {
     expect(req.request.params.get('incluirInactivas')).toBe('true');
     req.flush([]);
   });
+
+  // Los dos campos que el backend todavía no envía (D13). El servicio no debe inventar valores por
+  // omisión: `undefined` tiene que llegar como `undefined` para que las vistas degraden.
+  describe('campos opcionales fechaMatricula y tieneCalificaciones', () => {
+    const BASE = {
+      matriculaId: MATRICULA.id,
+      numeroDocumento: '1234567890',
+      nombreCompleto: 'Ana María Gómez',
+      estado: 'ACTIVO' as const,
+    };
+
+    it('los entrega al suscriptor cuando el backend los manda', () => {
+      let resultado: EstudianteMatriculado[] | undefined;
+      service
+        .listarMatriculados(REQUEST.asignaturaId, REQUEST.semestreId)
+        .subscribe((r) => (resultado = r));
+
+      const fila: EstudianteMatriculado = {
+        ...BASE,
+        fechaMatricula: '2026-02-03',
+        tieneCalificaciones: true,
+      };
+      http.expectOne((r) => r.url === URL).flush([fila]);
+
+      expect(resultado?.[0].fechaMatricula).toBe('2026-02-03');
+      expect(resultado?.[0].tieneCalificaciones).toBe(true);
+    });
+
+    it('los deja en undefined cuando el backend no los manda, sin rellenarlos', () => {
+      let resultado: EstudianteMatriculado[] | undefined;
+      service
+        .listarMatriculados(REQUEST.asignaturaId, REQUEST.semestreId)
+        .subscribe((r) => (resultado = r));
+
+      http.expectOne((r) => r.url === URL).flush([BASE]);
+
+      expect(resultado?.[0].fechaMatricula).toBeUndefined();
+      expect(resultado?.[0].tieneCalificaciones).toBeUndefined();
+      // Importa que falten, no que valgan false: «no sé» no es «no hay».
+      expect('tieneCalificaciones' in (resultado?.[0] ?? {})).toBe(false);
+      expect('fechaMatricula' in (resultado?.[0] ?? {})).toBe(false);
+    });
+  });
 });

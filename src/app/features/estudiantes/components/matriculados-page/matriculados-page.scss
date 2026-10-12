@@ -7,6 +7,26 @@
   padding: clamp(1.25rem, 4vw, 1.5rem);
 }
 
+// El título y la acción de matricular comparten línea; en móvil la acción baja a ancho completo.
+.cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+
+  > .btn {
+    flex: 0 0 auto;
+  }
+
+  @media (max-width: 34rem) {
+    > .btn {
+      flex: 1 1 100%;
+      justify-content: center;
+    }
+  }
+}
+
 .cabecera__texto {
   max-width: 44rem;
 }

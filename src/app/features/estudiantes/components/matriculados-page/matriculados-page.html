@@ -4,6 +4,10 @@
       <h1 id="titulo-matriculados">Matriculados</h1>
       <p>Consulta quién está matriculado en una asignatura y un semestre.</p>
     </div>
+    <button type="button" class="btn btn--primario" (click)="abrirMatricula()">
+      <app-icono nombre="mas" [tamano]="16" />
+      Matricular
+    </button>
   </header>
 
   <div class="aviso-zona" role="status" aria-live="polite">
@@ -112,6 +116,9 @@
             <tr>
               <th scope="col">Documento</th>
               <th scope="col">Nombre completo</th>
+              @if (hayFechas()) {
+                <th scope="col">Fecha de matrícula</th>
+              }
               <th scope="col">Estado</th>
               <th scope="col">Acciones</th>
             </tr>
@@ -121,6 +128,9 @@
               <tr>
                 <th scope="row" class="codigo">{{ m.numeroDocumento }}</th>
                 <td class="nombre">{{ m.nombreCompleto }}</td>
+                @if (hayFechas()) {
+                  <td class="fecha">{{ formatearFecha(m.fechaMatricula) }}</td>
+                }
                 <td>
                   <app-chip-estado
                     [etiqueta]="presentacion[m.estado].etiqueta"
@@ -154,7 +164,8 @@
 <app-dialogo-confirmacion
   [abierto]="aDesvincular() !== null"
   [titulo]="tituloDesvincular()"
-  descripcion="Las calificaciones registradas en esta matrícula se conservan."
+  [descripcion]="descripcionDesvincular()"
+  [gestoRequerido]="gestoDesvincular()"
   etiquetaConfirmar="Desvincular"
   tono="peligro"
   [procesando]="desvinculando()"
@@ -162,3 +173,13 @@
   (confirmar)="confirmarDesvincular()"
   (cancelar)="cancelarDesvincular()"
 />
+
+@if (matriculaAbierta()) {
+  <!-- Sin `estudianteId`: el diálogo identifica al estudiante por documento o lo registra (D18). -->
+  <app-matricula-form-dialog
+    [asignaturaIdInicial]="asignaturaId()"
+    [semestreIdInicial]="semestreId()"
+    (matriculado)="alMatricular($event)"
+    (cerrado)="cerrarMatricula()"
+  />
+}

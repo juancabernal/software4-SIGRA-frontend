@@ -15,6 +15,19 @@
       <div class="dialogo__error" role="alert">{{ mensaje }}</div>
     }
 
+    @if (gestoRequerido(); as textoGesto) {
+      <div class="dialogo__gesto">
+        <input
+          type="checkbox"
+          [id]="idGesto"
+          [checked]="gestoAceptado()"
+          [disabled]="procesando()"
+          (change)="alCambiarGesto($event)"
+        />
+        <label [for]="idGesto">{{ textoGesto }}</label>
+      </div>
+    }
+
     <div class="dialogo__acciones">
       <button
         #botonCancelar
@@ -30,11 +43,22 @@
         class="btn"
         [class.btn--peligro]="tono() === 'peligro'"
         [class.btn--primario]="tono() === 'normal'"
-        [disabled]="procesando()"
+        [disabled]="confirmarBloqueado()"
         (click)="alConfirmar()"
       >
         {{ procesando() ? 'Procesando…' : etiquetaConfirmar() }}
       </button>
     </div>
+
+    <!-- El cambio de estado del botón de confirmar se anuncia al lector de pantalla (RNF-21). -->
+    @if (gestoRequerido()) {
+      <p class="solo-lectores" role="status" aria-live="polite">
+        {{
+          gestoAceptado()
+            ? 'Confirmación habilitada.'
+            : 'Marca la casilla para habilitar la confirmación.'
+        }}
+      </p>
+    }
   </div>
 </dialog>

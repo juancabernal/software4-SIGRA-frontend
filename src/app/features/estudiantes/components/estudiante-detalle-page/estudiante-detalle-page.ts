@@ -17,7 +17,11 @@ import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confi
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
 import { Estudiante, PRESENTACION_ESTADO_ESTUDIANTE } from '../../models/estudiante.model';
-import { AsignaturaDeEstudiante, PRESENTACION_ESTADO_MATRICULA } from '../../models/matricula.model';
+import {
+  AsignaturaDeEstudiante,
+  PRESENTACION_ESTADO_MATRICULA,
+  formatearFechaMatricula,
+} from '../../models/matricula.model';
 import { MensajeError, mensajeDeError } from '../../services/estudiante-error';
 import { EstudianteService } from '../../services/estudiante.service';
 import { MatriculaService } from '../../services/matricula.service';
@@ -66,6 +70,13 @@ export class EstudianteDetallePage {
   protected readonly errorHistorial = signal<MensajeError | null>(null);
   protected readonly historial = signal<AsignaturaDeEstudiante[]>([]);
 
+  /**
+   * La columna de fecha solo existe si el servidor la manda en alguna fila del historial (D13).
+   * Hoy nunca la manda, así que la tabla se pinta como antes: sin columna, no con celdas vacías.
+   */
+  protected readonly hayFechas = computed(() => this.historial().some((m) => !!m.fechaMatricula));
+  protected readonly formatearFecha = formatearFechaMatricula;
+
   // ── Matricular ────────────────────────────────────────────────────
   protected readonly matriculaAbierta = signal(false);
 
@@ -80,6 +91,23 @@ export class EstudianteDetallePage {
       ? `¿Desvincular de «${matricula.asignaturaNombre}» (${matricula.semestreCodigo})?`
       : '';
   });
+
+  /**
+   * Mismo criterio que en `matriculados-page`: el refuerzo no depende de por dónde entró el
+   * usuario. Solo con `tieneCalificaciones === true`; `undefined` es «no sé» y no bloquea (D13).
+   */
+  protected readonly gestoDesvincular = computed(() =>
+    this.aDesvincular()?.tieneCalificaciones === true
+      ? 'Entiendo que esta matrícula ya tiene calificaciones registradas y que se conservarán.'
+      : '',
+  );
+
+  protected readonly descripcionDesvincular = computed(() =>
+    this.aDesvincular()?.tieneCalificaciones === true
+      ? 'Esta matrícula ya tiene calificaciones registradas. No se borran: quedan guardadas y la ' +
+        'matrícula pasa a estado desvinculada.'
+      : 'Las calificaciones registradas en esta matrícula se conservan.',
+  );
 
   constructor() {
     this.destroyRef.onDestroy(() => clearTimeout(this.temporizadorAviso));
