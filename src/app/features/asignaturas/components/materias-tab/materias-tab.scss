@@ -258,8 +258,20 @@ tbody td {
   vertical-align: middle;
 }
 
-tbody tr:hover {
+tbody tr:not(.grupo-fila):hover {
   background: var(--sg-row-hover);
+}
+
+// Encabezado de grupo cuando se agrupa por programa (filtro «Todos los programas»).
+.grupo-fila th {
+  padding: 0.55rem 1.25rem;
+  background: var(--sg-field);
+  color: var(--sg-ink-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .num {
@@ -268,13 +280,11 @@ tbody tr:hover {
 
 .nombre {
   color: var(--sg-ink);
-  font-family: var(--sg-font-titulo);
   font-weight: 600;
 }
 
 .codigo {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
 }
 
 .programa {
@@ -334,7 +344,6 @@ tbody tr:hover {
 }
 
 .detalle__nombre {
-  font-family: var(--sg-font-titulo);
   font-weight: 600;
 }
 
