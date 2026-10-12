@@ -96,16 +96,20 @@ Las vistas se construyen en paralelo con el módulo backend correspondiente. Cad
 
 ### Artefacto
 
-Angular compila la aplicación a un conjunto de archivos estáticos (HTML, CSS y JavaScript) que se sirven desde cualquier servidor web o CDN:
+Angular compila la aplicación en modo `server`: genera los recursos del navegador y un servidor
+Node/Express para resolver SSR. Las pantallas privadas se renderizan en cliente y no se
+prerenderizan con credenciales:
 
 ```bash
 npm run build
-# → dist/<nombre-del-proyecto>/browser/
+# → dist/<nombre-del-proyecto>/browser/ y dist/<nombre-del-proyecto>/server/
 ```
 
 El nombre exacto de la carpeta de salida es el que esté declarado en `angular.json`, bajo `projects.<nombre>.architect.build.options.outputPath`. Todo lo que esté en `public/` se copia tal cual a esa carpeta.
 
 El build de producción aplica *tree shaking*, minificación y *hashing* de nombres de archivo para el control de caché.
+Consulta [docs/security/DEPLOYMENT.md](docs/security/DEPLOYMENT.md) para el reverse proxy de `/api`
+y la variable `PORT`.
 
 ### Estructura del proyecto
 
@@ -246,9 +250,9 @@ Los nombres coinciden con los módulos del backend —`resultadosaprendizaje` en
 | Backend | `POST /api/v1/auth/login` con `{ correoInstitucional, contrasena }`; la respuesta 200 trae `token`, `tipo`, `expiraEn` y `usuario` |
 | Servicios | `AuthService` (solo HTTP, en `features/auth/services/`) y `SessionService` (único acceso a la sesión guardada, en `core/services/`) |
 | Modelos | Contrato del login en `features/auth/models/`; `UsuarioSesion`, `RolUsuario` y `SesionAlmacenada` en `core/models/`, porque los usa la sesión de todos los módulos |
-| Almacenamiento | `sessionStorage` bajo la clave `sigra.sesion`, con `token`, `tipo`, `expiraEn` y `usuario`. Nunca se guardan contraseñas ni datos que el backend no entrega |
-| Configuración de API | `environment.apiUrl` (`http://localhost:8080/api` en desarrollo). El servicio agrega solo `/v1/auth/login` |
-| Redirección tras el login | `POST_LOGIN_DESTINATION_PENDING`: la página confirma el inicio de sesión sin navegar, porque aún no hay un panel de inicio por rol |
+| Almacenamiento | `sessionStorage` bajo la clave `sigra.sesion`, con `token`, `tipo`, expiración absoluta y `usuario`. Nunca se guardan contraseñas ni datos que el backend no entrega |
+| Configuración de API | `environment.apiUrl` (`http://localhost:8080/api` en desarrollo y `/api` detrás del proxy en producción) |
+| Redirección tras el login | El usuario entra a la pantalla inicial de su rol; las rutas privadas usan guards explícitos |
 
 **Respuestas del backend y mensajes.** La vista decide solo por el status HTTP y nunca muestra el cuerpo de la respuesta (RNF-17):
 
@@ -257,15 +261,18 @@ Los nombres coinciden con los módulos del backend —`resultadosaprendizaje` en
 | 200 | Confirmación de sesión iniciada; se guarda la sesión |
 | 400 | «Revisa los datos ingresados.» |
 | 401 | «Correo o contraseña incorrectos.» |
+| 413 | «La solicitud es demasiado grande. Revisa los datos e intenta nuevamente.» |
 | 423 | «Tu usuario está temporalmente bloqueado. Intenta nuevamente más tarde.» |
+| 503 | «El servicio de inicio de sesión no está disponible. Intenta más tarde.» |
 | 0 (sin conexión) | «No fue posible conectar con el servidor. Verifica tu conexión e intenta nuevamente.» |
 | Otro (incluido 500) | «No fue posible iniciar sesión. Intenta nuevamente.» |
 
-**Validaciones del formulario.** El correo es obligatorio y debe terminar en `@uco.net.co` sin distinguir mayúsculas; antes de enviarlo se quitan los espacios de los extremos y se pasa a minúsculas. La contraseña es obligatoria y se envía tal cual se escribió. No se aplican reglas de creación de contraseña porque esto es inicio de sesión, no registro.
+**Validaciones del formulario.** El correo es obligatorio, termina en `@uco.net.co` y tiene máximo 254 caracteres; antes de enviarlo se quitan los espacios de los extremos y se pasa a minúsculas. La contraseña es obligatoria, tiene máximo 72 bytes UTF-8 y se envía tal cual se escribió. No se aplican reglas de creación de contraseña porque esto es inicio de sesión, no registro.
 
-**Pruebas.** `npx ng test --no-watch` cubre `AuthService`, `SessionService`, el mapeo de errores y la página de login. Ninguna prueba llama al backend real.
+**Pruebas.** La suite cubre `AuthService`, `SessionService`, login, guards, matriz de roles, interceptores, rutas, errores y la pantalla de matrícula. Ninguna prueba local llama al backend real.
 
-**Pendiente.** RF-05 — autorización, guards e interceptor: `NOT_STARTED`. Todavía no hay `AuthGuard`, `RoleGuard`, interceptor de Bearer, manejo global de 401/403 ni redirección por rol.
+La matriz completa, decisiones de seguridad y pendientes de integración están en
+[`docs/security/`](docs/security/).
 
 ---
 
@@ -327,11 +334,12 @@ Y `src/environments/environment.ts` para producción:
 ```typescript
 export const environment = {
   production: true,
-  apiUrl: 'https://<dominio-del-backend>/api'
+  apiUrl: '/api'
 };
 ```
 
-Ningún servicio escribe la URL del backend a mano: todos la leen de `environment.apiUrl`.
+En producción `/api` debe resolverse mediante reverse proxy al backend HTTPS. Ningún servicio
+escribe la URL del backend a mano: todos la leen de `environment.apiUrl`.
 
 ### 4. Levantar el backend
 
@@ -369,16 +377,17 @@ El análisis estático (`ng lint`) está pendiente de configurar.
 
 ```bash
 npm run build
-# → dist/<nombre-del-proyecto>/browser/
+# → dist/<nombre-del-proyecto>/browser/ y dist/<nombre-del-proyecto>/server/
 ```
 
-Para servir el resultado y verificarlo localmente:
+Para ejecutar el servidor SSR generado y verificarlo localmente:
 
 ```bash
-npx http-server dist/<nombre-del-proyecto>/browser -p 8081
+npm run serve:ssr:software4-SIGRA-frontend
 ```
 
-En el servidor web definitivo, configura el *fallback* a `index.html` para que el enrutamiento de Angular funcione al recargar una ruta interna. En Nginx:
+Si el hosting definitivo es un servidor estático, cambia explícitamente `outputMode` a `static` y
+configura el *fallback* a `index.html`; esa modalidad no es la configuración actual.
 
 ```nginx
 location / {

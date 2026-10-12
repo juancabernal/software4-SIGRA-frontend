@@ -22,6 +22,11 @@ describe('mensajeDeErrorLogin', () => {
     );
   });
 
+  it('413 y 503 tienen mensajes seguros', () => {
+    expect(mensajeDeErrorLogin(error(413))).toContain('demasiado grande');
+    expect(mensajeDeErrorLogin(error(503))).toContain('no está disponible');
+  });
+
   it('sin conexión (status 0) pide verificar la conexión', () => {
     expect(mensajeDeErrorLogin(error(0))).toBe(
       'No fue posible conectar con el servidor. Verifica tu conexión e intenta nuevamente.',

@@ -22,6 +22,10 @@ export function mensajeDeErrorLogin(error: unknown): string {
       return 'Correo o contraseña incorrectos.';
     case 423:
       return 'Tu usuario está temporalmente bloqueado. Intenta nuevamente más tarde.';
+    case 413:
+      return 'La solicitud es demasiado grande. Revisa los datos e intenta nuevamente.';
+    case 503:
+      return 'El servicio de inicio de sesión no está disponible. Intenta más tarde.';
     default:
       return INESPERADO;
   }

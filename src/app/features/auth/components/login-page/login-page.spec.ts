@@ -11,7 +11,7 @@ import { LoginPage } from './login-page';
 const URL = `${environment.apiUrl}/v1/auth/login`;
 
 const RESPUESTA: LoginResponse = {
-  token: 'jwt-de-prueba',
+  token: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiZXhwIjo0MTAyNDQ0ODAwfQ.signature',
   tipo: 'Bearer',
   expiraEn: 3600,
   usuario: {
@@ -76,7 +76,9 @@ describe('LoginPage', () => {
   const esInvalido = (id: string): boolean => campo(id).getAttribute('aria-invalid') === 'true';
 
   it('muestra el estado inicial sin mensajes de error', () => {
-    expect(html.querySelector('h1')?.textContent).toContain('Iniciar sesión');
+    expect(html.querySelector('#titulo-login')?.textContent).toContain('Iniciar sesión');
+    expect(html.textContent).toContain('Educación con mejores');
+    expect(html.textContent).toContain('Software Integral de Gestión de Resultados de Aprendizaje');
     expect(alerta()).toBeNull();
     expect(html.querySelector('.error-campo')).toBeNull();
     expect(esInvalido('login-correo')).toBe(false);
@@ -121,9 +123,43 @@ describe('LoginPage', () => {
       escribir('login-correo', '   ');
       expect(html.textContent).toContain('Escribe tu correo institucional.');
     });
+
+    it('rechaza un correo de 255 caracteres', () => {
+      escribir('login-correo', `${'a'.repeat(244)}@uco.net.co`);
+      expect(esInvalido('login-correo')).toBe(true);
+      expect(html.textContent).toContain('254 caracteres');
+    });
+
+    it('cuenta la contraseña por bytes UTF-8 y no por caracteres', () => {
+      escribir('login-correo', 'profesor.bruno@uco.net.co');
+      escribir('login-contrasena', '😀'.repeat(18));
+      expect(esInvalido('login-contrasena')).toBe(false);
+
+      escribir('login-contrasena', '😀'.repeat(19));
+      expect(esInvalido('login-contrasena')).toBe(true);
+      expect(html.textContent).toContain('72 bytes');
+    });
   });
 
   describe('envío', () => {
+    it('muestra y oculta la contraseña sin modificar su valor', () => {
+      llenarFormularioValido('profesor.bruno@uco.net.co', 'ClaveVisible123*');
+      const input = campo('login-contrasena');
+      const boton = html.querySelector('.btn-visibilidad') as HTMLButtonElement;
+
+      expect(input.type).toBe('password');
+      expect(boton.getAttribute('aria-label')).toBe('Mostrar contraseña');
+      boton.click();
+      fixture.detectChanges();
+      expect(input.type).toBe('text');
+      expect(input.value).toBe('ClaveVisible123*');
+      expect(boton.getAttribute('aria-label')).toBe('Ocultar contraseña');
+      boton.click();
+      fixture.detectChanges();
+      expect(input.type).toBe('password');
+      expect(input.value).toBe('ClaveVisible123*');
+    });
+
     it('un formulario inválido no llama al AuthService', () => {
       escribir('login-correo', 'profesor@gmail.com');
       escribir('login-contrasena', 'PasswordSeguro123*');
@@ -188,7 +224,7 @@ describe('LoginPage', () => {
       fixture.detectChanges();
 
       const sesion = TestBed.inject(SessionService);
-      expect(sesion.getToken()).toBe('jwt-de-prueba');
+      expect(sesion.getToken()).toBe('eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiZXhwIjo0MTAyNDQ0ODAwfQ.signature');
       expect(sesion.getUser()).toEqual(RESPUESTA.usuario);
       expect(html.querySelector('[role="status"]')?.textContent).toContain(
         'Bienvenido, Profesor Bruno',

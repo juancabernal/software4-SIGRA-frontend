@@ -1,0 +1,14 @@
+<main class="pagina" aria-labelledby="titulo-acceso-denegado">
+  <section class="tarjeta" role="alert">
+    <p class="codigo">403</p>
+    <h1 id="titulo-acceso-denegado">Acceso denegado</h1>
+    @if (sesion.autenticado()) {
+      <p>No tienes permisos para consultar esta pantalla con tu rol actual.</p>
+      <button type="button" class="btn-primario" (click)="volver()">Volver a mi inicio</button>
+      <button type="button" class="btn-secundario" (click)="cerrarSesion()">Cerrar sesión</button>
+    } @else {
+      <p>Tu sesión no está disponible. Inicia sesión para continuar.</p>
+      <a class="btn-primario" routerLink="/login">Iniciar sesión</a>
+    }
+  </section>
+</main>

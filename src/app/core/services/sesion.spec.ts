@@ -12,7 +12,7 @@ import { SessionService } from './session.service';
 class PantallaStub {}
 
 const SESION_ESTUDIANTE: SesionAlmacenada = {
-  token: 'jwt-de-prueba',
+  token: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiZXhwIjo0MTAyNDQ0ODAwfQ.signature',
   tipo: 'Bearer',
   expiraEn: 3600,
   usuario: {
@@ -46,45 +46,22 @@ describe('SesionService', () => {
     sesion = TestBed.inject(SesionService);
   });
 
-  afterEach(() => sessionStorage.clear());
+  afterEach(() => {
+    vi.useRealTimers();
+    sessionStorage.clear();
+  });
 
-  describe('sin sesión: modo de demostración', () => {
+  describe('sin sesión', () => {
     it('no hay usuario autenticado', () => {
       expect(sesion.autenticado()).toBe(false);
       expect(sesion.usuario()).toBeNull();
     });
 
-    it('sin navegación previa asume el rol administrador', () => {
-      expect(sesion.rol()).toBe('admin');
-    });
-
-    it('deriva el rol del primer segmento de la URL', async () => {
-      await router.navigateByUrl('/profesor/asignaturas');
-      expect(sesion.rol()).toBe('profesor');
-
-      await router.navigateByUrl('/estudiante/materias');
-      expect(sesion.rol()).toBe('estudiante');
-    });
-
-    it('mantiene el rol en las rutas hijas', async () => {
-      await router.navigateByUrl('/estudiante/progreso/calificaciones');
-      expect(sesion.rol()).toBe('estudiante');
-    });
-
-    it('la identidad es la del perfil de demostración', async () => {
+    it('no deriva rol ni identidad desde la URL', async () => {
       await router.navigateByUrl('/admin/catalogo');
-      expect(sesion.identidad().nombre).toBe('Administrador');
-      expect(sesion.identidad().subtitulo).toBe('Vista global');
-      expect(sesion.etiquetaRol()).toBe('Admin');
-    });
-
-    it('cambiar de rol navega a la pantalla por defecto de ese rol', async () => {
-      await router.navigateByUrl('/admin/catalogo');
-      const navegar = vi.spyOn(router, 'navigateByUrl');
-
-      sesion.cambiarRol('profesor');
-
-      expect(navegar).toHaveBeenCalledWith('/profesor/asignaturas');
+      expect(sesion.rol()).toBeNull();
+      expect(sesion.identidad().nombre).toBe('Sesión no disponible');
+      expect(sesion.etiquetaRol()).toBe('Sesión');
     });
   });
 
@@ -143,5 +120,20 @@ describe('SesionService', () => {
 
     expect(sesion.autenticado()).toBe(true);
     expect(sesion.rol()).toBe('estudiante');
+  });
+
+  it('limpia y redirige al login cuando vence el TTL aunque no haya navegación', async () => {
+    vi.useFakeTimers();
+    guardada.saveSession({ ...SESION_ESTUDIANTE, expiraEn: 1 });
+    sesion.refrescar();
+
+    expect(sesion.autenticado()).toBe(true);
+    vi.advanceTimersByTime(1_100);
+    await vi.runAllTimersAsync();
+
+    expect(sesion.autenticado()).toBe(false);
+    expect(sesion.identidad().nombre).toBe('Sesión no disponible');
+    expect(guardada.hasSession()).toBe(false);
+    expect(router.url).toMatch(/^\/login(?:\?returnUrl=|$)/);
   });
 });

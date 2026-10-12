@@ -43,6 +43,14 @@ describe('AsignaturaService', () => {
     expect(resultado).toEqual([ASIGNATURA]);
   });
 
+  it('consulta únicamente las asignaturas del JWT con GET /v1/asignaturas/mias', () => {
+    service.misAsignaturas().subscribe();
+
+    const req = http.expectOne(`${URL}/mias`);
+    expect(req.request.method).toBe('GET');
+    req.flush([]);
+  });
+
   it('envía todos los filtros con valor, con el texto recortado', () => {
     service
       .listar({
