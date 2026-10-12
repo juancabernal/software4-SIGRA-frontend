@@ -163,7 +163,7 @@ test.describe('autenticación y RBAC en navegador real', () => {
     );
     const apiBaseUrl = process.env['SIGRA_E2E_API_BASE_URL'] ?? new URL(page.url()).origin;
     const respuesta = await page.request.get(
-      new URL('/api/v1/semestres', apiBaseUrl).toString(),
+      new URL('/api/v1/programas', apiBaseUrl).toString(),
       { headers: { Authorization: `Bearer ${token}` } },
     );
 
