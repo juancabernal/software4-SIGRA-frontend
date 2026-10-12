@@ -136,17 +136,7 @@ describe('EstadisticasPage', () => {
         Array.from(selectorSemestre.options).find((o) => o.value === SEMESTRE_ACTIVO.id)
           ?.textContent,
       ).toContain('(activo)');
-
-      // La preselección es funcional (se usa el id correcto al consultar), aunque el `<select>`
-      // no la refleje visualmente en el primer render: ver bug reportado en el resumen del avance.
-      await elegirMateria(MATERIA, [ra(1)]);
-      elegirRa('ra-1');
-      await fixture.whenStable();
-      boton(html, 'Consultar conclusión').click();
-      await fixture.whenStable();
-      const req = http.expectOne((r) => r.url === URL_CONCLUSIONES);
-      expect(req.request.params.get('semestreId')).toBe(SEMESTRE_ACTIVO.id);
-      req.flush([]);
+      expect(selectorSemestre.value).toBe(SEMESTRE_ACTIVO.id);
       await fixture.whenStable();
     });
   });
