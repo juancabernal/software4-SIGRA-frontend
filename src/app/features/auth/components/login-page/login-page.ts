@@ -14,6 +14,8 @@ import { SessionService } from '../../../../core/services/session.service';
 import { SesionService } from '../../../../core/services/sesion';
 import { UsuarioSesion } from '../../../../core/models/sesion.model';
 import { destinoDespuesDeLogin } from '../../../../core/guards/auth.guard';
+import { BarsMotif } from '../../../../shared/ui/bars-motif/bars-motif';
+import { Icono } from '../../../../shared/ui/icono/icono';
 import { AuthService } from '../../services/auth.service';
 import { mensajeDeErrorLogin } from '../../services/login-error';
 
@@ -50,7 +52,7 @@ export function contrasenaMaxBytesValidator(control: AbstractControl): Validatio
  */
 @Component({
   selector: 'app-login-page',
-  imports: [ReactiveFormsModule],
+  imports: [BarsMotif, Icono, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login-page.html',
   styleUrl: './login-page.scss',
@@ -66,6 +68,7 @@ export class LoginPage {
   protected readonly cargando = signal(false);
   protected readonly errorApi = signal<string | null>(null);
   protected readonly usuarioAutenticado = signal<UsuarioSesion | null>(null);
+  protected readonly mostrarContrasena = signal(false);
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     correoInstitucional: ['', [correoInstitucionalValidator, Validators.maxLength(254)]],
@@ -75,6 +78,10 @@ export class LoginPage {
   protected mostrarError(campo: 'correoInstitucional' | 'contrasena'): boolean {
     const control = this.form.controls[campo];
     return control.invalid && (control.touched || control.dirty);
+  }
+
+  protected alternarContrasena(): void {
+    this.mostrarContrasena.update((visible) => !visible);
   }
 
   protected iniciarSesion(): void {

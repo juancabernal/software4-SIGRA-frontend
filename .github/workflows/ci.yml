@@ -75,26 +75,57 @@ jobs:
           if [ -f ssr.log ]; then cat ssr.log; fi
 
   e2e-integrada:
-    name: E2E integrada (backend y PostgreSQL efímeros)
-    if: ${{ vars.SIGRA_E2E_ENABLED == '1' }}
+    name: E2E integrada (backend release y PostgreSQL efímero)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
+      DB_URL: jdbc:postgresql://127.0.0.1:5432/postgres?currentSchema=sigra
+      DB_USERNAME: postgres
+      DB_PASSWORD: ci_only_password
+      JWT_SECRET: ci_only_jwt_secret_with_at_least_32_chars_x
+      JWT_EXPIRATION_MS: '3600000'
+      SERVER_PORT: '8080'
+      CORS_ALLOWED_ORIGINS: http://localhost:4200,http://127.0.0.1:4200
+      JPA_DDL_AUTO: validate
+      JPA_SHOW_SQL: 'false'
       SIGRA_E2E_ENABLED: '1'
-      SIGRA_E2E_BASE_URL: ${{ vars.SIGRA_E2E_BASE_URL }}
-      SIGRA_E2E_API_BASE_URL: ${{ vars.SIGRA_E2E_API_BASE_URL }}
-      SIGRA_E2E_BACKEND_SHA: ${{ vars.SIGRA_E2E_BACKEND_SHA }}
-      SIGRA_E2E_POSTGRES_VERSION: ${{ vars.SIGRA_E2E_POSTGRES_VERSION }}
-      SIGRA_E2E_SEED_ID: ${{ vars.SIGRA_E2E_SEED_ID }}
-      SIGRA_E2E_ADMIN_EMAIL: ${{ secrets.SIGRA_E2E_ADMIN_EMAIL }}
-      SIGRA_E2E_ADMIN_PASSWORD: ${{ secrets.SIGRA_E2E_ADMIN_PASSWORD }}
-      SIGRA_E2E_PROFESOR_EMAIL: ${{ secrets.SIGRA_E2E_PROFESOR_EMAIL }}
-      SIGRA_E2E_PROFESOR_PASSWORD: ${{ secrets.SIGRA_E2E_PROFESOR_PASSWORD }}
-      SIGRA_E2E_ESTUDIANTE_EMAIL: ${{ secrets.SIGRA_E2E_ESTUDIANTE_EMAIL }}
-      SIGRA_E2E_ESTUDIANTE_PASSWORD: ${{ secrets.SIGRA_E2E_ESTUDIANTE_PASSWORD }}
+      SIGRA_E2E_BASE_URL: http://127.0.0.1:4200
+      SIGRA_E2E_API_BASE_URL: http://127.0.0.1:8080
+      SIGRA_E2E_BACKEND_SHA: de9de7d4d6a8a1182618b7f8c174696a73f7200b
+      SIGRA_E2E_POSTGRES_VERSION: '16'
+      SIGRA_E2E_SEED_ID: sigra-auth-rbac-release-seed-v1
+      SIGRA_E2E_START_FRONTEND: '1'
+      SIGRA_E2E_ADMIN_EMAIL: admin.bruno@uco.net.co
+      SIGRA_E2E_ADMIN_PASSWORD: 'PasswordSeguro123*'
+      SIGRA_E2E_PROFESOR_EMAIL: profesor.bruno@uco.net.co
+      SIGRA_E2E_PROFESOR_PASSWORD: 'PasswordSeguro123*'
+      SIGRA_E2E_ESTUDIANTE_EMAIL: estudiante.bruno@uco.net.co
+      SIGRA_E2E_ESTUDIANTE_PASSWORD: 'PasswordSeguro123*'
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci_only_password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - name: Descargar el código
         uses: actions/checkout@v4
+
+      - name: Descargar el backend release compatible
+        uses: actions/checkout@v4
+        with:
+          repository: juancabernal/software4-SIGRA-backend
+          ref: de9de7d4d6a8a1182618b7f8c174696a73f7200b
+          path: .ci/backend
+          fetch-depth: 1
 
       - name: Instalar Node 24
         uses: actions/setup-node@v4
@@ -104,6 +135,42 @@ jobs:
 
       - name: Instalar dependencias
         run: npm ci
+
+      - name: Instalar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Preparar Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Crear esquema y seeds en PostgreSQL efímero
+        env:
+          PGPASSWORD: ci_only_password
+        run: |
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 -f .ci/backend/docs/db/SIGRA_SCHEMA_CURRENT.sql
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 -f .ci/backend/bruno/SIGRA/seed/seed-auth.sql
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 -f .ci/backend/bruno/SIGRA/seed/seed-roles.sql
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 -f .ci/backend/bruno/SIGRA/seed/seed-asignaturas.sql
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 -f .ci/backend/bruno/SIGRA/seed/seed-semestres.sql
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 -f .ci/backend/bruno/SIGRA/seed/seed-asignaturas-roles.sql
+
+      - name: Compilar backend release
+        working-directory: .ci/backend/SIGRA
+        run: ./gradlew bootJar --no-daemon
+
+      - name: Levantar backend release
+        working-directory: .ci/backend/SIGRA
+        run: |
+          nohup ./gradlew bootRun --no-daemon > backend-e2e.log 2>&1 &
+          echo $! > backend-e2e.pid
+          for intento in {1..60}; do
+            if curl --silent --fail http://127.0.0.1:8080/actuator/health > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat backend-e2e.log
+          exit 1
 
       - name: Validar ambiente E2E, SHA y seed
         run: npm run e2e:preflight
@@ -124,17 +191,7 @@ jobs:
             test-results/
           if-no-files-found: warn
 
-  e2e-bloqueada:
-    name: Estado E2E (BLOCKED sin ambiente)
-    if: ${{ vars.SIGRA_E2E_ENABLED != '1' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Registrar bloqueo explícito
+      - name: Logs del backend E2E
+        if: always()
         run: |
-          {
-            echo '## E2E integrada: BLOCKED'
-            echo
-            echo 'No se configuró SIGRA_E2E_ENABLED=1 con backend SHA, PostgreSQL/seed y secretos.'
-            echo 'Este estado no certifica la suite ni permite declarar PASS de integración.'
-          } >> "$GITHUB_STEP_SUMMARY"
-          exit 1
+          if [ -f .ci/backend/SIGRA/backend-e2e.log ]; then cat .ci/backend/SIGRA/backend-e2e.log; fi

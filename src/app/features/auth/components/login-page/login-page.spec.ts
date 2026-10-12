@@ -76,7 +76,9 @@ describe('LoginPage', () => {
   const esInvalido = (id: string): boolean => campo(id).getAttribute('aria-invalid') === 'true';
 
   it('muestra el estado inicial sin mensajes de error', () => {
-    expect(html.querySelector('h1')?.textContent).toContain('Iniciar sesión');
+    expect(html.querySelector('#titulo-login')?.textContent).toContain('Iniciar sesión');
+    expect(html.textContent).toContain('Educación con mejores');
+    expect(html.textContent).toContain('Software Integral de Gestión de Resultados de Aprendizaje');
     expect(alerta()).toBeNull();
     expect(html.querySelector('.error-campo')).toBeNull();
     expect(esInvalido('login-correo')).toBe(false);
@@ -140,6 +142,24 @@ describe('LoginPage', () => {
   });
 
   describe('envío', () => {
+    it('muestra y oculta la contraseña sin modificar su valor', () => {
+      llenarFormularioValido('profesor.bruno@uco.net.co', 'ClaveVisible123*');
+      const input = campo('login-contrasena');
+      const boton = html.querySelector('.btn-visibilidad') as HTMLButtonElement;
+
+      expect(input.type).toBe('password');
+      expect(boton.getAttribute('aria-label')).toBe('Mostrar contraseña');
+      boton.click();
+      fixture.detectChanges();
+      expect(input.type).toBe('text');
+      expect(input.value).toBe('ClaveVisible123*');
+      expect(boton.getAttribute('aria-label')).toBe('Ocultar contraseña');
+      boton.click();
+      fixture.detectChanges();
+      expect(input.type).toBe('password');
+      expect(input.value).toBe('ClaveVisible123*');
+    });
+
     it('un formulario inválido no llama al AuthService', () => {
       escribir('login-correo', 'profesor@gmail.com');
       escribir('login-contrasena', 'PasswordSeguro123*');

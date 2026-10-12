@@ -1,8 +1,24 @@
 <main class="pagina">
+  <section class="panel-academico" aria-labelledby="titulo-panel-academico">
+    <div class="panel-academico__contenido">
+      <div class="marca marca--clara" aria-label="SIGRA">
+        <app-bars-motif [tamano]="48" />
+        <span class="marca__nombre">SIGRA<span class="marca__punto">.</span></span>
+      </div>
+      <div class="panel-academico__copy">
+        <h1 id="titulo-panel-academico">Educación con mejores <span>decisiones</span></h1>
+        <span class="panel-academico__linea" aria-hidden="true"></span>
+        <p>SIGRA te conecta con la información académica para construir un mejor futuro.</p>
+      </div>
+    </div>
+    <div class="panel-academico__degradado" aria-hidden="true"></div>
+    <div class="panel-academico__formas" aria-hidden="true"></div>
+  </section>
+
   <section class="tarjeta" aria-labelledby="titulo-login">
-    <header class="marca">
-      <span class="marca__nombre">SIGRA</span>
-      <p class="marca__descripcion">Software Integral de Gestión de Resultados de Aprendizaje</p>
+    <header class="marca marca--formulario">
+      <app-bars-motif [tamano]="64" />
+      <span class="marca__nombre">SIGRA<span class="marca__punto">.</span></span>
     </header>
 
     @if (usuarioAutenticado(); as usuario) {
@@ -12,6 +28,7 @@
       </div>
     } @else {
       <h1 id="titulo-login">Iniciar sesión</h1>
+      <p class="subtitulo">Accede a tu cuenta institucional para continuar en SIGRA.</p>
 
       <form [formGroup]="form" (ngSubmit)="iniciarSesion()" novalidate>
         @if (errorApi(); as mensaje) {
@@ -35,7 +52,6 @@
             [attr.aria-invalid]="mostrarError('correoInstitucional')"
             aria-describedby="login-correo-ayuda login-correo-error"
           />
-          <p class="ayuda" id="login-correo-ayuda">Debe terminar en @uco.net.co.</p>
           @if (mostrarError('correoInstitucional')) {
             <p class="error-campo" id="login-correo-error">
               @if (form.controls.correoInstitucional.hasError('required')) {
@@ -51,14 +67,25 @@
 
         <div class="campo">
           <label for="login-contrasena">Contraseña</label>
-          <input
-            id="login-contrasena"
-            type="password"
-            formControlName="contrasena"
-            autocomplete="current-password"
-            [attr.aria-invalid]="mostrarError('contrasena')"
-            aria-describedby="login-contrasena-ayuda login-contrasena-error"
-          />
+          <div class="campo__control">
+            <input
+              id="login-contrasena"
+              [type]="mostrarContrasena() ? 'text' : 'password'"
+              formControlName="contrasena"
+              autocomplete="current-password"
+              [attr.aria-invalid]="mostrarError('contrasena')"
+              aria-describedby="login-contrasena-ayuda login-contrasena-error"
+            />
+            <button
+              type="button"
+              class="btn-visibilidad"
+              [attr.aria-label]="mostrarContrasena() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              [attr.aria-pressed]="mostrarContrasena()"
+              (click)="alternarContrasena()"
+            >
+              <app-icono [nombre]="'ojo'" [tamano]="21" />
+            </button>
+          </div>
           <p class="ayuda" id="login-contrasena-ayuda">Máximo 72 bytes en UTF-8.</p>
           @if (mostrarError('contrasena')) {
             <p class="error-campo" id="login-contrasena-error">
@@ -78,8 +105,10 @@
           [attr.aria-busy]="cargando()"
         >
           {{ cargando() ? 'Iniciando sesión…' : 'Iniciar sesión' }}
+          <app-icono [nombre]="'flecha-der'" [tamano]="20" />
         </button>
       </form>
+      <footer class="pie-formulario">Software Integral de Gestión de Resultados de Aprendizaje</footer>
     }
   </section>
 </main>

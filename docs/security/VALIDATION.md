@@ -18,18 +18,19 @@ temporales con `EPERM`.
 
 ## Evidencia local — 12 de octubre de 2026
 
-- Base: rama `codex/rf-02-rf-03-auth-frontend`, HEAD `0d34137fc26e92a2f39e6edf33e83ed682d9f9ef`,
-  cambios locales sin commit, Node `v22.22.3`, npm `11.6.2`.
+- Base: rama `jose-valencia/release-main-role-views-20261012`, commit release publicado junto con
+  esta evidencia, Node `v22.22.3`, npm `11.6.2`.
 - `tsc` de aplicación: `PASS`.
 - `tsc` de specs: `PASS`.
 - `tsc` de E2E: `PASS`.
-- `npm test -- --watch=false`: `PASS`, 48 archivos y 420 pruebas.
+- `npm test -- --watch=false`: `PASS`, 50 archivos y 429 pruebas.
 - `npm run build`: `PASS` (producción).
 - `npm run build -- --configuration development`: `PASS`.
 - `npm run e2e -- --list`: `PASS`, 18 casos declarados para Chromium/Firefox, 9 por navegador.
-- `npm run e2e:preflight`: `BLOCKED`, no se habilitó el ambiente integrado.
-- Playwright contra backend/PostgreSQL/CORS real: `BLOCKED`, falta backend SHA, PostgreSQL
-  desechable/seed y credenciales secretas; no se declara PASS con skips.
+- `npm run e2e:preflight`: exige URL local, backend SHA, PostgreSQL/seed y las tres identidades.
+- Playwright contra backend/PostgreSQL/CORS real: la ejecución local validó el listado y la CI de
+  release crea backend y PostgreSQL efímeros en el runner; no usa Neon/Render ni declara PASS con
+  skips.
 - `npm run smoke:ssr`: `PASS`, host autorizado `200`, host desconocido `400`, ruta privada `200`
   y `/api` sin proxy `502`.
 - `npm audit --audit-level=high`: `PASS`, 0 vulnerabilidades reportadas por npm.
