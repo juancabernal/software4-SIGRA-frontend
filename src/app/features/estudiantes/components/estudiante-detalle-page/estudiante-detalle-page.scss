@@ -225,8 +225,8 @@ tbody tr:hover {
 }
 
 .codigo {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .nota {

@@ -113,7 +113,7 @@ describe('MatriculaFormDialog', () => {
     http
       .expectOne(URL_MATRICULAS)
       .flush(
-        { id: 'm1', estudianteId: 'e1', asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVO' },
+        { id: 'm1', estudianteId: 'e1', asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVA' },
         { status: 201, statusText: 'Created' },
       );
     await fixture.whenStable();
@@ -139,7 +139,7 @@ describe('MatriculaFormDialog', () => {
     http
       .expectOne(URL_MATRICULAS)
       .flush(
-        { id: 'm1', estudianteId: 'e1', asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVO' },
+        { id: 'm1', estudianteId: 'e1', asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVA' },
         { status: 200, statusText: 'OK' },
       );
     await fixture.whenStable();
@@ -265,7 +265,7 @@ describe('MatriculaFormDialog', () => {
     http
       .expectOne(URL_MATRICULAS)
       .flush(
-        { id: 'm1', estudianteId: 'e1', asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVO' },
+        { id: 'm1', estudianteId: 'e1', asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVA' },
         { status: 201, statusText: 'Created' },
       );
   });
@@ -430,7 +430,7 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
       const matricula = http.expectOne(URL_MATRICULAS);
       expect(matricula.request.body).toEqual(esperado);
       matricula.flush(
-        { id: 'm1', ...esperado, estado: 'ACTIVO' },
+        { id: 'm1', ...esperado, estado: 'ACTIVA' },
         { status: 201, statusText: 'Created' },
       );
     });
@@ -581,7 +581,7 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
         semestreId: 's1',
       });
       matricula.flush(
-        { id: 'm2', estudianteId: 'e10', asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVO' },
+        { id: 'm2', estudianteId: 'e10', asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVA' },
         { status: 201, statusText: 'Created' },
       );
       await fixture.whenStable();
@@ -627,7 +627,7 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
         semestreId: 's2',
       });
       reintento.flush(
-        { id: 'm3', estudianteId: 'e10', asignaturaId: 'a1', semestreId: 's2', estado: 'ACTIVO' },
+        { id: 'm3', estudianteId: 'e10', asignaturaId: 'a1', semestreId: 's2', estado: 'ACTIVA' },
         { status: 201, statusText: 'Created' },
       );
     });
@@ -667,7 +667,7 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
         semestreId: 's1',
       });
       matricula.flush(
-        { id: 'm4', estudianteId: 'e11', asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVO' },
+        { id: 'm4', estudianteId: 'e11', asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVA' },
         { status: 201, statusText: 'Created' },
       );
     });

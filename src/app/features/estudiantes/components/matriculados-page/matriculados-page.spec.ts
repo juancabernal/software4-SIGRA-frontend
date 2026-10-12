@@ -17,7 +17,7 @@ const ANA: EstudianteMatriculado = {
   matriculaId: 'm1',
   numeroDocumento: '1234567890',
   nombreCompleto: 'Ana María Gómez',
-  estado: 'ACTIVO',
+  estado: 'ACTIVA',
 };
 
 describe('MatriculadosPage', () => {
@@ -145,7 +145,7 @@ describe('MatriculadosPage', () => {
 
     expect(dialogo.textContent).toContain('La matrícula ya estaba desvinculada');
     expect(dialogo.hasAttribute('open')).toBe(true);
-    consultaMatriculados().flush([{ ...ANA, estado: 'INACTIVO' }]);
+    consultaMatriculados().flush([{ ...ANA, estado: 'DESVINCULADA' }]);
   });
 
   // Las dos ramas de la fecha (D13). Hoy el backend no la manda: corre la segunda.
@@ -218,7 +218,7 @@ describe('MatriculadosPage', () => {
 
       expect(html.textContent).toContain('Desvinculado: Ana María Gómez.');
       // Tras desvincular se relee del servidor (D9).
-      consultaMatriculados().flush([{ ...ANA, estado: 'INACTIVO' }]);
+      consultaMatriculados().flush([{ ...ANA, estado: 'DESVINCULADA' }]);
     });
 
     it('cancelar la confirmación reforzada no llama al servicio', async () => {
@@ -249,7 +249,7 @@ describe('MatriculadosPage', () => {
 
       http.expectOne(`${URL_MATRICULAS}/m1`).flush(null, { status: 204, statusText: 'No Content' });
       await fixture.whenStable();
-      consultaMatriculados().flush([{ ...ANA, estado: 'INACTIVO' }]);
+      consultaMatriculados().flush([{ ...ANA, estado: 'DESVINCULADA' }]);
     });
 
     it('cuando el servidor no informa nada confirma igual, sin gesto y sin bloquearse', async () => {
@@ -265,7 +265,7 @@ describe('MatriculadosPage', () => {
 
       http.expectOne(`${URL_MATRICULAS}/m1`).flush(null, { status: 204, statusText: 'No Content' });
       await fixture.whenStable();
-      consultaMatriculados().flush([{ ...ANA, estado: 'INACTIVO' }]);
+      consultaMatriculados().flush([{ ...ANA, estado: 'DESVINCULADA' }]);
     });
   });
 
@@ -351,7 +351,7 @@ describe('MatriculadosPage', () => {
       http
         .expectOne((r) => r.url === URL_MATRICULAS && r.method === 'POST')
         .flush(
-          { id: 'm1', estudianteId: 'e9', asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVO' },
+          { id: 'm1', estudianteId: 'e9', asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVA' },
           { status: 201, statusText: 'Created' },
         );
       await fixture.whenStable();

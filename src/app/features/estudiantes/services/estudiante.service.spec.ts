@@ -100,7 +100,7 @@ describe('EstudianteService', () => {
         matriculaId: '00000000-0000-4000-c000-000000000020',
         asignaturaNombre: 'Cálculo I',
         semestreCodigo: '2026-1',
-        estado: 'ACTIVO',
+        estado: 'ACTIVA',
       },
     ];
     let resultado: AsignaturaDeEstudiante[] | undefined;
