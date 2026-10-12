@@ -11,7 +11,7 @@ import { LoginPage } from './login-page';
 const URL = `${environment.apiUrl}/v1/auth/login`;
 
 const RESPUESTA: LoginResponse = {
-  token: 'jwt-de-prueba',
+  token: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiZXhwIjo0MTAyNDQ0ODAwfQ.signature',
   tipo: 'Bearer',
   expiraEn: 3600,
   usuario: {
@@ -121,6 +121,22 @@ describe('LoginPage', () => {
       escribir('login-correo', '   ');
       expect(html.textContent).toContain('Escribe tu correo institucional.');
     });
+
+    it('rechaza un correo de 255 caracteres', () => {
+      escribir('login-correo', `${'a'.repeat(244)}@uco.net.co`);
+      expect(esInvalido('login-correo')).toBe(true);
+      expect(html.textContent).toContain('254 caracteres');
+    });
+
+    it('cuenta la contraseña por bytes UTF-8 y no por caracteres', () => {
+      escribir('login-correo', 'profesor.bruno@uco.net.co');
+      escribir('login-contrasena', '😀'.repeat(18));
+      expect(esInvalido('login-contrasena')).toBe(false);
+
+      escribir('login-contrasena', '😀'.repeat(19));
+      expect(esInvalido('login-contrasena')).toBe(true);
+      expect(html.textContent).toContain('72 bytes');
+    });
   });
 
   describe('envío', () => {
@@ -188,7 +204,7 @@ describe('LoginPage', () => {
       fixture.detectChanges();
 
       const sesion = TestBed.inject(SessionService);
-      expect(sesion.getToken()).toBe('jwt-de-prueba');
+      expect(sesion.getToken()).toBe('eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiZXhwIjo0MTAyNDQ0ODAwfQ.signature');
       expect(sesion.getUser()).toEqual(RESPUESTA.usuario);
       expect(html.querySelector('[role="status"]')?.textContent).toContain(
         'Bienvenido, Profesor Bruno',

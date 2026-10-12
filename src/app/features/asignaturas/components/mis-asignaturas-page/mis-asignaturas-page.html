@@ -1,0 +1,115 @@
+<section class="pagina" [attr.aria-labelledby]="'titulo-' + vista().toLowerCase()">
+  <header class="cabecera">
+    <div>
+      <p class="sobretitulo">SIGRA · {{ esProfesor() ? 'Profesor' : 'Estudiante' }}</p>
+      <h1 [id]="'titulo-' + vista().toLowerCase()">{{ titulo() }}</h1>
+      <p>{{ subtitulo() }}</p>
+    </div>
+    <div class="alcance" aria-label="Alcance de la consulta">
+      <app-icono nombre="candado" [tamano]="15" />
+      Datos autorizados por tu sesión
+    </div>
+  </header>
+
+  @if (cargando()) {
+    <p class="estado-vista" role="status" aria-busy="true">Cargando tus asignaturas…</p>
+  } @else if (errorCarga(); as error) {
+    <div class="estado-vista estado-vista--error" role="alert">
+      <p>{{ error.mensaje }}</p>
+      <button type="button" class="btn" (click)="reintentar()">
+        <app-icono nombre="recargar" [tamano]="16" />
+        Reintentar
+      </button>
+    </div>
+  } @else if (asignaturas().length === 0) {
+    <div class="estado-vista">
+      <p class="estado-vista__titulo">No tienes asignaturas para mostrar</p>
+      <p>El backend no reportó asignaciones o matrículas activas para tu sesión.</p>
+    </div>
+  } @else {
+    <div class="tarjetas" role="list" aria-label="Asignaturas autorizadas">
+      @for (asignatura of asignaturas(); track asignatura.id) {
+        <article class="tarjeta" [class.tarjeta--seleccionada]="seleccionada()?.id === asignatura.id" role="listitem">
+          <div class="tarjeta__cabecera">
+            <div>
+              <p class="codigo">{{ asignatura.codigo }}</p>
+              <h2>{{ asignatura.nombre }}</h2>
+            </div>
+            <app-chip-estado
+              [etiqueta]="presentacionEstado[asignatura.estado].etiqueta"
+              [variante]="presentacionEstado[asignatura.estado].variante"
+              [icono]="presentacionEstado[asignatura.estado].icono"
+            />
+          </div>
+
+          <dl class="datos">
+            <div>
+              <dt>Programa académico</dt>
+              <dd>{{ asignatura.programaNombre }}</dd>
+            </div>
+            <div>
+              <dt>Resultados de aprendizaje</dt>
+              <dd>{{ asignatura.cantidadRa }}</dd>
+            </div>
+            <div>
+              <dt>Estudiantes matriculados</dt>
+              <dd>{{ asignatura.cantidadEstudiantes }}</dd>
+            </div>
+            <div class="datos__ancho">
+              <dt>{{ esProfesor() ? 'Profesores responsables' : 'Profesor responsable' }}</dt>
+              <dd>{{ asignatura.profesores.length ? asignatura.profesores.join(', ') : 'No informado' }}</dd>
+            </div>
+          </dl>
+
+          <div class="acciones">
+            @if (esProfesor()) {
+              <button type="button" class="btn btn--secundario" (click)="seleccionar(asignatura)">
+                <app-icono nombre="lista" [tamano]="16" />
+                {{ seleccionada()?.id === asignatura.id ? 'Resultados seleccionados' : 'Ver resultados de aprendizaje' }}
+              </button>
+              <button type="button" class="btn btn--primario" (click)="irAMatricula(asignatura)">
+                <app-icono nombre="personas" [tamano]="16" />
+                Ver matrículas
+              </button>
+            } @else {
+              <span class="solo-lectura"><app-icono nombre="candado" [tamano]="14" /> Solo lectura</span>
+            }
+          </div>
+        </article>
+      }
+    </div>
+
+    @if (esProfesor() && seleccionada(); as asignatura) {
+      <section class="resultados" aria-labelledby="titulo-resultados">
+        <div class="resultados__cabecera">
+          <div>
+            <p class="sobretitulo">{{ asignatura.codigo }}</p>
+            <h2 id="titulo-resultados">Resultados de aprendizaje de {{ asignatura.nombre }}</h2>
+          </div>
+          <span class="contador">{{ asignatura.cantidadRa }} activos</span>
+        </div>
+
+        @if (cargandoResultados()) {
+          <p class="estado-vista" role="status" aria-busy="true">Cargando resultados de aprendizaje…</p>
+        } @else if (errorResultados(); as error) {
+          <div class="estado-vista estado-vista--error" role="alert">
+            <p>{{ error.mensaje }}</p>
+            <button type="button" class="btn" (click)="seleccionar(asignatura)">Reintentar</button>
+          </div>
+        } @else if (!hayResultados()) {
+          <p class="estado-vista">Esta asignatura no tiene resultados de aprendizaje para mostrar.</p>
+        } @else {
+          <ul class="lista-resultados">
+            @for (resultado of resultados(); track resultado.id) {
+              <li>
+                <span class="resultado__codigo">{{ resultado.codigo }}</span>
+                <span>{{ resultado.descripcion }}</span>
+                <span class="resultado__estado">{{ resultado.estado }}</span>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+  }
+</section>
