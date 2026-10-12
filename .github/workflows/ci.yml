@@ -156,6 +156,10 @@ jobs:
           psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 -f .ci/backend/bruno/SIGRA/seed/seed-semestres.sql
           psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 -f .ci/backend/bruno/SIGRA/seed/seed-asignaturas-roles.sql
 
+      - name: Dar permiso de ejecución a Gradle
+        working-directory: .ci/backend/SIGRA
+        run: chmod +x gradlew
+
       - name: Compilar backend release
         working-directory: .ci/backend/SIGRA
         run: ./gradlew bootJar --no-daemon
