@@ -229,3 +229,66 @@ h1 {
     color: var(--sg-navy);
   }
 }
+
+// ── Acciones de mejora ──
+.acciones-mejora {
+  padding: 1.25rem;
+  border-top: 1px solid var(--sg-divider);
+}
+
+.acciones-mejora__titulo {
+  margin: 0 0 0.9rem;
+  color: var(--sg-navy);
+  font-family: var(--sg-font-titulo);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.lista-acciones {
+  display: grid;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.accion-mejora {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
+}
+
+.accion-mejora__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.accion-mejora__nombre {
+  margin: 0;
+  color: var(--sg-ink-body);
+  font-weight: 700;
+}
+
+.accion-mejora__descripcion {
+  margin: 0;
+  color: var(--sg-ink-body);
+  font-size: 0.875rem;
+}
+
+.accion-mejora__fecha {
+  margin: 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.8125rem;
+}
+
+.accion-mejora__evaluacion {
+  margin: 0.2rem 0 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.8125rem;
+}

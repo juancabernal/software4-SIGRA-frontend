@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
   AccionMejora,
+  ConversionAccionMejora,
   FiltrosAccionMejora,
   RegistroAccionMejora,
 } from '../models/accion-mejora.model';
@@ -29,6 +30,9 @@ export class AccionMejoraService {
     if (filtros.resultadoAprendizajeId) {
       params = params.set('resultadoAprendizajeId', filtros.resultadoAprendizajeId);
     }
+    if (filtros.semestreId) {
+      params = params.set('semestreId', filtros.semestreId);
+    }
     if (filtros.asignaturaId) {
       params = params.set('asignaturaId', filtros.asignaturaId);
     }
@@ -40,5 +44,10 @@ export class AccionMejoraService {
 
   obtener(id: string): Observable<AccionMejora> {
     return this.http.get<AccionMejora>(`${this.baseUrl}/${id}`);
+  }
+
+  /** RF-18: convierte la acción en una evaluación. El backend aplica las reglas de negocio. */
+  convertir(id: string, datos: ConversionAccionMejora): Observable<AccionMejora> {
+    return this.http.post<AccionMejora>(`${this.baseUrl}/${id}/conversion`, datos);
   }
 }

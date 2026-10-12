@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { catchError, map, of, startWith, switchMap } from 'rxjs';
+import { catchError, combineLatest, map, of, startWith, switchMap } from 'rxjs';
 
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
@@ -8,6 +8,9 @@ import { Icono } from '../../../../shared/ui/icono/icono';
 import { Asignatura } from '../../../asignaturas/models/asignatura.model';
 import { AsignaturaService } from '../../../asignaturas/services/asignatura.service';
 import { AccionMejoraFormDialog } from '../../../mejoras/components/accion-mejora-form-dialog/accion-mejora-form-dialog';
+import { ConversionAccionMejoraDialog } from '../../../mejoras/components/conversion-accion-mejora-dialog/conversion-accion-mejora-dialog';
+import { AccionMejora } from '../../../mejoras/models/accion-mejora.model';
+import { AccionMejoraService } from '../../../mejoras/services/accion-mejora.service';
 import {
   ResultadoAprendizaje,
   EstadoResultadoAprendizaje,
@@ -30,6 +33,12 @@ type CargaConclusion =
   | { estado: 'listo'; conclusion: Conclusion | null }
   | { estado: 'error'; error: MensajeError };
 
+type CargaAccionesMejora =
+  | { estado: 'inactivo' }
+  | { estado: 'cargando' }
+  | { estado: 'listo'; lista: AccionMejora[] }
+  | { estado: 'error'; error: MensajeError };
+
 const ESTADO_RA_ACTIVO: EstadoResultadoAprendizaje = 'ACTIVO';
 
 interface Aviso {
@@ -49,7 +58,7 @@ const DURACION_AVISO_MS = 6000;
  */
 @Component({
   selector: 'app-estadisticas-page',
-  imports: [AccionMejoraFormDialog, ChipEstado, Icono],
+  imports: [AccionMejoraFormDialog, ConversionAccionMejoraDialog, ChipEstado, Icono],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './estadisticas-page.html',
   styleUrl: './estadisticas-page.scss',
@@ -59,6 +68,7 @@ export class EstadisticasPage {
   private readonly resultadosService = inject(ResultadoAprendizajeService);
   private readonly semestreService = inject(SemestreService);
   private readonly conclusionService = inject(ConclusionService);
+  private readonly accionMejoraService = inject(AccionMejoraService);
 
   private temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
   protected readonly aviso = signal<Aviso | null>(null);
@@ -110,6 +120,43 @@ export class EstadisticasPage {
   protected readonly puedeConsultar = computed(
     () => this.asignaturaId() !== '' && this.resultadoAprendizajeId() !== '' && this.semestreId() !== '',
   );
+
+  // ── Acciones de mejora del (RA, semestre) elegidos (RF-18) ─────────────
+  private readonly recargaAcciones = signal(0);
+  private readonly cargaAcciones = toSignal(
+    combineLatest([
+      toObservable(this.resultadoAprendizajeId),
+      toObservable(this.semestreId),
+      toObservable(this.recargaAcciones),
+    ]).pipe(
+      switchMap(([resultadoAprendizajeId, semestreId]) => {
+        if (!resultadoAprendizajeId || !semestreId) {
+          return of<CargaAccionesMejora>({ estado: 'inactivo' });
+        }
+        return this.accionMejoraService.listar({ resultadoAprendizajeId, semestreId }).pipe(
+          map((lista): CargaAccionesMejora => ({ estado: 'listo', lista })),
+          catchError((error: unknown) =>
+            of<CargaAccionesMejora>({ estado: 'error', error: mensajeDeError(error) }),
+          ),
+          startWith<CargaAccionesMejora>({ estado: 'cargando' }),
+        );
+      }),
+    ),
+    { initialValue: { estado: 'inactivo' } as CargaAccionesMejora },
+  );
+
+  protected readonly accionesEstado = computed(() => this.cargaAcciones().estado);
+  protected readonly accionesError = computed(() => {
+    const carga = this.cargaAcciones();
+    return carga.estado === 'error' ? carga.error : null;
+  });
+  protected readonly accionesMejora = computed(() => {
+    const carga = this.cargaAcciones();
+    return carga.estado === 'listo' ? carga.lista : [];
+  });
+
+  protected readonly dialogoConversionAbierto = signal(false);
+  protected readonly accionEnConversion = signal<AccionMejora | null>(null);
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.temporizadorAviso));
@@ -209,10 +256,26 @@ export class EstadisticasPage {
     this.dialogoAbierto.set(false);
     this.mostrarAviso('Acción de mejora registrada correctamente.');
     this.consultar();
+    this.recargaAcciones.update((valor) => valor + 1);
   }
 
   protected alCancelarAccionMejora(): void {
     this.dialogoAbierto.set(false);
+  }
+
+  protected abrirConversion(accion: AccionMejora): void {
+    this.accionEnConversion.set(accion);
+    this.dialogoConversionAbierto.set(true);
+  }
+
+  protected alConvertirAccionMejora(): void {
+    this.dialogoConversionAbierto.set(false);
+    this.mostrarAviso('Acción de mejora convertida en evaluación.');
+    this.recargaAcciones.update((valor) => valor + 1);
+  }
+
+  protected alCancelarConversion(): void {
+    this.dialogoConversionAbierto.set(false);
   }
 
   private mostrarAviso(texto: string, tono: Aviso['tono'] = 'ok'): void {

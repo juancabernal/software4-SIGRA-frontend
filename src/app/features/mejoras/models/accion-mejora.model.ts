@@ -15,6 +15,8 @@ export interface AccionMejora {
   resultadoAprendizajeId: string;
   resultadoAprendizajeCodigo: string;
   asignaturaId: string;
+  semestreId: string;
+  semestreCodigo: string;
   conclusionOrigenId: string;
   evaluacionGeneradaId: string | null;
   convertida: boolean;
@@ -29,6 +31,12 @@ export interface RegistroAccionMejora {
 /** Filtros de GET /acciones-mejora; todos opcionales y combinados con AND en el backend. */
 export interface FiltrosAccionMejora {
   resultadoAprendizajeId?: string;
+  semestreId?: string;
   asignaturaId?: string;
   convertida?: boolean;
+}
+
+/** Cuerpo de POST /acciones-mejora/{id}/conversion (RF-18). */
+export interface ConversionAccionMejora {
+  porcentaje: number;
 }
