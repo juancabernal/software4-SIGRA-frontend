@@ -91,7 +91,7 @@ jobs:
       SIGRA_E2E_ENABLED: '1'
       SIGRA_E2E_BASE_URL: http://127.0.0.1:4200
       SIGRA_E2E_API_BASE_URL: http://127.0.0.1:8080
-      SIGRA_E2E_BACKEND_SHA: de9de7d4d6a8a1182618b7f8c174696a73f7200b
+      SIGRA_E2E_BACKEND_SHA: de9de7d6b481321fd31ab7a4a191537557eff0cb
       SIGRA_E2E_POSTGRES_VERSION: '16'
       SIGRA_E2E_SEED_ID: sigra-auth-rbac-release-seed-v1
       SIGRA_E2E_START_FRONTEND: '1'
@@ -123,7 +123,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: juancabernal/software4-SIGRA-backend
-          ref: de9de7d4d6a8a1182618b7f8c174696a73f7200b
+          ref: de9de7d6b481321fd31ab7a4a191537557eff0cb
           path: .ci/backend
           fetch-depth: 1
 
