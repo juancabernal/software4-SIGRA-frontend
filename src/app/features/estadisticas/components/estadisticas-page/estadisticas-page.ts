@@ -7,6 +7,7 @@ import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
 import { Asignatura } from '../../../asignaturas/models/asignatura.model';
 import { AsignaturaService } from '../../../asignaturas/services/asignatura.service';
+import { AccionMejoraFormDialog } from '../../../mejoras/components/accion-mejora-form-dialog/accion-mejora-form-dialog';
 import {
   ResultadoAprendizaje,
   EstadoResultadoAprendizaje,
@@ -43,11 +44,12 @@ const DURACION_AVISO_MS = 6000;
  * consulta si hay una conclusión VIGENTE (desempeño insuficiente) para esa combinación.
  *
  * La generación de la conclusión la dispara el recálculo de estadísticas de otro módulo; aquí
- * solo se consulta. «Crear acción de mejora» (RF-17/18) todavía no existe.
+ * solo se consulta. «Crear acción de mejora» abre el registro de RF-17; la conversión a
+ * evaluación (RF-18) todavía no existe.
  */
 @Component({
   selector: 'app-estadisticas-page',
-  imports: [ChipEstado, Icono],
+  imports: [AccionMejoraFormDialog, ChipEstado, Icono],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './estadisticas-page.html',
   styleUrl: './estadisticas-page.scss',
@@ -197,8 +199,20 @@ export class EstadisticasPage {
     return consulta.estado === 'listo' ? consulta.conclusion : null;
   }
 
+  protected readonly dialogoAbierto = signal(false);
+
   protected crearAccionDeMejora(): void {
-    this.mostrarAviso('Esta función estará disponible pronto.');
+    this.dialogoAbierto.set(true);
+  }
+
+  protected alGuardarAccionMejora(): void {
+    this.dialogoAbierto.set(false);
+    this.mostrarAviso('Acción de mejora registrada correctamente.');
+    this.consultar();
+  }
+
+  protected alCancelarAccionMejora(): void {
+    this.dialogoAbierto.set(false);
   }
 
   private mostrarAviso(texto: string, tono: Aviso['tono'] = 'ok'): void {
