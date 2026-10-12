@@ -1,0 +1,32 @@
+<div class="paginador">
+  <div class="paginador__tamano">
+    <label class="solo-lectores" for="paginador-tamano">Registros por página</label>
+    <select id="paginador-tamano" class="selector" (change)="alCambiarTamano($event)">
+      @for (t of tamanos; track t) {
+        <option [value]="t" [selected]="t === tamanoPagina()">{{ t }} por página</option>
+      }
+    </select>
+  </div>
+
+  <div class="paginador__nav">
+    <button
+      type="button"
+      class="btn btn--pequeno"
+      aria-label="Página anterior"
+      [attr.aria-disabled]="pagina() <= 1 ? 'true' : null"
+      (click)="anterior()"
+    >
+      Anterior
+    </button>
+    <span class="paginador__texto">Página {{ pagina() }} de {{ totalPaginas() }}</span>
+    <button
+      type="button"
+      class="btn btn--pequeno"
+      aria-label="Página siguiente"
+      [attr.aria-disabled]="pagina() >= totalPaginas() ? 'true' : null"
+      (click)="siguiente()"
+    >
+      Siguiente
+    </button>
+  </div>
+</div>

@@ -1,0 +1,235 @@
+<div class="aviso-zona" role="status" aria-live="polite">
+  @if (aviso(); as a) {
+    <div class="aviso" [class.aviso--error]="a.tono === 'error'">
+      <app-icono [nombre]="a.tono === 'ok' ? 'check' : 'advertencia'" [tamano]="16" />
+      <span>{{ a.texto }}</span>
+      <button type="button" class="aviso__cerrar" aria-label="Cerrar aviso" (click)="cerrarAviso()">
+        <app-icono nombre="cerrar" [tamano]="14" />
+      </button>
+    </div>
+  }
+</div>
+
+<div class="tarjeta">
+  <div class="barra">
+    <div class="buscador">
+      <app-icono nombre="buscar" [tamano]="16" />
+      <input
+        type="search"
+        placeholder="Buscar por nombre, documento o correo..."
+        aria-label="Buscar profesores por nombre, documento o correo"
+        [value]="texto()"
+        (input)="alEscribir($event)"
+      />
+    </div>
+
+    <button type="button" class="btn btn--primario barra__registrar" (click)="abrirRegistro()">
+      <app-icono nombre="mas" [tamano]="16" />
+      Registrar
+    </button>
+  </div>
+
+  @if (cargando()) {
+    <p class="estado-vista" role="status">Cargando profesores…</p>
+  } @else if (errorCarga(); as error) {
+    <div class="estado-vista estado-vista--error" role="alert">
+      <p>{{ error.mensaje }}</p>
+      <button type="button" class="btn" (click)="recargar()">
+        <app-icono nombre="recargar" [tamano]="16" />
+        Reintentar
+      </button>
+    </div>
+  } @else if (profesores().length === 0) {
+    @if (hayFiltros()) {
+      <div class="estado-vista">
+        <p class="estado-vista__titulo">Sin resultados</p>
+        <p>Ningún profesor coincide con la búsqueda.</p>
+        <button type="button" class="btn" (click)="limpiarFiltros()">Limpiar búsqueda</button>
+      </div>
+    } @else {
+      <div class="estado-vista">
+        <p class="estado-vista__titulo">Aún no hay profesores registrados</p>
+        <p>Registra el primer profesor del catálogo.</p>
+        <button type="button" class="btn btn--primario" (click)="abrirRegistro()">
+          <app-icono nombre="mas" [tamano]="16" />
+          Registrar
+        </button>
+      </div>
+    }
+  } @else {
+    <div class="tabla-contenedor">
+      <table>
+        <caption class="solo-lectores">
+          Profesores del catálogo académico
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Nombre completo</th>
+            <th scope="col">Documento</th>
+            <th scope="col">Correo institucional</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of profesores(); track p.id) {
+            <tr>
+              <th scope="row" class="nombre">{{ p.nombreCompleto }}</th>
+              <td class="codigo">{{ p.tipoDocumentoNombre }} {{ p.numeroDocumento }}</td>
+              <td class="programa">{{ p.correoInstitucional }}</td>
+              <td>
+                <app-chip-estado
+                  [etiqueta]="presentacion[p.estado]?.etiqueta ?? p.estado"
+                  [variante]="presentacion[p.estado]?.variante ?? 'neutro'"
+                  [icono]="presentacion[p.estado]?.icono ?? ''"
+                />
+              </td>
+              <td>
+                <div class="acciones">
+                  <button
+                    type="button"
+                    class="btn-ghost"
+                    [attr.aria-label]="'Consultar ' + p.nombreCompleto"
+                    (click)="consultar(p)"
+                  >
+                    <app-icono nombre="ojo" [tamano]="16" />
+                    <span>Consultar</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn-ghost"
+                    [attr.aria-label]="'Modificar ' + p.nombreCompleto"
+                    (click)="abrirModificacion(p)"
+                  >
+                    <app-icono nombre="lapiz" [tamano]="16" />
+                    <span>Modificar</span>
+                  </button>
+
+                  @if (p.estado === 'ACTIVO') {
+                    <span class="con-tooltip">
+                      <button
+                        type="button"
+                        class="btn btn--peligro btn--pequeno"
+                        [attr.aria-label]="'Inactivar ' + p.nombreCompleto"
+                        [attr.aria-disabled]="p.tieneAsignacionesActivas ? 'true' : null"
+                        [attr.aria-describedby]="
+                          p.tieneAsignacionesActivas ? 'tooltip-inactivar-' + p.id : null
+                        "
+                        (click)="pedirInactivar(p)"
+                      >
+                        Inactivar
+                      </button>
+                      @if (p.tieneAsignacionesActivas) {
+                        <span class="tooltip" role="tooltip" [id]="'tooltip-inactivar-' + p.id">
+                          {{ tooltipInactivar }}
+                        </span>
+                      }
+                    </span>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<app-panel-lateral
+  titulo="Detalle del profesor"
+  [abierto]="consultado() !== null"
+  (cerrar)="cerrarConsulta()"
+>
+  @if (consultado(); as c) {
+    <dl class="detalle">
+      <div>
+        <dt>Nombre completo</dt>
+        <dd class="detalle__nombre">{{ c.nombreCompleto }}</dd>
+      </div>
+      <div>
+        <dt>Documento</dt>
+        <dd class="codigo">{{ c.tipoDocumentoNombre }} {{ c.numeroDocumento }}</dd>
+      </div>
+      <div>
+        <dt>Correo institucional</dt>
+        <dd>{{ c.correoInstitucional }}</dd>
+      </div>
+      <div>
+        <dt>Estado</dt>
+        <dd>
+          <app-chip-estado
+            [etiqueta]="presentacion[c.estado]?.etiqueta ?? c.estado"
+            [variante]="presentacion[c.estado]?.variante ?? 'neutro'"
+            [icono]="presentacion[c.estado]?.icono ?? ''"
+          />
+        </dd>
+      </div>
+      <div>
+        <dt>Asignaturas asociadas</dt>
+        <dd>
+          @if (cargandoAsignaturas()) {
+            <p>Cargando asignaturas…</p>
+          } @else if (errorAsignaturas(); as error) {
+            <p class="estado-vista--error">{{ error.mensaje }}</p>
+          } @else if (asignaturasConsultado().length === 0) {
+            <p>Sin asignaturas asociadas.</p>
+          } @else {
+            <ul class="lista-asignaturas">
+              @for (a of asignaturasConsultado(); track a.asignacionId) {
+                <li>
+                  <span class="codigo">{{ a.codigoAsignatura }}</span>
+                  {{ a.nombreAsignatura }}
+                  <app-chip-estado
+                    [etiqueta]="presentacion[a.estadoAsignatura]?.etiqueta ?? a.estadoAsignatura"
+                    [variante]="presentacion[a.estadoAsignatura]?.variante ?? 'neutro'"
+                    [icono]="presentacion[a.estadoAsignatura]?.icono ?? ''"
+                  />
+                </li>
+              }
+            </ul>
+          }
+        </dd>
+      </div>
+    </dl>
+    @if (c.tieneAsignacionesActivas) {
+      <p class="detalle__nota">
+        Este profesor tiene asignaturas activas asociadas: no se puede inactivar hasta que se
+        reasignen o inactiven.
+      </p>
+    }
+    <p class="detalle__solo-lectura">
+      <app-icono nombre="candado" [tamano]="14" />
+      Solo lectura · usa «Modificar» para editar
+    </p>
+  }
+</app-panel-lateral>
+
+<app-dialogo-confirmacion
+  [abierto]="aInactivar() !== null"
+  [titulo]="tituloInactivar()"
+  descripcion="El profesor pasará a estado inactivo. No se elimina nada y sus asignaturas históricas no se afectan."
+  etiquetaConfirmar="Inactivar"
+  tono="peligro"
+  [procesando]="inactivando()"
+  [error]="errorInactivar()"
+  (confirmar)="confirmarInactivar()"
+  (cancelar)="cancelarInactivar()"
+/>
+
+@switch (dialogo()?.tipo) {
+  @case ('registrar') {
+    <app-profesor-form-dialog (guardado)="alGuardar($event)" (cerrado)="cerrarDialogoFormulario()" />
+  }
+  @case ('modificar') {
+    @let d = dialogo();
+    @if (d && d.tipo === 'modificar') {
+      <app-profesor-form-dialog
+        [profesor]="d.profesor"
+        (guardado)="alGuardar($event)"
+        (cerrado)="cerrarDialogoFormulario()"
+      />
+    }
+  }
+}

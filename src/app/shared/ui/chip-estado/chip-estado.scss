@@ -1,0 +1,39 @@
+// Pares de estado de la guía (§3.3). Para el TEXTO se oscurecen dentro del componente los pares
+// que no llegan a contraste AA (4.5:1) sobre su fondo: ok (#16b8a0 sobre #e6f8f6 ≈ 2.4:1) y
+// neutro (#64748b sobre #f1f5f9 ≈ 4.3:1). Los tokens globales no se tocan.
+
+:host {
+  display: inline-flex;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.chip--ok {
+  background: var(--sg-ok-bg);
+  color: color-mix(in srgb, var(--sg-ok-fg) 55%, black);
+}
+
+.chip--neutro {
+  background: var(--sg-neutral-bg);
+  color: color-mix(in srgb, var(--sg-neutral-fg) 80%, black);
+}
+
+.chip--advertencia {
+  background: var(--sg-warning-bg);
+  color: var(--sg-warning-fg);
+}
+
+.chip--peligro {
+  background: var(--sg-error-bg);
+  color: var(--sg-error-fg);
+}

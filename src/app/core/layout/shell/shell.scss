@@ -1,0 +1,418 @@
+// Shell: sidebar navy + topbar blanco + contenido con scroll propio (§6).
+// Móvil primero: el sidebar nace como cajón sobre el contenido y a partir de 900px
+// pasa a ser una columna fija que puede colapsarse a solo íconos.
+
+// Esconde a la vista sin sacar del árbol de accesibilidad: el lector de pantalla sigue
+// leyendo la etiqueta aunque el sidebar esté colapsado.
+@mixin solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@mixin recortar {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:host {
+  display: flex;
+  min-height: 100dvh;
+  background: var(--sg-bg);
+  font-family: var(--sg-font-cuerpo);
+}
+
+.saltar {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 60;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--sg-radius-micro);
+  background: var(--sg-card);
+  color: var(--sg-navy);
+  font: 700 0.8rem var(--sg-font-titulo);
+  text-decoration: none;
+  box-shadow: var(--sg-shadow-float);
+  transform: translateY(-150%);
+
+  &:focus-visible {
+    transform: translateY(0);
+  }
+}
+
+/* ── Sidebar ───────────────────────────────────────────────────────── */
+
+.barra {
+  position: fixed;
+  z-index: 50;
+  inset: 0 auto 0 0;
+  display: flex;
+  flex-direction: column;
+  width: var(--sg-sidebar);
+  max-width: 85vw;
+  background: var(--sg-navy);
+  color: #fff;
+  transform: translateX(-100%);
+  transition: transform var(--sg-transition-layout);
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.velo {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(15, 23, 42, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--sg-transition-layout);
+}
+
+:host(.shell--cajon-abierto) {
+  .barra {
+    transform: translateX(0);
+    box-shadow: var(--sg-shadow-float);
+  }
+
+  .velo {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.barra__marca,
+.barra__roles {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.barra__marca,
+.barra__usuario {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.75rem 1rem;
+}
+
+.barra__marca {
+  min-height: 64px;
+}
+
+.barra__usuario {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.barra__marca-texto,
+.barra__usuario-texto {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  strong {
+    font-family: var(--sg-font-titulo);
+    @include recortar;
+  }
+
+  small {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.65rem;
+    @include recortar;
+  }
+}
+
+.barra__marca-texto strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.barra__usuario-texto strong {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.barra__roles {
+  padding: 0.75rem;
+}
+
+.barra__roles-titulo {
+  margin: 0 0 0.45rem;
+  color: rgba(255, 255, 255, 0.45);
+  font: 700 0.625rem var(--sg-font-titulo);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.segmentado {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.segmentado__opcion {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.2rem;
+  border: 0;
+  border-radius: var(--sg-radius-micro);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font: 600 0.6875rem var(--sg-font-titulo);
+  cursor: pointer;
+
+  &:hover {
+    color: #fff;
+  }
+}
+
+.segmentado__opcion--activa {
+  background: #fff;
+  color: var(--sg-navy);
+}
+
+.segmentado__corto {
+  display: none;
+}
+
+.barra__nav {
+  flex: 1;
+  padding: 0.75rem 0.5rem;
+  overflow-y: auto;
+
+  ul {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--sg-radius-control);
+  color: rgba(255, 255, 255, 0.6);
+  font: 600 0.875rem var(--sg-font-titulo);
+  text-decoration: none;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.9);
+  }
+}
+
+.nav-item--activo {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.nav-item__etiqueta {
+  @include recortar;
+}
+
+// Dentro del navy, el anillo de foco del documento no contrasta: se usa blanco.
+.segmentado__opcion:focus-visible,
+.nav-item:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.75);
+  outline-offset: -2px;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  font: 700 0.75rem var(--sg-font-titulo);
+}
+
+/* ── Panel derecho: topbar + contenido ─────────────────────────────── */
+
+.panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: var(--sg-topbar);
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--sg-border);
+  background: var(--sg-card);
+}
+
+.hamburguesa,
+.campana {
+  display: grid;
+  place-items: center;
+  padding: 0.45rem;
+  border: 0;
+  border-radius: var(--sg-radius-micro);
+  background: transparent;
+  color: var(--sg-ink-muted);
+  cursor: pointer;
+}
+
+.hamburguesa:hover {
+  background: var(--sg-divider);
+}
+
+.hamburguesa__trazos {
+  display: grid;
+  gap: 4px;
+
+  span {
+    display: block;
+    width: 1rem;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+  }
+}
+
+.topbar__contexto {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--sg-navy);
+  font: 700 0.8125rem var(--sg-font-titulo);
+}
+
+/* Empuja la campana y la cuenta al extremo derecho, con o sin el contexto visible. */
+.campana {
+  margin-left: auto;
+}
+
+.campana:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Cuenta en la topbar ───────────────────────────────────────────── */
+
+/* Acá va solo la salida. Quién está dentro lo dice el bloque de usuario del sidebar (§6.1):
+ * repetir el nombre en los dos lugares no agrega información y se come el ancho del header. */
+.btn-salir,
+.btn-entrar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-card);
+  color: var(--sg-ink-muted);
+  font: 600 0.75rem var(--sg-font-titulo);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--sg-secondary-hover);
+    color: var(--sg-navy);
+    border-color: var(--sg-navy);
+  }
+}
+
+.btn-entrar {
+  border-color: var(--sg-navy);
+  background: var(--sg-navy);
+  color: #fff;
+
+  &:hover {
+    background: var(--sg-navy-hover);
+    color: #fff;
+  }
+}
+
+.contenido {
+  flex: 1;
+  min-width: 0;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+/* ── Escritorio: el sidebar deja de ser cajón y pasa a columna fija ── */
+
+@media (min-width: 900px) {
+  .barra {
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    max-width: none;
+    transform: none;
+    transition: width var(--sg-transition-layout);
+  }
+
+  .velo,
+  .topbar__contexto {
+    display: none;
+  }
+
+  :host(.shell--colapsado) {
+    .barra {
+      width: var(--sg-sidebar-colapsado);
+    }
+
+    .barra__marca-texto,
+    .barra__usuario-texto,
+    .barra__roles-titulo,
+    .nav-item__etiqueta,
+    .segmentado__largo {
+      @include solo-lectores;
+    }
+
+    .barra__marca,
+    .barra__roles,
+    .barra__usuario,
+    .nav-item {
+      justify-content: center;
+      gap: 0;
+      padding-inline: 0.5rem;
+    }
+
+    .segmentado {
+      flex-direction: column;
+      background: transparent;
+    }
+
+    .segmentado__corto {
+      display: block;
+    }
+
+    .segmentado__opcion {
+      padding: 0.35rem 0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .segmentado__opcion--activa {
+      background: #fff;
+    }
+  }
+}

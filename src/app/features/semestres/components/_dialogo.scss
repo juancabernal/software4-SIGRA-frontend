@@ -1,0 +1,203 @@
+// Estilos comunes de los diálogos del módulo de semestres.
+// Usan las variables --sem-* que define SemestresPage en su :host.
+
+dialog {
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  border: 1px solid var(--sem-line);
+  border-radius: var(--sem-radius-card);
+  background: var(--sem-surface);
+  color: var(--sem-ink);
+  font-family: var(--sem-font-cuerpo);
+  font-size: 0.875rem;
+  box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.28);
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--sem-line);
+}
+
+.encabezado h2 {
+  margin: 0;
+  color: var(--sem-navy);
+  font-family: var(--sem-font-titulo);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.encabezado p {
+  margin: 0.3rem 0 0;
+  color: var(--sem-muted);
+  line-height: 1.5;
+}
+
+.cerrar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sem-muted);
+  cursor: pointer;
+  transition: background var(--sem-t);
+}
+
+.cerrar:hover:not(:disabled) {
+  background: var(--sem-hover);
+  color: var(--sem-ink);
+}
+
+.cuerpo {
+  display: grid;
+  gap: 1.1rem;
+  padding: 1.5rem;
+}
+
+.campo {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.campo label {
+  color: var(--sem-muted);
+  font-family: var(--sem-font-titulo);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.campo input {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--sem-line);
+  border-radius: var(--sem-radius-control);
+  background: var(--sem-field);
+  color: var(--sem-ink);
+  font-variant-numeric: tabular-nums;
+  transition:
+    border-color var(--sem-t),
+    box-shadow var(--sem-t),
+    background var(--sem-t);
+}
+
+.campo input::placeholder {
+  color: var(--sem-soft);
+}
+
+.campo input:focus-visible {
+  outline: none;
+  border-color: var(--sem-navy);
+  box-shadow: 0 0 0 3px var(--sem-navy-ring);
+  background: var(--sem-surface);
+}
+
+.campo input[aria-invalid='true'] {
+  border-color: var(--sem-danger);
+  background: var(--sem-danger-bg);
+}
+
+.ayuda {
+  margin: 0;
+  color: var(--sem-soft);
+  font-size: 0.75rem;
+}
+
+.error-campo {
+  margin: 0;
+  color: var(--sem-danger);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.fila {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.alerta {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(192, 57, 43, 0.25);
+  border-radius: var(--sem-radius-control);
+  background: var(--sem-danger-bg);
+  color: var(--sem-danger);
+  line-height: 1.45;
+}
+
+.alerta ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding: 0 1.5rem 1.5rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.625rem 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--sem-radius-control);
+  background: transparent;
+  color: var(--sem-muted);
+  font-family: var(--sem-font-titulo);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background var(--sem-t),
+    transform var(--sem-t);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--sem-hover);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn:disabled,
+.cerrar:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.btn--primario {
+  border-color: var(--sem-navy);
+  background: var(--sem-navy);
+  color: #fff;
+}
+
+.btn--primario:hover:not(:disabled) {
+  background: var(--sem-navy-hover);
+}
+
+.btn:focus-visible,
+.cerrar:focus-visible {
+  outline: 2px solid var(--sem-navy);
+  outline-offset: 2px;
+}

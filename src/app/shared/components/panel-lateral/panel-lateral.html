@@ -1,0 +1,26 @@
+<dialog
+  #dialogo
+  class="panel"
+  [attr.aria-labelledby]="idTitulo"
+  (cancel)="alCancelarNativo($event)"
+  (click)="alHacerClic($event)"
+>
+  <div class="panel__contenido">
+    <header class="panel__cabecera">
+      <h2 [id]="idTitulo">{{ titulo() }}</h2>
+      <button
+        #botonCerrar
+        type="button"
+        class="panel__cerrar"
+        aria-label="Cerrar panel"
+        (click)="cerrar.emit()"
+      >
+        <app-icono nombre="cerrar" [tamano]="18" />
+      </button>
+    </header>
+
+    <div class="panel__cuerpo">
+      <ng-content />
+    </div>
+  </div>
+</dialog>

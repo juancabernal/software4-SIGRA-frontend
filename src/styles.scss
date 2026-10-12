@@ -1,1 +1,141 @@
-/* You can add global styles to this file, and also import other style files */
+/* Estilos globales de SIGRA.
+ *
+ * Los tokens vienen de la especificación visual del equipo
+ * (`scripts/SIGRA-FRONTEND-SPEC-ANGULAR.md`, §3). Se declaran aquí como custom properties
+ * para que la guía visual se cambie en un solo lugar cuando el cliente la apruebe.
+ *
+ * La especificación está escrita en clases de Tailwind; el proyecto usa SCSS (CLAUDE.md),
+ * así que los valores se transcriben a tokens y cada componente los consume desde su SCSS.
+ */
+
+:root {
+  /* Paleta base (§3.1) */
+  --sg-navy: #1b3a5c; /* marca, primario, sidebar, títulos */
+  --sg-teal: #16b8a0; /* ÉXITO / VALIDACIÓN ÚNICAMENTE — nunca decorativo */
+  --sg-bg: #f5f7fa;
+  --sg-card: #ffffff;
+  --sg-error: #c0392b;
+  --sg-warning: #d98e04;
+  --sg-info: #2e74b5;
+  --sg-border: #e2e8f0;
+
+  /* Derivados (§3.2) */
+  --sg-navy-hover: #15304e;
+  --sg-field: #f8fafc; /* fondo de campo y cabecera de tabla */
+  --sg-row-hover: #fafbff;
+  --sg-divider: #f1f5f9;
+  --sg-ink: #0f172a;
+  --sg-ink-body: #374151;
+  --sg-ink-muted: #64748b;
+  --sg-ink-soft: #94a3b8;
+  --sg-ink-disabled: #cbd5e1;
+  --sg-secondary-hover: #f0f5ff;
+
+  /* Pares color/fondo de estado — se usan siempre juntos (§3.3) */
+  --sg-ok-fg: #16b8a0;
+  --sg-ok-bg: #e6f8f6;
+  --sg-error-fg: #c0392b;
+  --sg-error-bg: #fdecea;
+  --sg-warning-fg: #92600a;
+  --sg-warning-bg: #fef3cd;
+  --sg-info-fg: #2e74b5;
+  --sg-info-bg: #eaf1fb;
+  --sg-neutral-fg: #64748b;
+  --sg-neutral-bg: #f1f5f9;
+
+  /* Radios (§3.5) */
+  --sg-radius-card: 20px;
+  --sg-radius-control: 12px;
+  --sg-radius-tabs: 14px;
+  --sg-radius-micro: 8px;
+
+  /* Sombras y transiciones (§3.6) */
+  --sg-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --sg-shadow-float: 0 20px 45px rgba(15, 23, 42, 0.22);
+  --sg-transition: 150ms ease;
+  --sg-transition-layout: 200ms ease;
+
+  /* Tipografía (§3.4) */
+  --sg-font-titulo: Manrope, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --sg-font-cuerpo: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Medidas del shell (§6) */
+  --sg-sidebar: 248px;
+  --sg-sidebar-colapsado: 64px;
+  --sg-topbar: 56px;
+
+  color-scheme: light;
+}
+
+/* Los valores por omisión de los elementos van en `@layer base`, la capa que declara
+ * `src/tailwind.css`. Dentro de una capa, cualquier utilidad de Tailwind les gana: si alguien
+ * escribe `class="font-cuerpo"` en un `h1`, se aplica. Sin la capa, estas reglas sin capa
+ * ganarían siempre y la utilidad no haría nada — que es la confusión clásica al mezclar CSS
+ * propio con Tailwind. */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    min-height: 100dvh;
+    background: var(--sg-bg);
+    color: var(--sg-ink);
+    font-family: var(--sg-font-cuerpo);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--sg-font-titulo);
+  }
+
+  /* Foco siempre visible: es la única pista para quien navega con teclado (RNF-21). */
+  :focus-visible {
+    outline: 2px solid var(--sg-navy);
+    outline-offset: 2px;
+  }
+}
+
+/* Estas dos quedan **fuera** de toda capa, para que ninguna utilidad las pise por accidente:
+ * esconder texto para videntes y marcar cifras de ancho fijo son decisiones, no valores por
+ * omisión. */
+
+/* Todo número va en cifras de ancho fijo: notas, documentos, códigos, fechas (§3.4). */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Texto solo para lectores de pantalla. */
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

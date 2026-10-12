@@ -1,0 +1,143 @@
+<div class="aviso-zona" role="status" aria-live="polite">
+  @if (aviso(); as a) {
+    <div class="aviso" [class.aviso--error]="a.tono === 'error'">
+      <app-icono [nombre]="a.tono === 'ok' ? 'check' : 'advertencia'" [tamano]="16" />
+      <span>{{ a.texto }}</span>
+      <button type="button" class="aviso__cerrar" aria-label="Cerrar aviso" (click)="cerrarAviso()">
+        <app-icono nombre="cerrar" [tamano]="14" />
+      </button>
+    </div>
+  }
+</div>
+
+<div class="tarjeta">
+  <div class="barra">
+    <div class="buscador">
+      <app-icono nombre="buscar" [tamano]="16" />
+      <input
+        type="search"
+        placeholder="Buscar por nombre..."
+        aria-label="Buscar programas por nombre"
+        (input)="alEscribirNombre($event)"
+      />
+    </div>
+
+    <input
+      type="search"
+      class="selector"
+      placeholder="Código"
+      aria-label="Filtrar programas por código"
+      (input)="alEscribirCodigo($event)"
+    />
+
+    <select class="selector" aria-label="Filtrar programas por estado" (change)="alCambiarEstado($event)">
+      <option value="">Todos los estados</option>
+      <option value="ACTIVO">Activos</option>
+      <option value="INACTIVO">Inactivos</option>
+    </select>
+
+    <button type="button" class="btn btn--primario barra__registrar" (click)="abrirRegistro()">
+      <app-icono nombre="mas" [tamano]="16" />
+      Registrar
+    </button>
+  </div>
+
+  @if (cargando()) {
+    <p class="estado-vista" role="status">Cargando programas…</p>
+  } @else if (errorCarga(); as error) {
+    <div class="estado-vista estado-vista--error" role="alert">
+      <p>{{ error.mensaje }}</p>
+      <button type="button" class="btn" (click)="recargar()">
+        <app-icono nombre="recargar" [tamano]="16" />
+        Reintentar
+      </button>
+    </div>
+  } @else if (programas().length === 0) {
+    @if (hayFiltros()) {
+      <div class="estado-vista">
+        <p class="estado-vista__titulo">Sin resultados</p>
+        <p>Ningún programa coincide con la búsqueda y los filtros aplicados.</p>
+        <button type="button" class="btn" (click)="limpiarFiltros()">Limpiar filtros</button>
+      </div>
+    } @else {
+      <div class="estado-vista">
+        <p class="estado-vista__titulo">Aún no hay programas registrados</p>
+        <p>Registra el primer programa académico.</p>
+        <button type="button" class="btn btn--primario" (click)="abrirRegistro()">
+          <app-icono nombre="mas" [tamano]="16" />
+          Registrar
+        </button>
+      </div>
+    }
+  } @else {
+    <div class="tabla-contenedor">
+      <table>
+        <caption class="solo-lectores">Programas académicos</caption>
+        <thead>
+          <tr>
+            <th scope="col">Nombre</th>
+            <th scope="col">Código</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of programas(); track p.id) {
+            <tr>
+              <th scope="row" class="nombre">{{ p.nombre }}</th>
+              <td class="codigo">{{ p.codigo }}</td>
+              <td>
+                <app-chip-estado
+                  [etiqueta]="presentacion[p.estado].etiqueta"
+                  [variante]="presentacion[p.estado].variante"
+                  [icono]="presentacion[p.estado].icono"
+                />
+              </td>
+              <td>
+                <div class="acciones">
+                  <button
+                    type="button"
+                    class="btn-ghost"
+                    [attr.aria-label]="'Modificar ' + p.nombre"
+                    (click)="abrirEdicion(p)"
+                  >
+                    <app-icono nombre="lapiz" [tamano]="16" />
+                    <span>Modificar</span>
+                  </button>
+                  @if (p.estado === 'ACTIVO') {
+                    <button
+                      type="button"
+                      class="btn btn--peligro btn--pequeno"
+                      [attr.aria-label]="'Inactivar ' + p.nombre"
+                      (click)="pedirInactivar(p)"
+                    >
+                      Inactivar
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<app-programa-form-dialog
+  [abierto]="formularioAbierto()"
+  [programa]="enEdicion()"
+  (guardado)="alGuardar($event)"
+  (cancelar)="cerrarFormulario()"
+/>
+
+<app-dialogo-confirmacion
+  [abierto]="aInactivar() !== null"
+  [titulo]="tituloInactivar()"
+  descripcion="Este programa quedará inactivo y NO podrás volver a activarlo. Si más adelante lo necesitas, tendrás que crear un programa nuevo con otro código. Sus registros se conservan. Si tiene asignaturas activas, el sistema no permitirá inactivarlo."
+  etiquetaConfirmar="Inactivar"
+  tono="peligro"
+  [procesando]="inactivando()"
+  (confirmar)="confirmarInactivar()"
+  (cancelar)="cancelarInactivar()"
+/>

@@ -1,0 +1,197 @@
+// Mismos tokens que el módulo de semestres (verde institucional sobre neutros slate).
+// La guía visual global sigue pendiente de aprobación (README): al aprobarla, estos valores
+// deben moverse a styles.scss en un solo lugar.
+:host {
+  --sesion-bg: #f1f5f9;
+  --sesion-surface: #ffffff;
+  --sesion-ink: #0f172a;
+  --sesion-ink-2: #334155;
+  --sesion-muted: #64748b;
+  --sesion-line: #e2e8f0;
+  --sesion-accent: #008f4c;
+  --sesion-accent-hover: #007a41;
+  --sesion-accent-ring: rgba(0, 143, 76, 0.18);
+  --sesion-field: #f6f8fb;
+  --sesion-field-line: #a3b0c2;
+  --sesion-field-line-hover: #7d8da3;
+  --sesion-ok: #047857;
+  --sesion-ok-bg: #ecfdf5;
+  --sesion-ok-line: #a7f3d0;
+  --sesion-danger: #b91c1c;
+  --sesion-danger-bg: #fef2f2;
+  --sesion-danger-line: #fecaca;
+  --sesion-radius: 12px;
+
+  display: block;
+  min-height: 100dvh;
+  background: var(--sesion-bg);
+  color: var(--sesion-ink);
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 0.9375rem;
+}
+
+.pagina {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.tarjeta {
+  width: min(26rem, 100%);
+  box-sizing: border-box;
+  display: grid;
+  gap: 1.25rem;
+  padding: clamp(1.25rem, 4vw, 2rem);
+  background: var(--sesion-surface);
+  border: 1px solid var(--sesion-line);
+  border-radius: var(--sesion-radius);
+  box-shadow: 0 12px 32px -20px rgba(15, 23, 42, 0.3);
+}
+
+.marca {
+  display: grid;
+  gap: 0.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--sesion-line);
+}
+
+.marca__nombre {
+  color: var(--sesion-accent);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.marca__descripcion {
+  margin: 0;
+  color: var(--sesion-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+form {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.campo {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.campo label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.campo input {
+  box-sizing: border-box;
+  width: 100%;
+  font: inherit;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--sesion-field-line);
+  border-radius: 8px;
+  background: var(--sesion-field);
+  color: var(--sesion-ink);
+}
+
+.campo input:hover {
+  border-color: var(--sesion-field-line-hover);
+}
+
+.campo input:focus-visible {
+  outline: none;
+  border-color: var(--sesion-accent);
+  box-shadow: 0 0 0 3px var(--sesion-accent-ring);
+  background: var(--sesion-surface);
+}
+
+.campo input[aria-invalid='true'] {
+  border-color: var(--sesion-danger);
+}
+
+.ayuda {
+  margin: 0;
+  color: var(--sesion-muted);
+  font-size: 0.8rem;
+}
+
+.error-campo {
+  margin: 0;
+  color: var(--sesion-danger);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.alerta {
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--sesion-danger-line);
+  border-radius: 8px;
+  background: var(--sesion-danger-bg);
+  color: var(--sesion-danger);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.alerta p,
+.exito p {
+  margin: 0;
+}
+
+.exito {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--sesion-ok-line);
+  border-radius: 8px;
+  background: var(--sesion-ok-bg);
+  color: var(--sesion-ok);
+  line-height: 1.5;
+}
+
+.exito h1 {
+  color: var(--sesion-ok);
+  font-size: 1.1rem;
+}
+
+.btn-primario {
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--sesion-accent);
+  border-radius: 8px;
+  background: var(--sesion-accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.btn-primario:hover:not(:disabled) {
+  background: var(--sesion-accent-hover);
+}
+
+.btn-primario:focus-visible,
+.campo input:focus-visible {
+  outline: 3px solid var(--sesion-accent-ring);
+  outline-offset: 2px;
+}
+
+.btn-primario:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}

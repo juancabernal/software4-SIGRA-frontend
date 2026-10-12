@@ -1,0 +1,291 @@
+// Sistema visual institucional SIGRA (paleta azul marino + turquesa).
+// Las variables --sem-* apuntan a los tokens globales --sg-* de styles.scss; el valor
+// literal es solo respaldo. --sem-ink usa #1A2332 de la guía (el token global difiere).
+// Los diálogos y el badge las heredan por estar dentro de este host.
+:host {
+  --sem-navy: var(--sg-navy, #1b3a5c);
+  --sem-navy-hover: var(--sg-navy-hover, #15304e);
+  --sem-navy-ring: rgba(27, 58, 92, 0.2);
+  --sem-surface: var(--sg-card, #fff);
+  --sem-field: var(--sg-field, #f8fafc);
+  --sem-hover: var(--sg-divider, #f1f5f9);
+  --sem-row-hover: var(--sg-row-hover, #fafbff);
+  --sem-line: var(--sg-border, #e2e8f0);
+  --sem-divider: var(--sg-divider, #f1f5f9);
+  --sem-ink: #1a2332;
+  --sem-muted: var(--sg-ink-muted, #64748b);
+  --sem-soft: var(--sg-ink-soft, #94a3b8);
+  --sem-ok: var(--sg-ok-fg, #16b8a0);
+  --sem-ok-bg: var(--sg-ok-bg, #e6f8f6);
+  --sem-danger: var(--sg-error-fg, #c0392b);
+  --sem-danger-bg: var(--sg-error-bg, #fdecea);
+  --sem-neutral-bg: var(--sg-divider, #f1f5f9);
+  --sem-radius-card: var(--sg-radius-card, 20px);
+  --sem-radius-control: var(--sg-radius-control, 12px);
+  --sem-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --sem-font-titulo: var(--sg-font-titulo, Manrope, system-ui, sans-serif);
+  --sem-font-cuerpo: var(--sg-font-cuerpo, Inter, system-ui, sans-serif);
+  --sem-t: 150ms ease;
+
+  display: block;
+  color: var(--sem-ink);
+  font-family: var(--sem-font-cuerpo);
+  font-size: 0.875rem;
+}
+
+.pagina {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 24px;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+}
+
+.cabecera__texto {
+  max-width: 44rem;
+}
+
+h1 {
+  margin: 0;
+  color: var(--sem-navy);
+  font-family: var(--sem-font-titulo);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.cabecera p {
+  margin: 0.4rem 0 0;
+  color: var(--sem-muted);
+  line-height: 1.55;
+}
+
+.hoy {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--sem-muted);
+}
+
+.hoy app-semestre-icono {
+  color: var(--sem-navy);
+}
+
+.codigo {
+  color: var(--sem-navy);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tarjeta {
+  background: var(--sem-surface);
+  border: 1px solid var(--sem-line);
+  border-radius: var(--sem-radius-card);
+  box-shadow: var(--sem-shadow);
+  overflow: hidden;
+}
+
+.tabla-contenedor {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 46rem;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.875rem 1.25rem;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--sem-divider);
+}
+
+thead th {
+  background: var(--sem-field);
+  border-bottom-color: var(--sem-line);
+  color: var(--sem-muted);
+  font-family: var(--sem-font-titulo);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+tbody tr {
+  transition: background var(--sem-t);
+}
+
+tbody tr:hover {
+  background: var(--sem-row-hover);
+}
+
+tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.fila--terminada td {
+  color: var(--sem-muted);
+}
+
+.num,
+td {
+  font-variant-numeric: tabular-nums;
+}
+
+.num {
+  text-align: right;
+}
+
+.situacion,
+.nota {
+  color: var(--sem-soft);
+  font-size: 0.75rem;
+}
+
+.situacion {
+  display: block;
+  margin-top: 0.3rem;
+}
+
+.acciones-fila {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.estado-vista {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--sem-muted);
+}
+
+.estado-vista p {
+  margin: 0;
+}
+
+.estado-vista__titulo {
+  color: var(--sem-navy);
+  font-family: var(--sem-font-titulo);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.estado-vista--error p {
+  color: var(--sem-danger);
+}
+
+.aviso-zona:empty {
+  display: none;
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--sem-radius-control);
+  background: var(--sem-ok-bg);
+  color: var(--sem-ok);
+  font-weight: 500;
+}
+
+.aviso span {
+  flex: 1;
+}
+
+.aviso__cerrar {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background var(--sem-t);
+}
+
+.aviso__cerrar:hover {
+  background: rgba(22, 184, 160, 0.12);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.625rem 1rem;
+  border: 1px solid rgba(27, 58, 92, 0.2);
+  border-radius: var(--sem-radius-control);
+  background: var(--sem-surface);
+  color: var(--sem-navy);
+  font-family: var(--sem-font-titulo);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background var(--sem-t),
+    border-color var(--sem-t),
+    transform var(--sem-t);
+}
+
+.btn:hover {
+  background: var(--sem-hover);
+  border-color: rgba(27, 58, 92, 0.35);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn--primario {
+  border-color: var(--sem-navy);
+  background: var(--sem-navy);
+  color: #fff;
+}
+
+.btn--primario:hover {
+  border-color: var(--sem-navy-hover);
+  background: var(--sem-navy-hover);
+}
+
+.btn--pequeno {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.btn:focus-visible,
+.aviso__cerrar:focus-visible {
+  outline: 2px solid var(--sem-navy);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .aviso {
+    animation: aparecer 180ms ease-out;
+  }
+
+  @keyframes aparecer {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+}

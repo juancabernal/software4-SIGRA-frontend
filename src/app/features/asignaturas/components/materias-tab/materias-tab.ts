@@ -1,0 +1,468 @@
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { catchError, debounceTime, distinctUntilChanged, map, of, switchMap, tap } from 'rxjs';
+
+import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
+import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
+import { PanelLateral } from '../../../../shared/components/panel-lateral/panel-lateral';
+import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
+import { Icono } from '../../../../shared/ui/icono/icono';
+import { Paginador, TAMANOS_PAGINA } from '../../../../shared/ui/paginador/paginador';
+import {
+  Asignatura,
+  EstadoAsignatura,
+  FiltrosAsignaturas,
+  MAX_RA,
+  MIN_RA,
+  ProgramaOpcion,
+  puedeActivarse,
+} from '../../models/asignatura.model';
+import { AsignaturaService } from '../../services/asignatura.service';
+import {
+  AsignaturaFormDialog,
+  ResultadoFormulario,
+} from '../asignatura-form-dialog/asignatura-form-dialog';
+import { ProgramaOpcionesService } from '../../services/programa-opciones.service';
+
+/** Opciones del selector «Cantidad de RA» (RF-03b) y su equivalencia en raMin/raMax. */
+export const RANGOS_RA = [
+  { valor: 'todas', etiqueta: 'Todas las cantidades de RA' },
+  { valor: 'sin', etiqueta: 'Sin RA', raMin: 0, raMax: 0 },
+  { valor: 'menos5', etiqueta: 'Menos de 5', raMin: 0, raMax: MIN_RA - 1 },
+  { valor: 'de5a7', etiqueta: 'De 5 a 7', raMin: MIN_RA, raMax: MAX_RA },
+  { valor: 'mas7', etiqueta: 'Más de 7', raMin: MAX_RA + 1 },
+] as const;
+
+/** Opciones del selector «Estado» (RF-03b); '' significa todos los estados. */
+export const ESTADOS_FILTRO = [
+  { valor: '', etiqueta: 'Todos los estados' },
+  { valor: 'BORRADOR', etiqueta: 'Borrador' },
+  { valor: 'ACTIVA', etiqueta: 'Activa' },
+  { valor: 'INACTIVA', etiqueta: 'Inactiva' },
+] as const;
+
+type EstadoFiltro = (typeof ESTADOS_FILTRO)[number]['valor'];
+
+type RangoRa = (typeof RANGOS_RA)[number]['valor'];
+
+interface PresentacionEstado {
+  etiqueta: string;
+  variante: VarianteChip;
+  icono: string;
+}
+
+/** Ícono + texto + color para cada estado: el color nunca va solo (RNF-21). */
+export const PRESENTACION_ESTADO: Readonly<Record<EstadoAsignatura, PresentacionEstado>> = {
+  BORRADOR: { etiqueta: 'Borrador', variante: 'neutro', icono: 'documento-borrador' },
+  ACTIVA: { etiqueta: 'Activa', variante: 'ok', icono: 'check' },
+  INACTIVA: { etiqueta: 'Inactiva', variante: 'neutro', icono: 'prohibido' },
+};
+
+export const TOOLTIP_ACTIVAR = `Requiere entre ${MIN_RA} y ${MAX_RA} RA asociados`;
+
+interface Aviso {
+  texto: string;
+  tono: 'ok' | 'error';
+}
+
+type ResultadoCarga = { lista: Asignatura[] } | { error: MensajeError };
+
+/** Una fila de datos, o el encabezado de un grupo de programa con su conteo. */
+export type FilaTabla =
+  { tipo: 'encabezado'; texto: string } | { tipo: 'fila'; asignatura: Asignatura };
+
+const RETARDO_BUSQUEDA_MS = 300;
+const DURACION_AVISO_MS = 6000;
+// 10 sigue siendo el valor por defecto aunque 5 ahora sea la opción más chica de TAMANOS_PAGINA.
+const TAMANO_PAGINA_DEFECTO = 10;
+
+/**
+ * Pestaña «Materias» del Catálogo académico (RF-03a a RF-03d): listado con búsqueda y filtros,
+ * registro y modificación en un modal, consulta en panel lateral, y activar, inactivar y
+ * reactivar. Reactivar una INACTIVA es una decisión del equipo de asignaturas (el SRS 3.2.3d solo
+ * define Borrador → Activa): el backend restaura los RA inactivados con ella.
+ *
+ * Cada cambio de filtro dispara una consulta nueva y `switchMap` cancela la anterior, para que
+ * una respuesta lenta no pise a una más reciente. La autorización real la hace el backend.
+ */
+@Component({
+  selector: 'app-materias-tab',
+  imports: [AsignaturaFormDialog, ChipEstado, DialogoConfirmacion, Icono, Paginador, PanelLateral],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './materias-tab.html',
+  styleUrl: './materias-tab.scss',
+})
+export class MateriasTab {
+  private readonly service = inject(AsignaturaService);
+  private readonly programasService = inject(ProgramaOpcionesService);
+  private readonly destroyRef = inject(DestroyRef);
+  private temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
+
+  protected readonly rangos = RANGOS_RA;
+  protected readonly estados = ESTADOS_FILTRO;
+  protected readonly presentacion = PRESENTACION_ESTADO;
+  protected readonly tooltipActivar = TOOLTIP_ACTIVAR;
+  protected readonly puedeActivarse = puedeActivarse;
+
+  // ── Filtros ───────────────────────────────────────────────────────
+  protected readonly texto = signal('');
+  protected readonly programaId = signal('');
+  protected readonly estado = signal<EstadoFiltro>('');
+  protected readonly rango = signal<RangoRa>('todas');
+  private readonly recargas = signal(0);
+
+  /** El buscador espera 300 ms sin teclear antes de consultar; los selectores aplican ya. */
+  private readonly textoAplicado = toSignal(
+    toObservable(this.texto).pipe(
+      debounceTime(RETARDO_BUSQUEDA_MS),
+      map((texto) => texto.trim()),
+      distinctUntilChanged(),
+    ),
+    { initialValue: '' },
+  );
+
+  private readonly filtros = computed<FiltrosAsignaturas>(() => {
+    const rango = RANGOS_RA.find((r) => r.valor === this.rango());
+    return {
+      texto: this.textoAplicado() || undefined,
+      programaId: this.programaId() || undefined,
+      estado: this.estado() || undefined,
+      raMin: rango && 'raMin' in rango ? rango.raMin : undefined,
+      raMax: rango && 'raMax' in rango ? rango.raMax : undefined,
+    };
+  });
+
+  protected readonly hayFiltros = computed(
+    () =>
+      !!this.textoAplicado() || !!this.programaId() || !!this.estado() || this.rango() !== 'todas',
+  );
+
+  // ── Agrupación por programa ─────────────────────────────────────────
+  /** Con un programa específico solo hay un grupo y no se muestran encabezados. */
+  protected readonly agruparPorPrograma = computed(() => this.programaId() === '');
+
+  /** Lista ya cargada: ordenada por programa y nombre cuando se agrupa; igual que llegó si no. */
+  private readonly listaOrdenada = computed<Asignatura[]>(() => {
+    const lista = this.asignaturas();
+    if (!this.agruparPorPrograma()) {
+      return lista;
+    }
+    return [...lista].sort(
+      (a, b) =>
+        a.programaNombre.localeCompare(b.programaNombre, 'es') ||
+        a.nombre.localeCompare(b.nombre, 'es'),
+    );
+  });
+
+  /** Cantidad total por programa en la lista filtrada completa (no solo en la página actual). */
+  private readonly conteoPorPrograma = computed(() => {
+    const conteo = new Map<string, number>();
+    for (const a of this.asignaturas()) {
+      conteo.set(a.programaNombre, (conteo.get(a.programaNombre) ?? 0) + 1);
+    }
+    return conteo;
+  });
+
+  // ── Paginación en cliente ────────────────────────────────────────────
+  // El service no admite page/size: se pagina aquí sobre la lista ya cargada y filtrada.
+  // La página recorta FILAS TOTALES (no grupos completos): un grupo puede empezar a la mitad
+  // de una página y seguir en la siguiente; su encabezado solo repite el conteo total del grupo.
+  protected readonly pagina = signal(1);
+  protected readonly tamanoPagina = signal<number>(TAMANO_PAGINA_DEFECTO);
+
+  protected readonly totalFilas = computed(() => this.listaOrdenada().length);
+
+  private readonly totalPaginas = computed(() =>
+    Math.max(1, Math.ceil(this.totalFilas() / this.tamanoPagina())),
+  );
+
+  /** Corrige la página pedida si quedó fuera de rango (p. ej. tras cambiar el tamaño). */
+  protected readonly paginaSegura = computed(() =>
+    Math.min(Math.max(1, this.pagina()), this.totalPaginas()),
+  );
+
+  private readonly filasPaginadas = computed(() => {
+    const inicio = (this.paginaSegura() - 1) * this.tamanoPagina();
+    return this.listaOrdenada().slice(inicio, inicio + this.tamanoPagina());
+  });
+
+  /** Filas de la página actual, con un encabezado de grupo antes de cada programa nuevo. */
+  protected readonly filasTabla = computed<FilaTabla[]>(() => {
+    const filas = this.filasPaginadas();
+    if (!this.agruparPorPrograma()) {
+      return filas.map((asignatura) => ({ tipo: 'fila' as const, asignatura }));
+    }
+    const conteo = this.conteoPorPrograma();
+    const resultado: FilaTabla[] = [];
+    let programaAnterior: string | null = null;
+    for (const asignatura of filas) {
+      if (asignatura.programaNombre !== programaAnterior) {
+        const cantidad = conteo.get(asignatura.programaNombre) ?? 0;
+        resultado.push({
+          tipo: 'encabezado',
+          texto: `${asignatura.programaNombre} · ${cantidad} ${cantidad === 1 ? 'materia' : 'materias'}`,
+        });
+        programaAnterior = asignatura.programaNombre;
+      }
+      resultado.push({ tipo: 'fila', asignatura });
+    }
+    return resultado;
+  });
+
+  // ── Datos y estado de la vista ────────────────────────────────────
+  protected readonly cargando = signal(true);
+  protected readonly errorCarga = signal<MensajeError | null>(null);
+  protected readonly asignaturas = signal<Asignatura[]>([]);
+  protected readonly programas = signal<ProgramaOpcion[]>([]);
+  protected readonly aviso = signal<Aviso | null>(null);
+
+  protected readonly activandoId = signal<string | null>(null);
+  protected readonly consultada = signal<Asignatura | null>(null);
+  protected readonly aInactivar = signal<Asignatura | null>(null);
+  protected readonly inactivando = signal(false);
+  protected readonly errorInactivar = signal<string | null>(null);
+
+  protected readonly formularioAbierto = signal(false);
+  /** Materia en edición; null cuando el formulario registra una nueva. */
+  protected readonly enEdicion = signal<Asignatura | null>(null);
+
+  protected readonly tituloInactivar = computed(() => {
+    const asignatura = this.aInactivar();
+    return asignatura ? `¿Inactivar «${asignatura.nombre}»?` : '';
+  });
+
+  constructor() {
+    this.destroyRef.onDestroy(() => clearTimeout(this.temporizadorAviso));
+
+    // Cualquier cambio de filtro vuelve a la página 1 (el tamaño de página no cuenta como filtro).
+    effect(() => {
+      this.filtros();
+      untracked(() => this.pagina.set(1));
+    });
+
+    // Si el listado de programas falla, el filtro degrada a solo «Todos».
+    this.programasService
+      .listar()
+      .pipe(
+        catchError(() => of([] as ProgramaOpcion[])),
+        takeUntilDestroyed(),
+      )
+      .subscribe((programas) => this.programas.set(programas));
+
+    const consulta = computed(() => ({ filtros: this.filtros(), recarga: this.recargas() }));
+    toObservable(consulta)
+      .pipe(
+        tap(() => {
+          this.cargando.set(true);
+          this.errorCarga.set(null);
+        }),
+        switchMap(({ filtros }) =>
+          this.service.listar(filtros).pipe(
+            map((lista): ResultadoCarga => ({ lista })),
+            catchError((error: unknown) => of<ResultadoCarga>({ error: mensajeDeError(error) })),
+          ),
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe((resultado) => {
+        if ('lista' in resultado) {
+          this.asignaturas.set(resultado.lista);
+        } else {
+          this.errorCarga.set(resultado.error);
+        }
+        this.cargando.set(false);
+      });
+  }
+
+  // ── Filtros ───────────────────────────────────────────────────────
+  protected alEscribir(evento: Event): void {
+    this.texto.set((evento.target as HTMLInputElement).value);
+  }
+
+  protected alCambiarPrograma(evento: Event): void {
+    this.programaId.set((evento.target as HTMLSelectElement).value);
+  }
+
+  protected alCambiarEstado(evento: Event): void {
+    this.estado.set((evento.target as HTMLSelectElement).value as EstadoFiltro);
+  }
+
+  protected alCambiarRango(evento: Event): void {
+    this.rango.set((evento.target as HTMLSelectElement).value as RangoRa);
+  }
+
+  protected limpiarFiltros(): void {
+    this.texto.set('');
+    this.programaId.set('');
+    this.estado.set('');
+    this.rango.set('todas');
+  }
+
+  protected recargar(): void {
+    this.recargas.update((n) => n + 1);
+  }
+
+  // ── Paginación ────────────────────────────────────────────────────
+  protected alCambiarPagina(pagina: number): void {
+    this.pagina.set(pagina);
+  }
+
+  protected alCambiarTamanoPagina(tamano: number): void {
+    this.tamanoPagina.set(tamano);
+    this.pagina.set(1);
+  }
+
+  // ── Registrar y modificar ─────────────────────────────────────────
+  protected abrirRegistro(): void {
+    this.enEdicion.set(null);
+    this.formularioAbierto.set(true);
+  }
+
+  protected abrirEdicion(asignatura: Asignatura): void {
+    this.enEdicion.set(asignatura);
+    this.formularioAbierto.set(true);
+  }
+
+  protected cerrarFormulario(): void {
+    this.formularioAbierto.set(false);
+  }
+
+  protected alGuardar({ asignatura, modo }: ResultadoFormulario): void {
+    this.formularioAbierto.set(false);
+    this.mostrarAviso({
+      texto:
+        modo === 'crear'
+          ? `Materia registrada: ${asignatura.nombre}. Queda en estado Borrador.`
+          : `Materia actualizada: ${asignatura.nombre}.`,
+      tono: 'ok',
+    });
+    this.recargar();
+  }
+
+  // ── Consultar ─────────────────────────────────────────────────────
+  protected consultar(asignatura: Asignatura): void {
+    this.consultada.set(asignatura);
+  }
+
+  protected cerrarConsulta(): void {
+    this.consultada.set(null);
+  }
+
+  // ── Activar ───────────────────────────────────────────────────────
+  protected activar(asignatura: Asignatura): void {
+    // El botón usa aria-disabled (no disabled) para poder recibir foco y mostrar el motivo:
+    // por eso la acción se bloquea aquí, también para Enter.
+    if (!puedeActivarse(asignatura) || this.activandoId()) {
+      return;
+    }
+    this.activandoId.set(asignatura.id);
+    this.service
+      .activar(asignatura.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (actualizada) => {
+          this.activandoId.set(null);
+          this.reemplazar(actualizada);
+          this.mostrarAviso({ texto: `Materia activada: ${actualizada.nombre}.`, tono: 'ok' });
+        },
+        error: (error: unknown) => {
+          this.activandoId.set(null);
+          this.mostrarAviso({ texto: mensajeDeError(error).mensaje, tono: 'error' });
+          this.recargar();
+        },
+      });
+  }
+
+  // ── Reactivar (INACTIVA → ACTIVA) ──────────────────────────────────
+  /** Siempre habilitado: el backend restaura los RA y valida el rango de 5 a 7. */
+  protected reactivar(asignatura: Asignatura): void {
+    if (this.activandoId()) {
+      return;
+    }
+    this.activandoId.set(asignatura.id);
+    this.service
+      .activar(asignatura.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (actualizada) => {
+          this.activandoId.set(null);
+          this.reemplazar(actualizada);
+          this.mostrarAviso({
+            texto: `Materia reactivada: ${actualizada.nombre}. Se restauraron sus RA.`,
+            tono: 'ok',
+          });
+        },
+        error: (error: unknown) => {
+          this.activandoId.set(null);
+          this.mostrarAviso({ texto: mensajeDeError(error).mensaje, tono: 'error' });
+          this.recargar();
+        },
+      });
+  }
+
+  // ── Inactivar ─────────────────────────────────────────────────────
+  protected pedirInactivar(asignatura: Asignatura): void {
+    this.errorInactivar.set(null);
+    this.aInactivar.set(asignatura);
+  }
+
+  protected cancelarInactivar(): void {
+    this.aInactivar.set(null);
+    this.errorInactivar.set(null);
+  }
+
+  protected confirmarInactivar(): void {
+    const asignatura = this.aInactivar();
+    if (!asignatura || this.inactivando()) {
+      return;
+    }
+    this.inactivando.set(true);
+    this.errorInactivar.set(null);
+    this.service
+      .inactivar(asignatura.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (actualizada) => {
+          this.inactivando.set(false);
+          this.aInactivar.set(null);
+          this.reemplazar(actualizada);
+          this.mostrarAviso({ texto: `Materia inactivada: ${actualizada.nombre}.`, tono: 'ok' });
+        },
+        error: (error: unknown) => {
+          this.inactivando.set(false);
+          this.errorInactivar.set(mensajeDeError(error).mensaje);
+          this.recargar();
+        },
+      });
+  }
+
+  // ── Avisos ────────────────────────────────────────────────────────
+  protected cerrarAviso(): void {
+    clearTimeout(this.temporizadorAviso);
+    this.aviso.set(null);
+  }
+
+  private mostrarAviso(aviso: Aviso): void {
+    clearTimeout(this.temporizadorAviso);
+    this.aviso.set(aviso);
+    this.temporizadorAviso = setTimeout(() => this.aviso.set(null), DURACION_AVISO_MS);
+  }
+
+  private reemplazar(actualizada: Asignatura): void {
+    this.asignaturas.update((lista) =>
+      lista.map((a) => (a.id === actualizada.id ? actualizada : a)),
+    );
+    if (this.consultada()?.id === actualizada.id) {
+      this.consultada.set(actualizada);
+    }
+  }
+}

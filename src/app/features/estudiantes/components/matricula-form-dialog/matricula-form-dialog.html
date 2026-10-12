@@ -1,0 +1,254 @@
+<dialog #dialogo aria-labelledby="titulo-form-matricula" (cancel)="alCancelarNativo($event)">
+  <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+    <div class="encabezado">
+      <h2 id="titulo-form-matricula">Matricular estudiante</h2>
+      @if (estudianteNombre()) {
+        <p>Elige la asignatura y el semestre para {{ estudianteNombre() }}.</p>
+      } @else if (!estudianteFijadoPorPadre()) {
+        <p>Identifica al estudiante por su número de documento y elige asignatura y semestre.</p>
+      }
+    </div>
+
+    @if (altaParcial(); as mensaje) {
+      <div class="alerta alerta--parcial" role="alert">{{ mensaje }}</div>
+    }
+
+    @if (errorApi(); as error) {
+      <div class="alerta" role="alert">
+        {{ error.mensaje }}
+        @if (error.detalles.length) {
+          <ul>
+            @for (detalle of error.detalles; track $index) {
+              <li>{{ detalle }}</li>
+            }
+          </ul>
+        }
+        @if (modo() === 'nuevo' && !creado()) {
+          <button type="button" class="btn" (click)="volverABuscar()">
+            Buscar ese estudiante y matricularlo
+          </button>
+        }
+      </div>
+    }
+
+    @if (errorCatalogos()) {
+      <div class="alerta" role="alert">
+        <p>No se pudieron cargar las opciones de asignatura y semestre.</p>
+        <button type="button" class="btn" (click)="reintentarCatalogos()">Reintentar</button>
+      </div>
+    }
+
+    <!-- ── Identificación del estudiante: solo si el padre no lo fijó ── -->
+    @if (!estudianteFijadoPorPadre()) {
+      @if (estudianteIdentificado(); as estudiante) {
+        <div class="estudiante-elegido">
+          <p class="estudiante-elegido__titulo">
+            {{ creado() ? 'Estudiante registrado' : 'Estudiante encontrado' }}
+          </p>
+          <p class="estudiante-elegido__nombre">{{ estudiante.nombreCompleto }}</p>
+          <p class="estudiante-elegido__dato">
+            {{ estudiante.tipoDocumentoNombre }} {{ estudiante.numeroDocumento }} ·
+            {{ estudiante.correoInstitucional }}
+          </p>
+          @if (estudiante.estado !== 'ACTIVO') {
+            <p class="estudiante-elegido__aviso">
+              Este estudiante está inactivo. El servidor decide si admite la matrícula.
+            </p>
+          }
+          @if (!creado()) {
+            <button type="button" class="btn btn--pequeno" (click)="cambiarDeEstudiante()">
+              Buscar otro estudiante
+            </button>
+          }
+        </div>
+      } @else if (modo() === 'buscar') {
+        <div class="busqueda" [formGroup]="formBusqueda">
+          <div class="campo">
+            <label for="matricula-buscar-documento">Número de documento del estudiante</label>
+            <div class="busqueda__linea">
+              <input
+                id="matricula-buscar-documento"
+                type="text"
+                inputmode="numeric"
+                formControlName="numeroDocumento"
+                autocomplete="off"
+                autofocus
+                [attr.aria-invalid]="mostrarErrorDocumento()"
+                aria-describedby="matricula-buscar-documento-error"
+              />
+              <button type="button" class="btn" [disabled]="buscando()" (click)="buscar()">
+                {{ buscando() ? 'Buscando…' : 'Buscar' }}
+              </button>
+            </div>
+            @if (mostrarErrorDocumento()) {
+              <p class="error-campo" id="matricula-buscar-documento-error">
+                Escribe un número de documento de 6 a 10 dígitos.
+              </p>
+            }
+          </div>
+
+          <p class="solo-lectores" role="status" aria-live="polite" [attr.aria-busy]="buscando()">
+            @if (buscando()) {
+              Buscando al estudiante…
+            } @else if (noEncontrado()) {
+              Ningún estudiante registrado con ese número de documento.
+            }
+          </p>
+
+          @if (buscando()) {
+            <p class="estado-busqueda" aria-hidden="true">Buscando al estudiante…</p>
+          }
+
+          @if (errorBusqueda(); as mensaje) {
+            <div class="alerta" role="alert">
+              {{ mensaje }}
+              <button type="button" class="btn" (click)="buscar()">Reintentar</button>
+            </div>
+          }
+
+          @if (noEncontrado()) {
+            <div class="no-encontrado">
+              <p>Ningún estudiante registrado con ese número de documento.</p>
+              <button type="button" class="btn btn--primario" (click)="registrarEnSuLugar()">
+                Registrarlo y matricularlo
+              </button>
+            </div>
+          }
+        </div>
+      } @else {
+        <!-- Modo «estudiante nuevo»: alta y matrícula en un paso (RF-09a) -->
+        <div class="estudiante-nuevo" [formGroup]="formNuevo">
+          <div class="estudiante-nuevo__encabezado">
+            <p class="estudiante-nuevo__titulo">Datos del estudiante nuevo</p>
+            <button type="button" class="btn btn--pequeno" (click)="volverABuscar()">
+              Buscar uno existente
+            </button>
+          </div>
+
+          <div class="campo">
+            <label for="matricula-nuevo-tipo">Tipo de documento</label>
+            <select
+              id="matricula-nuevo-tipo"
+              formControlName="tipoDocumentoId"
+              [attr.aria-invalid]="mostrarErrorNuevo('tipoDocumentoId')"
+              aria-describedby="matricula-nuevo-tipo-error"
+            >
+              <option value="" disabled>Selecciona un tipo</option>
+              @for (t of tiposDocumento; track t.id) {
+                <option [value]="t.id">{{ t.nombre }}</option>
+              }
+            </select>
+            @if (mostrarErrorNuevo('tipoDocumentoId')) {
+              <p class="error-campo" id="matricula-nuevo-tipo-error">
+                Selecciona un tipo de documento.
+              </p>
+            }
+          </div>
+
+          <div class="campo">
+            <label for="matricula-nuevo-documento">Número de documento</label>
+            <input
+              id="matricula-nuevo-documento"
+              type="text"
+              inputmode="numeric"
+              formControlName="numeroDocumento"
+              [attr.aria-invalid]="mostrarErrorNuevo('numeroDocumento')"
+              aria-describedby="matricula-nuevo-documento-error"
+            />
+            @if (mostrarErrorNuevo('numeroDocumento')) {
+              <p class="error-campo" id="matricula-nuevo-documento-error">
+                Escribe un número de documento de 6 a 10 dígitos.
+              </p>
+            }
+          </div>
+
+          <div class="campo">
+            <label for="matricula-nuevo-nombre">Nombre completo</label>
+            <input
+              id="matricula-nuevo-nombre"
+              type="text"
+              formControlName="nombreCompleto"
+              [attr.aria-invalid]="mostrarErrorNuevo('nombreCompleto')"
+              aria-describedby="matricula-nuevo-nombre-error"
+            />
+            @if (mostrarErrorNuevo('nombreCompleto')) {
+              <p class="error-campo" id="matricula-nuevo-nombre-error">
+                Escribe el nombre completo.
+              </p>
+            }
+          </div>
+
+          <div class="campo">
+            <label for="matricula-nuevo-correo">Correo institucional</label>
+            <input
+              id="matricula-nuevo-correo"
+              type="email"
+              formControlName="correoInstitucional"
+              [attr.aria-invalid]="mostrarErrorNuevo('correoInstitucional')"
+              aria-describedby="matricula-nuevo-correo-error"
+            />
+            @if (mostrarErrorNuevo('correoInstitucional')) {
+              <p class="error-campo" id="matricula-nuevo-correo-error">
+                El correo debe ser del dominio institucional &#64;uco.net.co.
+              </p>
+            }
+          </div>
+        </div>
+      }
+    }
+
+    <div class="campo">
+      <label for="matricula-asignatura">Asignatura</label>
+      <select
+        id="matricula-asignatura"
+        formControlName="asignaturaId"
+        [attr.autofocus]="estudianteFijadoPorPadre() ? '' : null"
+        [attr.aria-invalid]="mostrarError('asignaturaId')"
+        aria-describedby="matricula-asignatura-error"
+      >
+        <option value="" disabled>
+          {{ cargandoCatalogos() ? 'Cargando…' : 'Selecciona una asignatura' }}
+        </option>
+        @for (a of asignaturas(); track a.id) {
+          <option [value]="a.id">
+            {{ a.nombre }}{{ a.estado !== 'ACTIVA' ? ' (inactiva)' : '' }}
+          </option>
+        }
+      </select>
+      @if (mostrarError('asignaturaId')) {
+        <p class="error-campo" id="matricula-asignatura-error">Selecciona una asignatura.</p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="matricula-semestre">Semestre</label>
+      <select
+        id="matricula-semestre"
+        formControlName="semestreId"
+        [attr.aria-invalid]="mostrarError('semestreId')"
+        aria-describedby="matricula-semestre-error"
+      >
+        <option value="" disabled>
+          {{ cargandoCatalogos() ? 'Cargando…' : 'Selecciona un semestre' }}
+        </option>
+        @for (s of semestres(); track s.id) {
+          <option [value]="s.id">
+            {{ s.codigo }}{{ s.estado !== 'ACTIVO' ? ' (inactivo)' : '' }}
+          </option>
+        }
+      </select>
+      @if (mostrarError('semestreId')) {
+        <p class="error-campo" id="matricula-semestre-error">Selecciona un semestre.</p>
+      }
+    </div>
+
+    <div class="acciones">
+      <button type="button" class="btn" (click)="cancelar()" [disabled]="guardando()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn btn--primario" [disabled]="!puedeConfirmar()">
+        {{ guardando() ? 'Matriculando…' : etiquetaConfirmar() }}
+      </button>
+    </div>
+  </form>
+</dialog>

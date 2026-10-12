@@ -1,0 +1,75 @@
+<main class="pagina">
+  <section class="tarjeta" aria-labelledby="titulo-login">
+    <header class="marca">
+      <span class="marca__nombre">SIGRA</span>
+      <p class="marca__descripcion">Software Integral de Gestión de Resultados de Aprendizaje</p>
+    </header>
+
+    @if (usuarioAutenticado(); as usuario) {
+      <div class="exito" role="status">
+        <h1 id="titulo-login">Sesión iniciada</h1>
+        <p>Bienvenido, {{ usuario.nombreCompleto }}. Tu sesión quedó guardada en este navegador.</p>
+      </div>
+    } @else {
+      <h1 id="titulo-login">Iniciar sesión</h1>
+
+      <form [formGroup]="form" (ngSubmit)="iniciarSesion()" novalidate>
+        @if (errorApi(); as mensaje) {
+          <div class="alerta" role="alert">
+            <p>{{ mensaje }}</p>
+          </div>
+        }
+
+        <div class="campo">
+          <label for="login-correo">Correo institucional</label>
+          <input
+            id="login-correo"
+            type="email"
+            formControlName="correoInstitucional"
+            placeholder="nombre@uco.net.co"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            autofocus
+            [attr.aria-invalid]="mostrarError('correoInstitucional')"
+            aria-describedby="login-correo-ayuda login-correo-error"
+          />
+          <p class="ayuda" id="login-correo-ayuda">Debe terminar en @uco.net.co.</p>
+          @if (mostrarError('correoInstitucional')) {
+            <p class="error-campo" id="login-correo-error">
+              @if (form.controls.correoInstitucional.hasError('required')) {
+                Escribe tu correo institucional.
+              } @else {
+                Usa tu correo institucional, que termina en @uco.net.co.
+              }
+            </p>
+          }
+        </div>
+
+        <div class="campo">
+          <label for="login-contrasena">Contraseña</label>
+          <input
+            id="login-contrasena"
+            type="password"
+            formControlName="contrasena"
+            autocomplete="current-password"
+            [attr.aria-invalid]="mostrarError('contrasena')"
+            aria-describedby="login-contrasena-error"
+          />
+          @if (mostrarError('contrasena')) {
+            <p class="error-campo" id="login-contrasena-error">Escribe tu contraseña.</p>
+          }
+        </div>
+
+        <button
+          type="submit"
+          class="btn-primario"
+          [disabled]="cargando()"
+          [attr.aria-busy]="cargando()"
+        >
+          {{ cargando() ? 'Iniciando sesión…' : 'Iniciar sesión' }}
+        </button>
+      </form>
+    }
+  </section>
+</main>

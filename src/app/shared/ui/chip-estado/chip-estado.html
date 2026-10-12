@@ -1,0 +1,6 @@
+<span class="chip" [class]="'chip chip--' + variante()">
+  @if (icono()) {
+    <app-icono [nombre]="icono()" [tamano]="13" />
+  }
+  <span>{{ etiqueta() }}</span>
+</span>

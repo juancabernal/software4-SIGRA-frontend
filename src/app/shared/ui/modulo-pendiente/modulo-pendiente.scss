@@ -1,0 +1,76 @@
+// Contenedor de pantalla del sistema (§5.14): centrado, con ancho máximo según densidad.
+
+.pagina {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: clamp(1.25rem, 4vw, 1.5rem);
+}
+
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+
+h1 {
+  margin: 0;
+  color: var(--sg-navy);
+  font-size: clamp(1.375rem, 1.2rem + 0.8vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.cabecera__sub {
+  margin: 0.35rem 0 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.875rem;
+}
+
+.requisito {
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--sg-info-bg);
+  color: var(--sg-info-fg);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pendiente {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: clamp(2.5rem, 8vw, 3.5rem) 1.5rem;
+  border: 2px dashed var(--sg-border);
+  border-radius: var(--sg-radius-card);
+  background: var(--sg-card);
+  text-align: center;
+
+  app-bars-motif {
+    opacity: 0.3;
+  }
+}
+
+.pendiente__titulo {
+  margin: 0;
+  color: var(--sg-navy);
+  font-family: var(--sg-font-titulo);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.pendiente__texto {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--sg-ink-soft);
+  font-size: 0.875rem;
+
+  strong {
+    color: var(--sg-ink-muted);
+    font-weight: 600;
+  }
+}

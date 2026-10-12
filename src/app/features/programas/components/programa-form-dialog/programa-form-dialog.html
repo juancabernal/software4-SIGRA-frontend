@@ -1,0 +1,50 @@
+<app-modal-crud
+  [abierto]="abierto()"
+  [titulo]="modo() === 'crear' ? 'Registrar programa' : 'Modificar programa'"
+  [etiquetaEnviar]="modo() === 'crear' ? 'Registrar' : 'Guardar cambios'"
+  [procesando]="procesando()"
+  [error]="errorApi()?.mensaje ?? null"
+  [detalles]="errorApi()?.detalles ?? []"
+  [enviarDeshabilitado]="form.invalid"
+  (enviar)="enviar()"
+  (cancelar)="cancelar.emit()"
+>
+  <form [formGroup]="form" class="campos" (ngSubmit)="enviar()">
+    <div class="campo">
+      <label for="programa-nombre">Nombre</label>
+      <input
+        id="programa-nombre"
+        type="text"
+        placeholder="Ej. Ingeniería de Sistemas"
+        formControlName="nombre"
+        autocomplete="off"
+        [attr.maxlength]="nombreMax"
+      />
+      @if (form.controls.nombre.touched && form.controls.nombre.invalid) {
+        <p class="error-campo" role="alert">
+          El nombre es obligatorio y puede tener hasta {{ nombreMax }} caracteres.
+        </p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="programa-codigo">Código</label>
+      <input
+        id="programa-codigo"
+        type="text"
+        placeholder="Ej. ING-SIS"
+        formControlName="codigo"
+        autocomplete="off"
+        [attr.maxlength]="codigoMax"
+      />
+      @if (modo() === 'editar') {
+        <p class="ayuda">El código no se puede modificar, para conservar la trazabilidad.</p>
+      } @else if (form.controls.codigo.touched && form.controls.codigo.invalid) {
+        <p class="error-campo" role="alert">
+          El código debe tener entre {{ codigoMin }} y {{ codigoMax }} caracteres, solo letras,
+          números o guion.
+        </p>
+      }
+    </div>
+  </form>
+</app-modal-crud>
