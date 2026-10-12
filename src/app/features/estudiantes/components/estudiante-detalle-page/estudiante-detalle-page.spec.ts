@@ -26,7 +26,7 @@ const MATRICULA: AsignaturaDeEstudiante = {
   matriculaId: 'm1',
   asignaturaNombre: 'Cálculo I',
   semestreCodigo: '2026-1',
-  estado: 'ACTIVO',
+  estado: 'ACTIVA',
 };
 
 describe('EstudianteDetallePage', () => {
@@ -122,7 +122,7 @@ describe('EstudianteDetallePage', () => {
     await fixture.whenStable();
 
     expect(html.querySelector('.aviso-zona')?.textContent).toContain('Desvinculado de «Cálculo I»');
-    historial().flush([{ ...MATRICULA, estado: 'INACTIVO' }]);
+    historial().flush([{ ...MATRICULA, estado: 'DESVINCULADA' }]);
     await fixture.whenStable();
     expect(html.textContent).toContain('Ya desvinculada');
   });
@@ -239,7 +239,7 @@ describe('EstudianteDetallePage', () => {
       await fixture.whenStable();
 
       // Tras desvincular se relee el historial (D9).
-      historial().flush([{ ...MATRICULA, estado: 'INACTIVO' }]);
+      historial().flush([{ ...MATRICULA, estado: 'DESVINCULADA' }]);
     });
 
     it('sin el dato del servidor confirma directamente, sin gesto', async () => {
@@ -251,7 +251,7 @@ describe('EstudianteDetallePage', () => {
 
       http.expectOne(`${URL_MATRICULAS}/m1`).flush(null, { status: 204, statusText: 'No Content' });
       await fixture.whenStable();
-      historial().flush([{ ...MATRICULA, estado: 'INACTIVO' }]);
+      historial().flush([{ ...MATRICULA, estado: 'DESVINCULADA' }]);
     });
   });
 });

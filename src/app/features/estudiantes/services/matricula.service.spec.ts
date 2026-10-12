@@ -17,7 +17,7 @@ const REQUEST: MatriculaRequest = {
 const MATRICULA: Matricula = {
   id: '00000000-0000-4000-c000-000000000050',
   ...REQUEST,
-  estado: 'ACTIVO',
+  estado: 'ACTIVA',
 };
 
 describe('MatriculaService', () => {
@@ -89,7 +89,7 @@ describe('MatriculaService', () => {
       matriculaId: MATRICULA.id,
       numeroDocumento: '1234567890',
       nombreCompleto: 'Ana María Gómez',
-      estado: 'ACTIVO',
+      estado: 'ACTIVA',
     };
     req.flush([fila]);
     expect(resultado).toEqual([fila]);
@@ -110,7 +110,7 @@ describe('MatriculaService', () => {
       matriculaId: MATRICULA.id,
       numeroDocumento: '1234567890',
       nombreCompleto: 'Ana María Gómez',
-      estado: 'ACTIVO' as const,
+      estado: 'ACTIVA' as const,
     };
 
     it('los entrega al suscriptor cuando el backend los manda', () => {
