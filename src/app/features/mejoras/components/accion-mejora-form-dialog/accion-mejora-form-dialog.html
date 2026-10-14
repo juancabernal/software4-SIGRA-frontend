@@ -1,0 +1,74 @@
+<app-modal-crud
+  [abierto]="abierto()"
+  titulo="Registrar acción de mejora"
+  etiquetaEnviar="Registrar"
+  [procesando]="procesando()"
+  [error]="errorApi()?.mensaje ?? null"
+  [detalles]="errorApi()?.detalles ?? []"
+  [enviarDeshabilitado]="enviarDeshabilitado()"
+  (enviar)="enviar()"
+  (cancelar)="cancelar.emit()"
+  (envioBloqueado)="alIntentarEnviarInvalido()"
+>
+  @if (conclusion(); as c) {
+    <div class="contexto">
+      <p class="contexto__etiqueta">Atendiendo la conclusión de</p>
+      <p class="contexto__ra">RA {{ c.resultadoAprendizajeCodigo }}</p>
+      <p class="contexto__mensaje">{{ c.mensaje }}</p>
+    </div>
+  }
+
+  <div class="campos" [formGroup]="form">
+    <div class="campo">
+      <label for="accion-nombre"
+        >Nombre <span class="obligatorio" aria-hidden="true">*</span></label
+      >
+      <input
+        id="accion-nombre"
+        formControlName="nombre"
+        placeholder="Ej. Taller de refuerzo de integrales"
+        autocomplete="off"
+        aria-required="true"
+        [attr.maxlength]="nombreMax"
+        [attr.aria-invalid]="mostrarError('nombre')"
+        aria-describedby="accion-nombre-ayuda accion-nombre-error"
+      />
+      <p class="ayuda" id="accion-nombre-ayuda">Máximo {{ nombreMax }} caracteres</p>
+      @if (mostrarError('nombre')) {
+        <p class="error-campo" id="accion-nombre-error">
+          @if (form.controls.nombre.hasError('required')) {
+            Escribe el nombre de la acción de mejora.
+          } @else {
+            El nombre no puede superar los {{ nombreMax }} caracteres.
+          }
+        </p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="accion-descripcion"
+        >Descripción <span class="obligatorio" aria-hidden="true">*</span></label
+      >
+      <textarea
+        id="accion-descripcion"
+        formControlName="descripcion"
+        placeholder="Describe en qué consiste la acción de mejora"
+        rows="4"
+        aria-required="true"
+        [attr.maxlength]="descripcionMax"
+        [attr.aria-invalid]="mostrarError('descripcion')"
+        aria-describedby="accion-descripcion-ayuda accion-descripcion-error"
+      ></textarea>
+      <p class="ayuda" id="accion-descripcion-ayuda">Máximo {{ descripcionMax }} caracteres</p>
+      @if (mostrarError('descripcion')) {
+        <p class="error-campo" id="accion-descripcion-error">
+          @if (form.controls.descripcion.hasError('required')) {
+            Escribe la descripción de la acción de mejora.
+          } @else {
+            La descripción no puede superar los {{ descripcionMax }} caracteres.
+          }
+        </p>
+      }
+    </div>
+  </div>
+</app-modal-crud>

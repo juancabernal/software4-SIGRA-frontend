@@ -10,6 +10,7 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { catchError, forkJoin, map, of, switchMap, tap } from 'rxjs';
 
 import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
+import { MatriculaFormDialog } from '../matricula-form-dialog/matricula-form-dialog';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
 import {
@@ -17,6 +18,7 @@ import {
   OpcionAsignatura,
   OpcionSemestre,
   PRESENTACION_ESTADO_MATRICULA,
+  formatearFechaMatricula,
 } from '../../models/matricula.model';
 import { MensajeError, mensajeDeError } from '../../services/estudiante-error';
 import { CatalogosMatriculaService } from '../../services/catalogos-matricula.service';
@@ -38,7 +40,7 @@ const DURACION_AVISO_MS = 6000;
  */
 @Component({
   selector: 'app-matriculados-page',
-  imports: [ChipEstado, DialogoConfirmacion, Icono],
+  imports: [ChipEstado, DialogoConfirmacion, Icono, MatriculaFormDialog],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './matriculados-page.html',
   styleUrl: './matriculados-page.scss',
@@ -71,6 +73,18 @@ export class MatriculadosPage {
   protected readonly errorCarga = signal<MensajeError | null>(null);
   protected readonly matriculados = signal<EstudianteMatriculado[]>([]);
 
+  /**
+   * La columna de fecha solo existe si el servidor la manda en alguna fila (D13). Hoy nunca la
+   * manda, así que la tabla se pinta igual que antes: sin columna, no con celdas vacías.
+   */
+  protected readonly hayFechas = computed(() =>
+    this.matriculados().some((m) => !!m.fechaMatricula),
+  );
+  protected readonly formatearFecha = formatearFechaMatricula;
+
+  // ── Matricular ────────────────────────────────────────────────────
+  protected readonly matriculaAbierta = signal(false);
+
   // ── Desvincular ───────────────────────────────────────────────────
   protected readonly aDesvincular = signal<EstudianteMatriculado | null>(null);
   protected readonly desvinculando = signal(false);
@@ -80,6 +94,26 @@ export class MatriculadosPage {
     const matricula = this.aDesvincular();
     return matricula ? `¿Desvincular a «${matricula.nombreCompleto}»?` : '';
   });
+
+  /**
+   * Confirmación reforzada solo cuando el servidor dice que la matrícula **sí** tiene
+   * calificaciones. Con `false` o `undefined` el texto queda vacío y el diálogo se comporta como
+   * siempre: `undefined` es «no sé», y no sé no bloquea la desvinculación (D13).
+   */
+  protected readonly gestoDesvincular = computed(() =>
+    this.aDesvincular()?.tieneCalificaciones === true
+      ? 'Entiendo que este estudiante ya tiene calificaciones registradas en esta matrícula y que ' +
+        'se conservarán.'
+      : '',
+  );
+
+  /** La advertencia se refuerza cuando hay notas; si no, el texto habitual. */
+  protected readonly descripcionDesvincular = computed(() =>
+    this.aDesvincular()?.tieneCalificaciones === true
+      ? 'Este estudiante ya tiene calificaciones registradas en esta matrícula. No se borran: ' +
+        'quedan guardadas y la matrícula pasa a estado desvinculada.'
+      : 'Las calificaciones registradas en esta matrícula se conservan.',
+  );
 
   constructor() {
     this.destroyRef.onDestroy(() => clearTimeout(this.temporizadorAviso));
@@ -140,6 +174,22 @@ export class MatriculadosPage {
 
   protected reintentarCatalogos(): void {
     this.cargarCatalogos();
+  }
+
+  // ── Matricular ────────────────────────────────────────────────────
+  protected abrirMatricula(): void {
+    this.matriculaAbierta.set(true);
+  }
+
+  protected cerrarMatricula(): void {
+    this.matriculaAbierta.set(false);
+  }
+
+  /** Tras matricular se relee del servidor, no se parchea la lista en memoria (D9, D16). */
+  protected alMatricular(texto: string): void {
+    this.matriculaAbierta.set(false);
+    this.mostrarAviso({ texto, tono: 'ok' });
+    this.recargar();
   }
 
   // ── Desvincular ───────────────────────────────────────────────────

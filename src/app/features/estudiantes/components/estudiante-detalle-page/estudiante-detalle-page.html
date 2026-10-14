@@ -99,12 +99,18 @@
         <div class="tabla-contenedor">
           <table>
             <caption class="solo-lectores">
-              Asignaturas en las que ha estado matriculado {{ e.nombreCompleto }}
+              Asignaturas en las que ha estado matriculado
+              {{
+                e.nombreCompleto
+              }}
             </caption>
             <thead>
               <tr>
                 <th scope="col">Asignatura</th>
                 <th scope="col">Semestre</th>
+                @if (hayFechas()) {
+                  <th scope="col">Fecha de matrícula</th>
+                }
                 <th scope="col">Estado</th>
                 <th scope="col">Acciones</th>
               </tr>
@@ -114,6 +120,9 @@
                 <tr>
                   <th scope="row" class="nombre">{{ m.asignaturaNombre }}</th>
                   <td class="codigo">{{ m.semestreCodigo }}</td>
+                  @if (hayFechas()) {
+                    <td class="fecha">{{ formatearFecha(m.fechaMatricula) }}</td>
+                  }
                   <td>
                     <app-chip-estado
                       [etiqueta]="presentacionMatricula[m.estado].etiqueta"
@@ -122,7 +131,7 @@
                     />
                   </td>
                   <td>
-                    @if (m.estado === 'ACTIVO') {
+                    @if (m.estado === 'ACTIVA') {
                       <button
                         type="button"
                         class="btn btn--peligro btn--pequeno"
@@ -148,7 +157,8 @@
 <app-dialogo-confirmacion
   [abierto]="aDesvincular() !== null"
   [titulo]="tituloDesvincular()"
-  descripcion="Las calificaciones registradas en esta matrícula se conservan."
+  [descripcion]="descripcionDesvincular()"
+  [gestoRequerido]="gestoDesvincular()"
   etiquetaConfirmar="Desvincular"
   tono="peligro"
   [procesando]="desvinculando()"

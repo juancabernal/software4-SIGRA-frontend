@@ -26,7 +26,7 @@ const MATRICULA: AsignaturaDeEstudiante = {
   matriculaId: 'm1',
   asignaturaNombre: 'Cálculo I',
   semestreCodigo: '2026-1',
-  estado: 'ACTIVO',
+  estado: 'ACTIVA',
 };
 
 describe('EstudianteDetallePage', () => {
@@ -122,7 +122,7 @@ describe('EstudianteDetallePage', () => {
     await fixture.whenStable();
 
     expect(html.querySelector('.aviso-zona')?.textContent).toContain('Desvinculado de «Cálculo I»');
-    historial().flush([{ ...MATRICULA, estado: 'INACTIVO' }]);
+    historial().flush([{ ...MATRICULA, estado: 'DESVINCULADA' }]);
     await fixture.whenStable();
     expect(html.textContent).toContain('Ya desvinculada');
   });
@@ -166,5 +166,92 @@ describe('EstudianteDetallePage', () => {
 
     expect(html.querySelector('app-matricula-form-dialog')).toBeNull();
     http.expectNone((r) => r.url === URL_MATRICULAS && r.method === 'POST');
+  });
+
+  // Las dos ramas de la fecha en el historial (D13). Hoy el backend no la manda: corre la segunda.
+  describe('columna de fecha de matrícula en el historial', () => {
+    const encabezados = () =>
+      Array.from(html.querySelectorAll('thead th')).map((th) => th.textContent?.trim());
+
+    async function abrirCon(matricula: AsignaturaDeEstudiante): Promise<void> {
+      await abrir();
+      ficha().flush(ANA);
+      await fixture.whenStable();
+      historial().flush([matricula]);
+      await fixture.whenStable();
+    }
+
+    it('aparece con la fecha legible cuando el servidor la manda', async () => {
+      await abrirCon({ ...MATRICULA, fechaMatricula: '2026-02-03' });
+
+      expect(encabezados()).toContain('Fecha de matrícula');
+      const celda = html.querySelector('tbody .fecha') as HTMLElement;
+      expect(celda.textContent?.trim()).toBe('03 de febrero de 2026');
+    });
+
+    it('no existe en el DOM cuando el servidor no la manda, y el resto se pinta igual', async () => {
+      await abrirCon(MATRICULA);
+
+      expect(encabezados()).not.toContain('Fecha de matrícula');
+      expect(html.querySelector('tbody .fecha')).toBeNull();
+      expect(html.querySelectorAll('tbody tr:first-child > *').length).toBe(encabezados().length);
+      expect(html.textContent).toContain('Cálculo I');
+      expect(html.textContent).toContain('2026-1');
+    });
+  });
+
+  // Mismo refuerzo desde el historial: no depende de por dónde entró el usuario (D13/D15).
+  describe('confirmación reforzada al desvincular desde el historial', () => {
+    const dialogoDesvincular = () =>
+      html.querySelector('app-dialogo-confirmacion dialog') as HTMLDialogElement;
+    const casilla = () =>
+      dialogoDesvincular().querySelector('input[type="checkbox"]') as HTMLInputElement;
+
+    async function pedirDesvincular(matricula: AsignaturaDeEstudiante): Promise<void> {
+      await abrir();
+      ficha().flush(ANA);
+      await fixture.whenStable();
+      historial().flush([matricula]);
+      await fixture.whenStable();
+      boton(html.querySelector('tbody tr')!, 'Desvincular').click();
+      await fixture.whenStable();
+    }
+
+    it('con calificaciones pide el gesto y no llama al servicio hasta marcarlo', async () => {
+      await pedirDesvincular({ ...MATRICULA, tieneCalificaciones: true });
+
+      expect(dialogoDesvincular().textContent).toContain('ya tiene calificaciones registradas');
+
+      const confirmar = boton(dialogoDesvincular(), 'Desvincular');
+      expect(confirmar.disabled).toBe(true);
+      confirmar.click();
+      await fixture.whenStable();
+      http.expectNone(`${URL_MATRICULAS}/m1`);
+
+      casilla().checked = true;
+      casilla().dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+
+      boton(dialogoDesvincular(), 'Desvincular').click();
+      await fixture.whenStable();
+
+      http.expectOne(`${URL_MATRICULAS}/m1`).flush(null, { status: 204, statusText: 'No Content' });
+      await fixture.whenStable();
+
+      // Tras desvincular se relee el historial (D9).
+      historial().flush([{ ...MATRICULA, estado: 'DESVINCULADA' }]);
+    });
+
+    it('sin el dato del servidor confirma directamente, sin gesto', async () => {
+      await pedirDesvincular(MATRICULA);
+
+      expect(casilla()).toBeNull();
+      boton(dialogoDesvincular(), 'Desvincular').click();
+      await fixture.whenStable();
+
+      http.expectOne(`${URL_MATRICULAS}/m1`).flush(null, { status: 204, statusText: 'No Content' });
+      await fixture.whenStable();
+      historial().flush([{ ...MATRICULA, estado: 'DESVINCULADA' }]);
+    });
   });
 });

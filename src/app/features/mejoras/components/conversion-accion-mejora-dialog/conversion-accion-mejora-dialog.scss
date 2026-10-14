@@ -1,0 +1,81 @@
+// Contexto de solo lectura: sobre qué acción de mejora se está actuando.
+.contexto {
+  display: grid;
+  gap: 0.2rem;
+  margin-bottom: 1.1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px dashed var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-divider);
+}
+
+.contexto__etiqueta {
+  margin: 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.contexto__nombre {
+  margin: 0;
+  color: var(--sg-navy);
+  font-weight: 700;
+}
+
+.campos {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.campo {
+  display: grid;
+  gap: 0.35rem;
+
+  label {
+    color: var(--sg-ink-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  input {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--sg-border);
+    border-radius: var(--sg-radius-control);
+    background: var(--sg-field);
+    color: var(--sg-ink);
+    font: inherit;
+    font-size: 0.875rem;
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--sg-navy);
+      background: var(--sg-card);
+    }
+
+    &[aria-invalid='true'] {
+      border-color: var(--sg-error-fg);
+    }
+  }
+}
+
+.obligatorio {
+  color: var(--sg-error-fg);
+}
+
+.ayuda {
+  margin: 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.75rem;
+}
+
+.error-campo {
+  margin: 0;
+  color: var(--sg-error-fg);
+  font-size: 0.8rem;
+  font-weight: 500;
+}

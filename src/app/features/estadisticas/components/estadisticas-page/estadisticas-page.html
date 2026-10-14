@@ -1,0 +1,235 @@
+<section class="pagina" aria-labelledby="titulo-estadisticas">
+  <header class="cabecera">
+    <div>
+      <h1 id="titulo-estadisticas">Estadísticas y ciclo de mejora</h1>
+      <p class="cabecera__sub">Consulta si un RA tiene una conclusión de desempeño insuficiente</p>
+    </div>
+  </header>
+
+  <div class="aviso-zona" role="status" aria-live="polite">
+    @if (aviso(); as a) {
+      <div class="aviso" [class.aviso--error]="a.tono === 'error'">
+        <app-icono [nombre]="a.tono === 'ok' ? 'check' : 'advertencia'" [tamano]="16" />
+        <span>{{ a.texto }}</span>
+        <button type="button" class="aviso__cerrar" aria-label="Cerrar aviso" (click)="cerrarAviso()">
+          <app-icono nombre="cerrar" [tamano]="14" />
+        </button>
+      </div>
+    }
+  </div>
+
+  <div class="tarjeta">
+    @if (cargandoAsignaturas()) {
+      <p class="estado-vista" role="status">Cargando materias…</p>
+    } @else if (errorAsignaturas(); as error) {
+      <div class="estado-vista estado-vista--error" role="alert">
+        <p>{{ error.mensaje }}</p>
+        <button type="button" class="btn" (click)="cargarAsignaturas()">
+          <app-icono nombre="recargar" [tamano]="16" />
+          Reintentar
+        </button>
+      </div>
+    } @else if (asignaturas().length === 0) {
+      <div class="estado-vista">
+        <p class="estado-vista__titulo">No hay materias registradas</p>
+        <p>Registra una materia en el Catálogo académico para poder consultar sus estadísticas.</p>
+      </div>
+    } @else {
+      <div class="barra">
+        <label for="selector-materia">Materia</label>
+        <select
+          id="selector-materia"
+          class="selector"
+          [value]="asignaturaId()"
+          (change)="alCambiarAsignatura($event)"
+        >
+          <option value="">Selecciona una materia</option>
+          @for (a of asignaturas(); track a.id) {
+            <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="barra">
+        <label for="selector-ra">Resultado de aprendizaje</label>
+        @if (cargandoRa()) {
+          <p class="estado-inline" role="status">Cargando RA…</p>
+        } @else if (errorRa(); as error) {
+          <div class="estado-inline estado-inline--error" role="alert">
+            <p>{{ error.mensaje }}</p>
+          </div>
+        } @else {
+          <select
+            id="selector-ra"
+            class="selector"
+            [value]="resultadoAprendizajeId()"
+            [attr.disabled]="asignaturaId() === '' || resultadosActivos().length === 0 ? true : null"
+            (change)="alCambiarRa($event)"
+          >
+            <option value="">
+              {{
+                asignaturaId() === ''
+                  ? 'Elige primero una materia'
+                  : resultadosActivos().length === 0
+                    ? 'Esta materia no tiene RA activos'
+                    : 'Selecciona un RA'
+              }}
+            </option>
+            @for (ra of resultadosActivos(); track ra.id) {
+              <option [value]="ra.id">{{ ra.codigo }}</option>
+            }
+          </select>
+        }
+      </div>
+
+      <div class="barra">
+        <label for="selector-semestre">Semestre</label>
+        @if (cargandoSemestres()) {
+          <p class="estado-inline" role="status">Cargando semestres…</p>
+        } @else if (errorSemestres(); as error) {
+          <div class="estado-inline estado-inline--error" role="alert">
+            <p>{{ error.mensaje }}</p>
+          </div>
+        } @else {
+          <select
+            id="selector-semestre"
+            class="selector"
+            [value]="semestreId()"
+            (change)="alCambiarSemestre($event)"
+          >
+            <option value="">Selecciona un semestre</option>
+            @for (s of semestres(); track s.id) {
+              <option [value]="s.id" [selected]="s.id === semestreId()">
+                {{ s.codigo }}{{ s.estado === 'ACTIVO' ? ' (activo)' : '' }}
+              </option>
+            }
+          </select>
+        }
+      </div>
+
+      <div class="barra barra--acciones">
+        <button
+          type="button"
+          class="btn btn--primario"
+          [attr.aria-disabled]="puedeConsultar() ? null : 'true'"
+          (click)="consultar()"
+        >
+          <app-icono nombre="buscar" [tamano]="16" />
+          Consultar conclusión
+        </button>
+      </div>
+
+      <div class="resultado">
+        @switch (consultaEstado()) {
+          @case ('inactivo') {
+            <div class="estado-vista">
+              <p>Elige materia, RA y semestre, y presiona «Consultar conclusión».</p>
+            </div>
+          }
+          @case ('cargando') {
+            <p class="estado-vista" role="status">Consultando…</p>
+          }
+          @case ('error') {
+            <div class="estado-vista estado-vista--error" role="alert">
+              <p>{{ consultaError()?.mensaje }}</p>
+              <button type="button" class="btn" (click)="consultar()">
+                <app-icono nombre="recargar" [tamano]="16" />
+                Reintentar
+              </button>
+            </div>
+          }
+          @case ('listo') {
+            @if (consultaConclusion(); as conclusion) {
+              <div class="alerta-conclusion" role="alert">
+                <div class="alerta-conclusion__cabecera">
+                  <app-icono nombre="advertencia" [tamano]="20" />
+                  <app-chip-estado etiqueta="Vigente" variante="advertencia" icono="advertencia" />
+                  <span class="alerta-conclusion__semestre">Semestre {{ conclusion.semestreCodigo }}</span>
+                </div>
+                <p class="alerta-conclusion__mensaje">{{ conclusion.mensaje }}</p>
+                <p class="alerta-conclusion__porcentaje tabular">
+                  Desempeño insuficiente: <strong>{{ conclusion.porcentajeInsuficiente }}%</strong>
+                </p>
+                <button type="button" class="btn btn--primario" (click)="crearAccionDeMejora()">
+                  <app-icono nombre="mas" [tamano]="16" />
+                  Crear acción de mejora
+                </button>
+              </div>
+            } @else {
+              <div class="estado-vista">
+                <app-icono nombre="check" [tamano]="20" />
+                <p class="estado-vista__titulo">Sin conclusión vigente</p>
+                <p>No hay una conclusión de desempeño insuficiente para este RA en este semestre.</p>
+              </div>
+            }
+          }
+        }
+      </div>
+
+      @if (puedeConsultar()) {
+        <div class="acciones-mejora">
+          <h2 class="acciones-mejora__titulo">Acciones de mejora</h2>
+          @switch (accionesEstado()) {
+            @case ('cargando') {
+              <p class="estado-inline" role="status">Cargando acciones de mejora…</p>
+            }
+            @case ('error') {
+              <div class="estado-inline estado-inline--error" role="alert">
+                <p>{{ accionesError()?.mensaje }}</p>
+              </div>
+            }
+            @case ('listo') {
+              @if (accionesMejora().length === 0) {
+                <p class="estado-inline">
+                  No hay acciones de mejora registradas para este RA en este semestre.
+                </p>
+              } @else {
+                <ul class="lista-acciones">
+                  @for (accion of accionesMejora(); track accion.id) {
+                    <li class="accion-mejora">
+                      <div class="accion-mejora__cabecera">
+                        <p class="accion-mejora__nombre">{{ accion.nombre }}</p>
+                        @if (accion.convertida) {
+                          <app-chip-estado etiqueta="Convertida" variante="ok" icono="check" />
+                        } @else {
+                          <app-chip-estado etiqueta="No convertida" variante="neutro" icono="reloj" />
+                        }
+                      </div>
+                      <p class="accion-mejora__descripcion">{{ accion.descripcion }}</p>
+                      <p class="accion-mejora__fecha">Propuesta el {{ accion.fechaPropuesta }}</p>
+                      @if (accion.convertida) {
+                        <!-- TODO: cuando exista el módulo de evaluaciones, mostrar el nombre o un enlace a la evaluación en vez de su id -->
+                        <p class="accion-mejora__evaluacion">
+                          Evaluación generada: {{ accion.evaluacionGeneradaId }}
+                        </p>
+                      } @else {
+                        <button type="button" class="btn" (click)="abrirConversion(accion)">
+                          <app-icono nombre="flecha-der" [tamano]="16" />
+                          Convertir en evaluación
+                        </button>
+                      }
+                    </li>
+                  }
+                </ul>
+              }
+            }
+          }
+        </div>
+      }
+    }
+  </div>
+
+  <app-accion-mejora-form-dialog
+    [abierto]="dialogoAbierto()"
+    [conclusion]="consultaConclusion()"
+    (guardado)="alGuardarAccionMejora()"
+    (cancelar)="alCancelarAccionMejora()"
+  />
+
+  <app-conversion-accion-mejora-dialog
+    [abierto]="dialogoConversionAbierto()"
+    [accion]="accionEnConversion()"
+    (convertida)="alConvertirAccionMejora()"
+    (cancelar)="alCancelarConversion()"
+  />
+</section>

@@ -3,8 +3,10 @@ import {
   Component,
   DestroyRef,
   computed,
+  effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, debounceTime, distinctUntilChanged, map, of, switchMap, tap } from 'rxjs';
@@ -14,6 +16,7 @@ import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confi
 import { PanelLateral } from '../../../../shared/components/panel-lateral/panel-lateral';
 import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
+import { Paginador, TAMANOS_PAGINA } from '../../../../shared/ui/paginador/paginador';
 import {
   Asignatura,
   EstadoAsignatura,
@@ -73,8 +76,14 @@ interface Aviso {
 
 type ResultadoCarga = { lista: Asignatura[] } | { error: MensajeError };
 
+/** Una fila de datos, o el encabezado de un grupo de programa con su conteo. */
+export type FilaTabla =
+  { tipo: 'encabezado'; texto: string } | { tipo: 'fila'; asignatura: Asignatura };
+
 const RETARDO_BUSQUEDA_MS = 300;
 const DURACION_AVISO_MS = 6000;
+// 10 sigue siendo el valor por defecto aunque 5 ahora sea la opción más chica de TAMANOS_PAGINA.
+const TAMANO_PAGINA_DEFECTO = 10;
 
 /**
  * Pestaña «Materias» del Catálogo académico (RF-03a a RF-03d): listado con búsqueda y filtros,
@@ -87,7 +96,7 @@ const DURACION_AVISO_MS = 6000;
  */
 @Component({
   selector: 'app-materias-tab',
-  imports: [AsignaturaFormDialog, ChipEstado, DialogoConfirmacion, Icono, PanelLateral],
+  imports: [AsignaturaFormDialog, ChipEstado, DialogoConfirmacion, Icono, Paginador, PanelLateral],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './materias-tab.html',
   styleUrl: './materias-tab.scss',
@@ -137,6 +146,78 @@ export class MateriasTab {
       !!this.textoAplicado() || !!this.programaId() || !!this.estado() || this.rango() !== 'todas',
   );
 
+  // ── Agrupación por programa ─────────────────────────────────────────
+  /** Con un programa específico solo hay un grupo y no se muestran encabezados. */
+  protected readonly agruparPorPrograma = computed(() => this.programaId() === '');
+
+  /** Lista ya cargada: ordenada por programa y nombre cuando se agrupa; igual que llegó si no. */
+  private readonly listaOrdenada = computed<Asignatura[]>(() => {
+    const lista = this.asignaturas();
+    if (!this.agruparPorPrograma()) {
+      return lista;
+    }
+    return [...lista].sort(
+      (a, b) =>
+        a.programaNombre.localeCompare(b.programaNombre, 'es') ||
+        a.nombre.localeCompare(b.nombre, 'es'),
+    );
+  });
+
+  /** Cantidad total por programa en la lista filtrada completa (no solo en la página actual). */
+  private readonly conteoPorPrograma = computed(() => {
+    const conteo = new Map<string, number>();
+    for (const a of this.asignaturas()) {
+      conteo.set(a.programaNombre, (conteo.get(a.programaNombre) ?? 0) + 1);
+    }
+    return conteo;
+  });
+
+  // ── Paginación en cliente ────────────────────────────────────────────
+  // El service no admite page/size: se pagina aquí sobre la lista ya cargada y filtrada.
+  // La página recorta FILAS TOTALES (no grupos completos): un grupo puede empezar a la mitad
+  // de una página y seguir en la siguiente; su encabezado solo repite el conteo total del grupo.
+  protected readonly pagina = signal(1);
+  protected readonly tamanoPagina = signal<number>(TAMANO_PAGINA_DEFECTO);
+
+  protected readonly totalFilas = computed(() => this.listaOrdenada().length);
+
+  private readonly totalPaginas = computed(() =>
+    Math.max(1, Math.ceil(this.totalFilas() / this.tamanoPagina())),
+  );
+
+  /** Corrige la página pedida si quedó fuera de rango (p. ej. tras cambiar el tamaño). */
+  protected readonly paginaSegura = computed(() =>
+    Math.min(Math.max(1, this.pagina()), this.totalPaginas()),
+  );
+
+  private readonly filasPaginadas = computed(() => {
+    const inicio = (this.paginaSegura() - 1) * this.tamanoPagina();
+    return this.listaOrdenada().slice(inicio, inicio + this.tamanoPagina());
+  });
+
+  /** Filas de la página actual, con un encabezado de grupo antes de cada programa nuevo. */
+  protected readonly filasTabla = computed<FilaTabla[]>(() => {
+    const filas = this.filasPaginadas();
+    if (!this.agruparPorPrograma()) {
+      return filas.map((asignatura) => ({ tipo: 'fila' as const, asignatura }));
+    }
+    const conteo = this.conteoPorPrograma();
+    const resultado: FilaTabla[] = [];
+    let programaAnterior: string | null = null;
+    for (const asignatura of filas) {
+      if (asignatura.programaNombre !== programaAnterior) {
+        const cantidad = conteo.get(asignatura.programaNombre) ?? 0;
+        resultado.push({
+          tipo: 'encabezado',
+          texto: `${asignatura.programaNombre} · ${cantidad} ${cantidad === 1 ? 'materia' : 'materias'}`,
+        });
+        programaAnterior = asignatura.programaNombre;
+      }
+      resultado.push({ tipo: 'fila', asignatura });
+    }
+    return resultado;
+  });
+
   // ── Datos y estado de la vista ────────────────────────────────────
   protected readonly cargando = signal(true);
   protected readonly errorCarga = signal<MensajeError | null>(null);
@@ -161,6 +242,12 @@ export class MateriasTab {
 
   constructor() {
     this.destroyRef.onDestroy(() => clearTimeout(this.temporizadorAviso));
+
+    // Cualquier cambio de filtro vuelve a la página 1 (el tamaño de página no cuenta como filtro).
+    effect(() => {
+      this.filtros();
+      untracked(() => this.pagina.set(1));
+    });
 
     // Si el listado de programas falla, el filtro degrada a solo «Todos».
     this.programasService
@@ -222,6 +309,16 @@ export class MateriasTab {
 
   protected recargar(): void {
     this.recargas.update((n) => n + 1);
+  }
+
+  // ── Paginación ────────────────────────────────────────────────────
+  protected alCambiarPagina(pagina: number): void {
+    this.pagina.set(pagina);
+  }
+
+  protected alCambiarTamanoPagina(tamano: number): void {
+    this.tamanoPagina.set(tamano);
+    this.pagina.set(1);
   }
 
   // ── Registrar y modificar ─────────────────────────────────────────
