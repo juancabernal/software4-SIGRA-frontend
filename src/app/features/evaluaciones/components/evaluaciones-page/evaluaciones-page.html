@@ -1,0 +1,354 @@
+<section class="pagina" aria-labelledby="titulo-evaluaciones">
+  <header class="cabecera">
+    <h1 id="titulo-evaluaciones">Evaluaciones por RA</h1>
+    <p class="cabecera__sub">
+      Organiza las evaluaciones de cada resultado de aprendizaje. Las activas de un RA no pueden
+      sumar más del 100 % en el semestre.
+    </p>
+  </header>
+
+  <div class="aviso-zona" role="status" aria-live="polite">
+    @if (aviso(); as a) {
+      <div class="aviso">
+        <app-icono nombre="check" [tamano]="16" />
+        <span>{{ a.texto }}</span>
+        <button
+          type="button"
+          class="aviso__cerrar"
+          aria-label="Cerrar aviso"
+          (click)="cerrarAviso()"
+        >
+          <app-icono nombre="cerrar" [tamano]="14" />
+        </button>
+      </div>
+    }
+  </div>
+
+  <div class="tarjeta">
+    @if (cargandoCatalogos()) {
+      <p class="estado-vista" role="status">Cargando materias y semestres…</p>
+    } @else if (errorCatalogos(); as error) {
+      <div class="estado-vista estado-vista--error" role="alert">
+        <p>{{ error.mensaje }}</p>
+        <button type="button" class="btn" (click)="cargarCatalogos()">
+          <app-icono nombre="recargar" [tamano]="16" />
+          Reintentar
+        </button>
+      </div>
+    } @else if (asignaturas().length === 0) {
+      <div class="estado-vista">
+        <p class="estado-vista__titulo">No hay materias activas</p>
+        <p>Las evaluaciones se gestionan en materias activas con sus RA.</p>
+      </div>
+    } @else {
+      <div class="filtros">
+        <div class="filtro">
+          <label for="selector-materia">Materia</label>
+          <select
+            id="selector-materia"
+            [value]="asignaturaId()"
+            (change)="alCambiarAsignatura($event)"
+          >
+            <option value="">Selecciona una materia</option>
+            @for (a of asignaturas(); track a.id) {
+              <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filtro">
+          <label for="selector-ra">Resultado de aprendizaje</label>
+          <select
+            id="selector-ra"
+            [value]="raId()"
+            [disabled]="!asignaturaId() || cargandoRa() || resultados().length === 0"
+            (change)="alCambiarRa($event)"
+          >
+            <option value="">
+              @if (!asignaturaId()) {
+                Primero elige una materia
+              } @else if (cargandoRa()) {
+                Cargando RA…
+              } @else if (resultados().length === 0) {
+                Sin RA activos
+              } @else {
+                Selecciona un RA
+              }
+            </option>
+            @for (r of resultados(); track r.id) {
+              <option [value]="r.id">{{ r.codigo }} · {{ r.descripcion }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filtro">
+          <label for="selector-semestre">Semestre</label>
+          <select
+            id="selector-semestre"
+            [value]="semestreId()"
+            (change)="alCambiarSemestre($event)"
+          >
+            @for (s of semestres(); track s.id) {
+              <option [value]="s.id">{{ etiquetaSemestre(s) }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      @if (errorRa(); as error) {
+        <div class="estado-vista estado-vista--error" role="alert">
+          <p>{{ error.mensaje }}</p>
+          <button type="button" class="btn" (click)="recargarRa()">
+            <app-icono nombre="recargar" [tamano]="16" />
+            Reintentar
+          </button>
+        </div>
+      } @else if (semestres().length === 0) {
+        <div class="estado-vista">
+          <p class="estado-vista__titulo">No hay semestres registrados</p>
+          <p>Las evaluaciones se crean en el semestre en curso.</p>
+        </div>
+      } @else if (!ra()) {
+        <div class="estado-vista">
+          <app-icono nombre="lista" [tamano]="28" />
+          <p>
+            @if (asignaturaId() && !cargandoRa() && resultados().length === 0) {
+              Esta materia no tiene RA activos para evaluar.
+            } @else {
+              Elige una materia y un resultado de aprendizaje para ver sus evaluaciones.
+            }
+          </p>
+        </div>
+      } @else {
+        @let r = ra()!;
+        <div class="resumen">
+          <div class="resumen__ra">
+            <span class="resumen__codigo">{{ r.codigo }}</span>
+            <p class="resumen__descripcion">{{ r.descripcion }}</p>
+          </div>
+
+          @if (resumen()) {
+            <div class="progreso">
+              <div class="progreso__cifras tabular">
+                <span
+                  >Asignado <strong>{{ textoAsignado() }}</strong></span
+                >
+                <span
+                  >Disponible <strong>{{ textoDisponible() }}</strong></span
+                >
+              </div>
+              <div
+                class="progreso__barra"
+                [class.progreso__barra--completa]="completo()"
+                role="progressbar"
+                aria-label="Porcentaje asignado de 100"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                [attr.aria-valuenow]="asignado()"
+                [attr.aria-valuetext]="textoAsignado() + ' asignado'"
+              >
+                <span [style.width.%]="anchoBarra()"></span>
+              </div>
+            </div>
+
+            @if (!soloLectura()) {
+              <span class="con-tooltip">
+                <button
+                  type="button"
+                  class="btn btn--primario"
+                  [attr.aria-disabled]="puedeRegistrar() ? null : 'true'"
+                  [attr.aria-describedby]="puedeRegistrar() ? null : 'tooltip-registrar'"
+                  (click)="abrirRegistro()"
+                >
+                  <app-icono nombre="mas" [tamano]="16" />
+                  Registrar evaluación
+                </button>
+                @if (!puedeRegistrar()) {
+                  <span class="tooltip" role="tooltip" id="tooltip-registrar">
+                    {{ motivoSinDisponible }}
+                  </span>
+                }
+              </span>
+            }
+          }
+        </div>
+
+        @if (soloLectura()) {
+          <p class="nota-consulta">
+            <app-icono nombre="ojo" [tamano]="16" />
+            Semestre {{ semestre()?.codigo }}: solo consulta. Las evaluaciones se gestionan en el
+            semestre en curso.
+          </p>
+        }
+
+        @if (cargandoResumen()) {
+          <p class="estado-vista" role="status">Cargando evaluaciones…</p>
+        } @else if (errorResumen(); as error) {
+          <div class="estado-vista estado-vista--error" role="alert">
+            <p>{{ error.mensaje }}</p>
+            <button type="button" class="btn" (click)="recargarEvaluaciones()">
+              <app-icono nombre="recargar" [tamano]="16" />
+              Reintentar
+            </button>
+          </div>
+        } @else if (filas().length === 0) {
+          <div class="estado-vista">
+            <p class="estado-vista__titulo">Sin evaluaciones en {{ resumen()?.semestreCodigo }}</p>
+            <p>
+              @if (soloLectura()) {
+                Este RA no tuvo evaluaciones en este semestre.
+              } @else {
+                Registra la primera evaluación de este RA.
+              }
+            </p>
+          </div>
+        } @else {
+          <div class="tabla-contenedor">
+            <table>
+              <caption class="solo-lectores">
+                Evaluaciones de
+                {{
+                  r.codigo
+                }}
+                en el semestre
+                {{
+                  resumen()?.semestreCodigo
+                }}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Evaluación</th>
+                  <th scope="col">Fecha tentativa</th>
+                  <th scope="col" class="num">Porcentaje</th>
+                  <th scope="col">Estado</th>
+                  @if (!soloLectura()) {
+                    <th scope="col">Acciones</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (fila of filasPagina(); track fila.evaluacion.id) {
+                  @let e = fila.evaluacion;
+                  <tr [class.fila--inactiva]="e.estado === 'INACTIVA'">
+                    <th scope="row">
+                      <span class="nombre">{{ e.nombre }}</span>
+                      <span class="descripcion">{{ e.descripcion }}</span>
+                      @if (e.tieneCalificaciones) {
+                        <span class="marca-notas">
+                          <app-icono nombre="candado" [tamano]="12" />
+                          Con calificaciones
+                        </span>
+                      }
+                    </th>
+                    <td class="tabular">{{ fila.fecha }}</td>
+                    <td class="num tabular porcentaje">{{ fila.porcentaje }}</td>
+                    <td>
+                      <app-chip-estado
+                        [etiqueta]="presentacion[e.estado].etiqueta"
+                        [variante]="presentacion[e.estado].variante"
+                        [icono]="presentacion[e.estado].icono"
+                      />
+                    </td>
+                    @if (!soloLectura()) {
+                      <td>
+                        <div class="acciones">
+                          @if (e.estado === 'ACTIVA') {
+                            <button
+                              type="button"
+                              class="btn-ghost"
+                              [attr.aria-label]="'Modificar ' + e.nombre"
+                              (click)="abrirEdicion(e)"
+                            >
+                              <app-icono nombre="lapiz" [tamano]="16" />
+                              <span>Modificar</span>
+                            </button>
+                            <button
+                              type="button"
+                              class="btn-ghost btn-ghost--peligro"
+                              [attr.aria-label]="'Inactivar ' + e.nombre"
+                              (click)="pedirInactivar(e)"
+                            >
+                              <app-icono nombre="prohibido" [tamano]="16" />
+                              <span>Inactivar</span>
+                            </button>
+                          } @else {
+                            <span class="con-tooltip">
+                              <button
+                                type="button"
+                                class="btn-ghost"
+                                [attr.aria-label]="'Reactivar ' + e.nombre"
+                                [attr.aria-disabled]="fila.puedeReactivar ? null : 'true'"
+                                [attr.aria-describedby]="
+                                  fila.puedeReactivar ? null : 'tooltip-reactivar-' + e.id
+                                "
+                                (click)="pedirReactivar(fila)"
+                              >
+                                <app-icono nombre="recargar" [tamano]="16" />
+                                <span>Reactivar</span>
+                              </button>
+                              @if (!fila.puedeReactivar) {
+                                <span
+                                  class="tooltip"
+                                  role="tooltip"
+                                  [id]="'tooltip-reactivar-' + e.id"
+                                >
+                                  {{ motivoReactivar }}
+                                </span>
+                              }
+                            </span>
+                          }
+                        </div>
+                      </td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <app-paginacion-tabla
+            elementos="evaluaciones"
+            [total]="filas().length"
+            [pagina]="paginaActual()"
+            [tamano]="tamanoPagina()"
+            [tamanos]="tamanos"
+            (cambioPagina)="irAPagina($event)"
+            (cambioTamano)="cambiarTamano($event)"
+          />
+        }
+
+        @if (semestreEnCurso(); as enCurso) {
+          <app-evaluacion-form-dialog
+            [abierto]="formAbierto()"
+            [raId]="r.id"
+            [evaluacion]="enEdicion()"
+            [semestre]="enCurso"
+            [porcentajeDisponible]="disponible()"
+            (guardado)="alGuardar($event)"
+            (cancelar)="cerrarFormulario()"
+          />
+        }
+      }
+    }
+  </div>
+</section>
+
+<app-dialogo-confirmacion
+  [abierto]="confirmacion() !== null"
+  [titulo]="
+    (confirmacion()?.tipo === 'inactivar' ? '¿Inactivar «' : '¿Reactivar «') +
+    confirmacion()?.evaluacion?.nombre +
+    '»?'
+  "
+  [descripcion]="
+    confirmacion()?.tipo === 'inactivar'
+      ? 'Deja de sumar al porcentaje del RA y no admite nuevas calificaciones. No se elimina y las notas registradas se conservan.'
+      : 'Vuelve a sumar su porcentaje al RA; no puede superar el 100 %.'
+  "
+  [etiquetaConfirmar]="confirmacion()?.tipo === 'inactivar' ? 'Inactivar' : 'Reactivar'"
+  [tono]="confirmacion()?.tipo === 'inactivar' ? 'peligro' : 'normal'"
+  [procesando]="procesandoConfirmacion()"
+  [error]="errorConfirmacion()"
+  (confirmar)="confirmar()"
+  (cancelar)="cancelarConfirmacion()"
+/>

@@ -1,0 +1,148 @@
+<app-modal-crud
+  [abierto]="abierto()"
+  [titulo]="modo() === 'crear' ? 'Registrar evaluación' : 'Modificar evaluación'"
+  [etiquetaEnviar]="modo() === 'crear' ? 'Registrar' : 'Guardar cambios'"
+  [procesando]="procesando()"
+  [error]="errorApi()?.mensaje ?? null"
+  [detalles]="errorApi()?.detalles ?? []"
+  [enviarDeshabilitado]="enviarDeshabilitado()"
+  (enviar)="enviar()"
+  (cancelar)="cancelar.emit()"
+  (envioBloqueado)="alIntentarEnviarInvalido()"
+>
+  <div class="campos" [formGroup]="form">
+    <div class="campo">
+      <label for="evaluacion-nombre">
+        Nombre <span class="obligatorio" aria-hidden="true">*</span>
+      </label>
+      <input
+        id="evaluacion-nombre"
+        formControlName="nombre"
+        placeholder="Ej. Parcial 1"
+        autocomplete="off"
+        aria-required="true"
+        [attr.maxlength]="nombreMax"
+        [attr.aria-invalid]="mostrarError('nombre')"
+        aria-describedby="evaluacion-nombre-ayuda evaluacion-nombre-error"
+      />
+      <p class="ayuda tabular" id="evaluacion-nombre-ayuda">
+        Único en este RA y semestre · {{ largoNombre() }} / {{ nombreMax }}
+      </p>
+      @if (mostrarError('nombre')) {
+        <p class="error-campo" id="evaluacion-nombre-error">
+          @if (form.controls.nombre.hasError('required')) {
+            Escribe el nombre de la evaluación.
+          } @else if (form.controls.nombre.hasError('duplicado')) {
+            Ya existe una evaluación con este nombre en el RA y semestre.
+          } @else if (form.controls.nombre.hasError('caracteres')) {
+            El nombre no puede contener los caracteres &lt; o &gt; ni caracteres de control.
+          } @else {
+            El nombre no puede superar los {{ nombreMax }} caracteres.
+          }
+        </p>
+      }
+    </div>
+
+    @if (bloqueada()) {
+      <p class="nota-bloqueo">
+        <app-icono nombre="candado" [tamano]="15" />
+        Esta evaluación ya tiene calificaciones: la fecha tentativa y el porcentaje no se pueden
+        cambiar.
+      </p>
+    }
+
+    <div class="fila">
+      <div class="campo">
+        <label for="evaluacion-fecha">
+          Fecha tentativa <span class="obligatorio" aria-hidden="true">*</span>
+        </label>
+        <input
+          id="evaluacion-fecha"
+          type="date"
+          formControlName="fechaTentativa"
+          aria-required="true"
+          [min]="semestre().fechaInicio"
+          [max]="semestre().fechaFin"
+          [attr.aria-invalid]="mostrarError('fechaTentativa')"
+          aria-describedby="evaluacion-fecha-ayuda evaluacion-fecha-error"
+        />
+        <p class="ayuda" id="evaluacion-fecha-ayuda">{{ rangoFechas() }}</p>
+        @if (mostrarError('fechaTentativa')) {
+          <p class="error-campo" id="evaluacion-fecha-error">
+            @if (form.controls.fechaTentativa.hasError('required')) {
+              Selecciona la fecha tentativa.
+            } @else {
+              La fecha debe estar dentro del semestre {{ semestre().codigo }}.
+            }
+          </p>
+        }
+      </div>
+
+      <div class="campo">
+        <label for="evaluacion-porcentaje">
+          Porcentaje <span class="obligatorio" aria-hidden="true">*</span>
+        </label>
+        <div class="con-sufijo">
+          <input
+            id="evaluacion-porcentaje"
+            type="number"
+            inputmode="decimal"
+            min="0.01"
+            step="0.01"
+            formControlName="porcentaje"
+            placeholder="Ej. 20"
+            aria-required="true"
+            [attr.max]="porcentajeMaximo()"
+            [attr.aria-invalid]="mostrarError('porcentaje')"
+            aria-describedby="evaluacion-porcentaje-ayuda evaluacion-porcentaje-error"
+          />
+          <span class="sufijo" aria-hidden="true">%</span>
+        </div>
+        <p class="ayuda" id="evaluacion-porcentaje-ayuda">Máximo disponible: {{ textoMaximo() }}</p>
+        @if (mostrarError('porcentaje')) {
+          <p class="error-campo" id="evaluacion-porcentaje-error">
+            @if (form.controls.porcentaje.hasError('required')) {
+              Escribe el porcentaje.
+            } @else if (form.controls.porcentaje.hasError('rango')) {
+              El porcentaje debe ser mayor que 0 y máximo 100.
+            } @else if (form.controls.porcentaje.hasError('decimales')) {
+              El porcentaje admite máximo 2 decimales.
+            } @else {
+              Supera lo disponible del RA ({{ textoMaximo() }}).
+            }
+          </p>
+        }
+      </div>
+    </div>
+
+    <div class="campo">
+      <label for="evaluacion-descripcion">
+        Descripción <span class="obligatorio" aria-hidden="true">*</span>
+      </label>
+      <textarea
+        id="evaluacion-descripcion"
+        formControlName="descripcion"
+        rows="3"
+        placeholder="Ej. Evaluación escrita de los temas 1 a 3."
+        aria-required="true"
+        [attr.maxlength]="descripcionMax"
+        [attr.aria-invalid]="mostrarError('descripcion')"
+        aria-describedby="evaluacion-descripcion-ayuda evaluacion-descripcion-error"
+      ></textarea>
+      <p class="ayuda tabular" id="evaluacion-descripcion-ayuda">
+        {{ largoDescripcion() }} / {{ descripcionMax }} caracteres
+      </p>
+      @if (mostrarError('descripcion')) {
+        <p class="error-campo" id="evaluacion-descripcion-error">
+          @if (form.controls.descripcion.hasError('required')) {
+            Escribe la descripción de la evaluación.
+          } @else if (form.controls.descripcion.hasError('caracteres')) {
+            La descripción no puede contener los caracteres &lt; o &gt; ni caracteres de control.
+          } @else {
+            La descripción no puede superar los {{ descripcionMax }} caracteres.
+          }
+        </p>
+      }
+    </div>
+  </div>
+</app-modal-crud>
