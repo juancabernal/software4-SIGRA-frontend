@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://software4-sigra-backend.onrender.com/api',
+  apiUrl: 'http://localhost:8080/api',
 };
