@@ -29,7 +29,25 @@ export function mensajeDeError(error: unknown): MensajeError {
     return { mensaje: SIN_CONEXION, detalles: [] };
   }
   if (error.status >= 500) {
-    return { mensaje: INESPERADO, detalles: [] };
+    return {
+      mensaje:
+        error.status === 503
+          ? 'El servicio no está disponible. Intenta nuevamente más tarde.'
+          : INESPERADO,
+      detalles: [],
+    };
+  }
+  if (error.status === 401) {
+    return { mensaje: 'Tu sesión ya no es válida. Inicia sesión nuevamente.', detalles: [] };
+  }
+  if (error.status === 403) {
+    return { mensaje: 'No tienes permisos para realizar esta acción.', detalles: [] };
+  }
+  if (error.status === 413) {
+    return { mensaje: 'El contenido enviado es demasiado grande.', detalles: [] };
+  }
+  if (error.status === 423) {
+    return { mensaje: 'La cuenta está temporalmente bloqueada.', detalles: [] };
   }
 
   const cuerpo = (error.error ?? {}) as CuerpoError;

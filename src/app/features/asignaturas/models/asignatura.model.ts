@@ -17,6 +17,16 @@ export interface Asignatura {
   cantidadRa: number;
 }
 
+/**
+ * MiAsignaturaDTO de GET /api/v1/asignaturas/mias.
+ * El backend calcula el alcance con la identidad del JWT: asignación docente activa para
+ * profesores y matrícula activa para estudiantes.
+ */
+export interface MiAsignatura extends Asignatura {
+  cantidadEstudiantes: number;
+  profesores: string[];
+}
+
 /** AsignaturaRequestDTO (POST /asignaturas). La materia nace en BORRADOR. */
 export interface AsignaturaRequest {
   codigo: string;

@@ -1,12 +1,8 @@
 /**
  * Roles del sistema y su menú lateral.
  *
- * Los menús y las rutas salen de la especificación visual del equipo
- * (`scripts/SIGRA-FRONTEND-SPEC-ANGULAR.md`, §7.2 y §7.3): etiquetas literales y en ese orden.
- *
- * Mientras no exista la sesión real (RF-04) ni los guards (RF-05), el rol se elige desde el
- * sidebar y solo cambia lo que se ve. **No es control de acceso**: la autorización la decide el
- * backend en cada endpoint (RF-05, RNF-13).
+ * Los menús y las rutas salen de la especificación visual del equipo: etiquetas literales y en
+ * ese orden. El rol del menú siempre proviene de la sesión validada por el backend.
  */
 import { RolUsuario } from './sesion.model';
 
@@ -24,8 +20,6 @@ export interface ItemMenu {
 export interface PerfilRol {
   readonly etiqueta: string;
   readonly inicial: string;
-  readonly nombre: string;
-  readonly subtitulo: string;
   readonly menu: readonly ItemMenu[];
 }
 
@@ -33,8 +27,6 @@ export const PERFILES: Readonly<Record<Rol, PerfilRol>> = {
   profesor: {
     etiqueta: 'Profesor',
     inicial: 'P',
-    nombre: 'Prof. Ramírez',
-    subtitulo: '4 asignaturas',
     menu: [
       { ruta: '/profesor/asignaturas', etiqueta: 'Mis asignaturas', icono: 'libro' },
       { ruta: '/profesor/matricula', etiqueta: 'Matrícula', icono: 'personas' },
@@ -47,8 +39,6 @@ export const PERFILES: Readonly<Record<Rol, PerfilRol>> = {
   admin: {
     etiqueta: 'Admin',
     inicial: 'A',
-    nombre: 'Administrador',
-    subtitulo: 'Vista global',
     menu: [
       { ruta: '/admin/catalogo', etiqueta: 'Catálogo académico', icono: 'libro' },
       { ruta: '/admin/semestres', etiqueta: 'Semestres', icono: 'calendario' },
@@ -62,8 +52,6 @@ export const PERFILES: Readonly<Record<Rol, PerfilRol>> = {
   estudiante: {
     etiqueta: 'Estudiante',
     inicial: 'E',
-    nombre: 'Daniela Ortiz',
-    subtitulo: 'Ing. de Sistemas',
     menu: [
       { ruta: '/estudiante/materias', etiqueta: 'Mis materias', icono: 'libro' },
       { ruta: '/estudiante/progreso', etiqueta: 'Mi progreso', icono: 'barras' },

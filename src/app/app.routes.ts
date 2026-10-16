@@ -1,55 +1,70 @@
 import { Routes } from '@angular/router';
 
 import { Shell } from './core/layout/shell/shell';
+import { authGuard } from './core/guards/auth.guard';
+import { guestGuard } from './core/guards/guest.guard';
+import { roleGuard, rootRedirectGuard } from './core/guards/role.guard';
 
-/** Pantalla provisional: se reemplaza por el componente real cuando el módulo se construya. */
 const pendiente = () =>
   import('./shared/ui/modulo-pendiente/modulo-pendiente').then((m) => m.ModuloPendiente);
 
-/**
- * Rutas de la aplicación, agrupadas por rol según la especificación visual §7.3.
- *
- * `login` queda **fuera** del shell, como ruta raíz sin layout: es lo que pide §7.3 y es lo
- * correcto para una pantalla a la que se llega sin sesión.
- *
- * Todavía **no hay guards**: RF-05 es de otra entrega. Cuando exista, cada grupo de rol recibe su
- * `canActivate` sin reorganizar nada. Mientras tanto cualquier ruta es alcanzable por URL, y eso
- * está bien: el control de acceso lo hace el backend, no el menú.
- *
- * La raíz entra al shell y no al login porque el inicio de sesión todavía no redirige a ninguna
- * pantalla al autenticar (`POST_LOGIN_DESTINATION_PENDING` en `login-page.ts`): mandar la raíz al
- * login dejaría la aplicación encerrada ahí. Ese enlace es parte de RF-05.
- *
- * Los `data` de cada ruta alimentan las entradas de `ModuloPendiente` por enlace de entradas del
- * router (`withComponentInputBinding`).
- */
+const profesor = { canActivate: [roleGuard], data: { roles: ['PROFESOR'] as const } };
+const administrador = {
+  canActivate: [roleGuard],
+  data: { roles: ['ADMINISTRADOR'] as const },
+};
+const estudiante = { canActivate: [roleGuard], data: { roles: ['ESTUDIANTE'] as const } };
+
+/** Rutas de autenticación y pantallas privadas. Todas las pantallas privadas declaran su rol. */
 export const routes: Routes = [
   {
+    path: '',
+    pathMatch: 'full',
+    canActivate: [rootRedirectGuard],
+    loadComponent: () =>
+      import('./features/auth/components/root-redirect/root-redirect-page').then(
+        (m) => m.RootRedirectPage,
+      ),
+  },
+  {
     path: 'login',
+    canActivate: [guestGuard],
     loadComponent: () =>
       import('./features/auth/components/login-page/login-page').then((m) => m.LoginPage),
     title: 'Iniciar sesión · SIGRA',
   },
-
+  {
+    path: 'acceso-denegado',
+    loadComponent: () =>
+      import('./features/auth/components/acceso-denegado/acceso-denegado-page').then(
+        (m) => m.AccesoDenegadoPage,
+      ),
+    title: 'Acceso denegado · SIGRA',
+  },
   {
     path: '',
     component: Shell,
+    canActivate: [authGuard],
     children: [
       // ── Profesor ────────────────────────────────────────────────────
       {
+        ...profesor,
         path: 'profesor/asignaturas',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import('./features/asignaturas/components/mis-asignaturas-page/mis-asignaturas-page').then(
+            (m) => m.MisAsignaturasPage,
+          ),
         title: 'Mis asignaturas · SIGRA',
         data: {
+          ...profesor.data,
+          vista: 'PROFESOR',
           titulo: 'Mis asignaturas',
           subtitulo: 'Asignaturas asignadas en el semestre en curso',
           requisito: 'RF-20',
         },
       },
       {
-        // Misma pantalla que `admin/matricula`: los requisitos del profesor y del administrador
-        // coinciden y el backend permite los dos roles en /api/v1/matriculas (D12). La ruta no
-        // autoriza a nadie: eso lo decide el backend en cada petición (RF-05, RNF-13).
+        ...profesor,
         path: 'profesor/matricula',
         loadComponent: () =>
           import('./features/estudiantes/components/matriculados-page/matriculados-page').then(
@@ -58,37 +73,48 @@ export const routes: Routes = [
         title: 'Matrícula de estudiantes · SIGRA',
       },
       {
+        ...profesor,
         path: 'profesor/evaluaciones',
         loadComponent: pendiente,
         title: 'Evaluaciones por RA · SIGRA',
         data: {
+          ...profesor.data,
           titulo: 'Evaluaciones por RA',
           subtitulo: 'Evaluaciones asociadas a cada resultado de aprendizaje',
         },
       },
       {
+        // RF-12 / RF-13: planilla de notas por evaluación, con la marca ⚠ de fuera de fecha.
+        ...profesor,
         path: 'profesor/notas',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import('./features/calificaciones/components/planilla-notas-page/planilla-notas-page').then(
+            (m) => m.PlanillaNotasPage,
+          ),
         title: 'Registro de notas y observaciones · SIGRA',
-        data: {
-          titulo: 'Registro de notas y observaciones',
-          subtitulo: 'Notas y observaciones por evaluación',
-        },
       },
       {
         // RF-16: consulta de conclusiones (desempeño insuficiente) por materia, RA y semestre.
+        ...profesor,
         path: 'profesor/estadisticas',
         loadComponent: () =>
           import('./features/estadisticas/components/estadisticas-page/estadisticas-page').then(
             (m) => m.EstadisticasPage,
           ),
         title: 'Estadísticas y ciclo de mejora · SIGRA',
+        data: {
+          ...profesor.data,
+          titulo: 'Estadísticas y ciclo de mejora',
+          subtitulo: 'Distribución de logro por RA y acciones de mejora',
+        },
       },
       {
+        ...profesor,
         path: 'profesor/historial',
         loadComponent: pendiente,
         title: 'Mi historial · SIGRA',
         data: {
+          ...profesor.data,
           titulo: 'Mi historial',
           subtitulo: 'Registro de auditoría · solo lectura · acotado a tus asignaturas',
         },
@@ -96,7 +122,7 @@ export const routes: Routes = [
 
       // ── Administrador ───────────────────────────────────────────────
       {
-        // Pestaña «Materias» implementada (RF-03); Profesores y Programas siguen pendientes.
+        ...administrador,
         path: 'admin/catalogo',
         loadComponent: () =>
           import('./features/catalogo/components/catalogo-page/catalogo-page').then(
@@ -105,7 +131,7 @@ export const routes: Routes = [
         title: 'Catálogo académico · SIGRA',
       },
       {
-        // Único módulo ya implementado.
+        ...administrador,
         path: 'admin/semestres',
         loadComponent: () =>
           import('./features/semestres/components/semestres-page/semestres-page').then(
@@ -114,25 +140,27 @@ export const routes: Routes = [
         title: 'Semestres académicos · SIGRA',
       },
       {
-        // RF-06: selector de materia (BORRADOR o ACTIVA) y gestión de sus RA.
+        ...administrador,
         path: 'admin/ra',
         loadComponent: () =>
-          import('./features/resultadosaprendizaje/components/resultados-aprendizaje-page/resultados-aprendizaje-page').then(
-            (m) => m.ResultadosAprendizajePage,
-          ),
+          import(
+            './features/resultadosaprendizaje/components/resultados-aprendizaje-page/resultados-aprendizaje-page'
+          ).then((m) => m.ResultadosAprendizajePage),
         title: 'Gestión de RA · SIGRA',
       },
       {
+        ...administrador,
         path: 'admin/asignacion',
         loadComponent: pendiente,
         title: 'Asignación docente · SIGRA',
         data: {
+          ...administrador.data,
           titulo: 'Asignación docente',
           subtitulo: 'Asocia materias activas a un profesor',
         },
       },
       {
-        // Único módulo ya implementado junto con `admin/semestres`.
+        ...administrador,
         path: 'admin/estudiantes',
         loadComponent: () =>
           import('./features/estudiantes/components/estudiantes-page/estudiantes-page').then(
@@ -141,14 +169,16 @@ export const routes: Routes = [
         title: 'Estudiantes · SIGRA',
       },
       {
+        ...administrador,
         path: 'admin/estudiantes/:id',
         loadComponent: () =>
-          import('./features/estudiantes/components/estudiante-detalle-page/estudiante-detalle-page').then(
-            (m) => m.EstudianteDetallePage,
-          ),
+          import(
+            './features/estudiantes/components/estudiante-detalle-page/estudiante-detalle-page'
+          ).then((m) => m.EstudianteDetallePage),
         title: 'Ficha del estudiante · SIGRA',
       },
       {
+        ...administrador,
         path: 'admin/matricula',
         loadComponent: () =>
           import('./features/estudiantes/components/matriculados-page/matriculados-page').then(
@@ -157,10 +187,12 @@ export const routes: Routes = [
         title: 'Matrícula y desvinculación · SIGRA',
       },
       {
+        ...administrador,
         path: 'admin/reportes',
         loadComponent: pendiente,
         title: 'Reportes · SIGRA',
         data: {
+          ...administrador.data,
           titulo: 'Reportes',
           subtitulo: 'Panel de administrador · vista global del sistema',
         },
@@ -168,39 +200,44 @@ export const routes: Routes = [
 
       // ── Estudiante ──────────────────────────────────────────────────
       {
+        ...estudiante,
         path: 'estudiante/materias',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import('./features/asignaturas/components/mis-asignaturas-page/mis-asignaturas-page').then(
+            (m) => m.MisAsignaturasPage,
+          ),
         title: 'Mis asignaturas · SIGRA',
         data: {
+          ...estudiante.data,
+          vista: 'ESTUDIANTE',
           titulo: 'Mis asignaturas',
           subtitulo: 'Semestre en curso · vista de estudiante · solo lectura',
           requisito: 'RF-22',
         },
       },
       {
+        ...estudiante,
         path: 'estudiante/progreso',
         loadComponent: pendiente,
         title: 'Mi progreso · SIGRA',
         data: {
+          ...estudiante.data,
           titulo: 'Mi progreso',
           subtitulo: 'Detalle de asignatura y avance por RA · solo lectura',
         },
       },
       {
-        // No está en el menú: se alcanza desde el detalle de la asignatura (§7.2). Al ser una
-        // ruta hija de `progreso`, el ítem «Mi progreso» sigue marcado activo aquí (§6.1).
+        ...estudiante,
         path: 'estudiante/progreso/calificaciones',
         loadComponent: pendiente,
         title: 'Calificaciones y observaciones · SIGRA',
         data: {
+          ...estudiante.data,
           titulo: 'Calificaciones y observaciones',
           subtitulo: 'Notas y observaciones recibidas · solo lectura',
         },
       },
-
-      { path: '', redirectTo: 'admin/catalogo', pathMatch: 'full' },
     ],
   },
-
   { path: '**', redirectTo: '' },
 ];

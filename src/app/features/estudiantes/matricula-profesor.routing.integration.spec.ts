@@ -5,6 +5,8 @@ import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 
 import { routes } from '../../app.routes';
+import { RespuestaLogin } from '../../../app/core/models/sesion.model';
+import { SessionService } from '../../../app/core/services/session.service';
 import { environment } from '../../../environments/environment';
 
 /**
@@ -22,11 +24,32 @@ import { environment } from '../../../environments/environment';
 
 const URL_ASIGNATURAS = `${environment.apiUrl}/v1/asignaturas`;
 const URL_SEMESTRES = `${environment.apiUrl}/v1/semestres`;
+const RESPUESTA_PROFESOR: RespuestaLogin = {
+  token: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiZXhwIjo0MTAyNDQ0ODAwfQ.signature',
+  tipo: 'Bearer',
+  expiraEn: 3600,
+  usuario: {
+    id: '00000000-0000-4000-c000-000000000010',
+    nombreCompleto: 'Profesor Bruno',
+    correoInstitucional: 'profesor.bruno@uco.net.co',
+    rol: 'PROFESOR',
+  },
+};
+const RESPUESTA_ADMINISTRADOR: RespuestaLogin = {
+  ...RESPUESTA_PROFESOR,
+  usuario: {
+    ...RESPUESTA_PROFESOR.usuario,
+    nombreCompleto: 'Admin SIGRA',
+    correoInstitucional: 'admin@uco.net.co',
+    rol: 'ADMINISTRADOR',
+  },
+};
 
 describe('Ruta profesor/matricula (Router real sobre app.routes.ts)', () => {
   let http: HttpTestingController;
 
   beforeEach(() => {
+    sessionStorage.clear();
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
@@ -35,9 +58,13 @@ describe('Ruta profesor/matricula (Router real sobre app.routes.ts)', () => {
       ],
     });
     http = TestBed.inject(HttpTestingController);
+    TestBed.inject(SessionService).saveSession(RESPUESTA_PROFESOR);
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    sessionStorage.clear();
+  });
 
   /** Navega y deja la pantalla de matriculados pintada, con sus catálogos resueltos. */
   async function abrir(url: string): Promise<HTMLElement> {
@@ -73,6 +100,9 @@ describe('Ruta profesor/matricula (Router real sobre app.routes.ts)', () => {
   });
 
   it('la ruta del administrador sigue resolviendo a la misma pantalla', async () => {
+    const sesion = TestBed.inject(SessionService);
+    sesion.clearSession();
+    sesion.saveSession(RESPUESTA_ADMINISTRADOR);
     const html = await abrir('/admin/matricula');
 
     expect(html.querySelector('app-matriculados-page')).toBeTruthy();
