@@ -123,13 +123,13 @@ export const routes: Routes = [
         title: 'Gestión de RA · SIGRA',
       },
       {
+        // RF-07: asignar varios profesores a varias materias a la vez, y desasignar.
         path: 'admin/asignacion',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import('./features/asignacion-docente/components/asignacion-docente-page/asignacion-docente-page').then(
+            (m) => m.AsignacionDocentePage,
+          ),
         title: 'Asignación docente · SIGRA',
-        data: {
-          titulo: 'Asignación docente',
-          subtitulo: 'Asocia materias activas a un profesor',
-        },
       },
       {
         // Único módulo ya implementado junto con `admin/semestres`.
