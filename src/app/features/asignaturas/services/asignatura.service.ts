@@ -3,7 +3,12 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
-import { Asignatura, AsignaturaRequest, FiltrosAsignaturas } from '../models/asignatura.model';
+import {
+  Asignatura,
+  AsignaturaRequest,
+  FiltrosAsignaturas,
+  MiAsignatura,
+} from '../models/asignatura.model';
 
 /** Acceso HTTP a /api/v1/asignaturas. Las reglas de negocio las aplica el backend. */
 @Injectable({ providedIn: 'root' })
@@ -31,6 +36,11 @@ export class AsignaturaService {
       params = params.set('raMax', filtros.raMax);
     }
     return this.http.get<Asignatura[]>(this.baseUrl, { params });
+  }
+
+  /** Lista exclusivamente las asignaturas del usuario autenticado. */
+  misAsignaturas(): Observable<MiAsignatura[]> {
+    return this.http.get<MiAsignatura[]>(`${this.baseUrl}/mias`);
   }
 
   obtener(id: string): Observable<Asignatura> {

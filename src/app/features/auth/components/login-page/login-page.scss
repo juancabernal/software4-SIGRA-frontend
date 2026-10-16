@@ -1,87 +1,153 @@
-// Mismos tokens que el módulo de semestres (verde institucional sobre neutros slate).
-// La guía visual global sigue pendiente de aprobación (README): al aprobarla, estos valores
-// deben moverse a styles.scss en un solo lugar.
 :host {
-  --sesion-bg: #f1f5f9;
-  --sesion-surface: #ffffff;
-  --sesion-ink: #0f172a;
-  --sesion-ink-2: #334155;
-  --sesion-muted: #64748b;
-  --sesion-line: #e2e8f0;
-  --sesion-accent: #008f4c;
-  --sesion-accent-hover: #007a41;
-  --sesion-accent-ring: rgba(0, 143, 76, 0.18);
-  --sesion-field: #f6f8fb;
-  --sesion-field-line: #a3b0c2;
-  --sesion-field-line-hover: #7d8da3;
-  --sesion-ok: #047857;
-  --sesion-ok-bg: #ecfdf5;
-  --sesion-ok-line: #a7f3d0;
-  --sesion-danger: #b91c1c;
-  --sesion-danger-bg: #fef2f2;
-  --sesion-danger-line: #fecaca;
-  --sesion-radius: 12px;
-
   display: block;
   min-height: 100dvh;
-  background: var(--sesion-bg);
-  color: var(--sesion-ink);
-  font-family:
-    Inter,
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
-  font-size: 0.9375rem;
+  background: var(--sg-bg);
+  color: var(--sg-ink);
+  font-family: var(--sg-font-cuerpo);
 }
 
 .pagina {
   min-height: 100dvh;
   display: grid;
-  place-items: center;
-  padding: 1rem;
+  grid-template-columns: minmax(0, 1.12fr) minmax(31rem, 0.88fr);
+  gap: clamp(2rem, 5vw, 5.5rem);
+  align-items: center;
+  padding: clamp(1.5rem, 5vw, 4.5rem);
+  overflow: hidden;
   box-sizing: border-box;
 }
 
-.tarjeta {
-  width: min(26rem, 100%);
-  box-sizing: border-box;
+.panel-academico {
+  position: relative;
+  min-height: min(47rem, calc(100dvh - 6rem));
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-radius: var(--sg-radius-card);
+  isolation: isolate;
+  background: var(--sg-navy) url('/assets/login-campus.png') center / cover no-repeat;
+  box-shadow: var(--sg-shadow-float);
+}
+
+.panel-academico__degradado,
+.panel-academico__formas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.panel-academico__degradado {
+  z-index: -1;
+  background: linear-gradient(90deg, rgba(15, 38, 65, 0.94) 0%, rgba(27, 58, 92, 0.72) 48%, rgba(27, 58, 92, 0.18) 100%);
+}
+
+.panel-academico__formas {
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at 76% 48%, transparent 0 24%, rgba(22, 184, 160, 0.28) 24.2% 34%, transparent 34.3%),
+    radial-gradient(ellipse at 76% 48%, transparent 0 43%, rgba(22, 184, 160, 0.18) 43.2% 44.5%, transparent 44.8%);
+  mix-blend-mode: screen;
+}
+
+.panel-academico__contenido {
+  width: min(31rem, 80%);
   display: grid;
-  gap: 1.25rem;
-  padding: clamp(1.25rem, 4vw, 2rem);
-  background: var(--sesion-surface);
-  border: 1px solid var(--sesion-line);
-  border-radius: var(--sesion-radius);
-  box-shadow: 0 12px 32px -20px rgba(15, 23, 42, 0.3);
+  gap: clamp(4rem, 12vh, 9rem);
+  padding: clamp(2rem, 6vw, 5rem);
+  color: #fff;
 }
 
 .marca {
-  display: grid;
-  gap: 0.25rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--sesion-line);
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
 }
 
 .marca__nombre {
-  color: var(--sesion-accent);
-  font-size: 1.25rem;
+  color: var(--sg-navy);
+  font-family: var(--sg-font-titulo);
+  font-size: clamp(2.4rem, 5vw, 3.9rem);
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: -0.06em;
+  line-height: 1;
 }
 
-.marca__descripcion {
-  margin: 0;
-  color: var(--sesion-muted);
-  font-size: 0.8rem;
-  line-height: 1.4;
+.marca__punto,
+.panel-academico__copy h1 span {
+  color: var(--sg-teal);
 }
 
-h1 {
+.marca--clara .marca__nombre {
+  color: #fff;
+}
+
+.panel-academico__copy {
+  max-width: 27rem;
+}
+
+.panel-academico__copy h1 {
   margin: 0;
-  font-size: 1.35rem;
+  color: #fff;
+  font-size: clamp(2.5rem, 4.6vw, 4.1rem);
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.055em;
+  line-height: 1.02;
+}
+
+.panel-academico__linea {
+  display: block;
+  width: 3.8rem;
+  height: 0.24rem;
+  margin: 2rem 0 1.2rem;
+  border-radius: 99px;
+  background: var(--sg-teal);
+}
+
+.panel-academico__copy p {
+  max-width: 25rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: clamp(1rem, 1.7vw, 1.25rem);
+  line-height: 1.55;
+}
+
+.tarjeta {
+  width: min(38rem, 100%);
+  justify-self: center;
+  display: grid;
+  gap: 1.2rem;
+  padding: clamp(2rem, 5vw, 4.25rem);
+  box-sizing: border-box;
+  background: var(--sg-card);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: var(--sg-radius-card);
+  box-shadow: var(--sg-shadow-float);
+}
+
+.marca--formulario {
+  gap: 1.25rem;
+  margin-bottom: 1.2rem;
+}
+
+.marca--formulario .marca__nombre {
+  font-size: clamp(2.8rem, 5vw, 4rem);
+}
+
+.tarjeta h1 {
+  margin: 0;
+  color: var(--sg-navy);
+  font-size: clamp(2rem, 3vw, 2.7rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.subtitulo {
+  max-width: 30rem;
+  margin: -0.55rem 0 0.9rem;
+  color: var(--sg-ink-muted);
+  font-size: 1.1rem;
+  line-height: 1.45;
 }
 
 form {
@@ -91,60 +157,101 @@ form {
 
 .campo {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.45rem;
 }
 
 .campo label {
-  font-size: 0.85rem;
-  font-weight: 600;
+  color: var(--sg-navy);
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
 .campo input {
-  box-sizing: border-box;
   width: 100%;
+  min-height: 3.5rem;
+  box-sizing: border-box;
+  padding: 0.75rem 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-card);
+  color: var(--sg-ink);
   font: inherit;
-  padding: 0.65rem 0.75rem;
-  border: 1px solid var(--sesion-field-line);
-  border-radius: 8px;
-  background: var(--sesion-field);
-  color: var(--sesion-ink);
+  font-size: 1rem;
+}
+
+.campo input::placeholder {
+  color: var(--sg-ink-muted);
 }
 
 .campo input:hover {
-  border-color: var(--sesion-field-line-hover);
+  border-color: #94a3b8;
+}
+
+.campo input:focus-visible,
+.btn-visibilidad:focus-visible,
+.btn-primario:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--sg-teal) 45%, transparent);
+  outline-offset: 2px;
 }
 
 .campo input:focus-visible {
-  outline: none;
-  border-color: var(--sesion-accent);
-  box-shadow: 0 0 0 3px var(--sesion-accent-ring);
-  background: var(--sesion-surface);
+  border-color: var(--sg-navy);
 }
 
 .campo input[aria-invalid='true'] {
-  border-color: var(--sesion-danger);
+  border-color: var(--sg-error-fg);
+}
+
+.campo__control {
+  position: relative;
+}
+
+.campo__control input {
+  padding-right: 3.5rem;
+}
+
+.btn-visibilidad {
+  position: absolute;
+  top: 50%;
+  right: 0.65rem;
+  display: inline-grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: var(--sg-radius-micro);
+  background: transparent;
+  color: var(--sg-navy);
+  cursor: pointer;
+}
+
+.btn-visibilidad:hover {
+  background: var(--sg-secondary-hover);
+}
+
+.ayuda,
+.error-campo {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 
 .ayuda {
-  margin: 0;
-  color: var(--sesion-muted);
-  font-size: 0.8rem;
+  color: var(--sg-ink-muted);
 }
 
 .error-campo {
-  margin: 0;
-  color: var(--sesion-danger);
-  font-size: 0.8rem;
-  font-weight: 500;
+  color: var(--sg-error-fg);
+  font-weight: 600;
 }
 
 .alerta {
-  padding: 0.75rem 0.9rem;
-  border: 1px solid var(--sesion-danger-line);
-  border-radius: 8px;
-  background: var(--sesion-danger-bg);
-  color: var(--sesion-danger);
-  font-size: 0.875rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--sg-error-fg) 35%, white);
+  border-radius: var(--sg-radius-micro);
+  background: var(--sg-error-bg);
+  color: var(--sg-error-fg);
   line-height: 1.45;
 }
 
@@ -156,42 +263,126 @@ form {
 .exito {
   display: grid;
   gap: 0.6rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid var(--sesion-ok-line);
-  border-radius: 8px;
-  background: var(--sesion-ok-bg);
-  color: var(--sesion-ok);
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--sg-ok-fg) 35%, white);
+  border-radius: var(--sg-radius-micro);
+  background: var(--sg-ok-bg);
+  color: var(--sg-navy);
   line-height: 1.5;
 }
 
 .exito h1 {
-  color: var(--sesion-ok);
-  font-size: 1.1rem;
+  color: var(--sg-navy);
+  font-size: 1.2rem;
 }
 
 .btn-primario {
-  font: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
-  padding: 0.7rem 1rem;
-  border: 1px solid var(--sesion-accent);
-  border-radius: 8px;
-  background: var(--sesion-accent);
+  display: inline-flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 0.8rem 1.25rem;
+  border: 1px solid var(--sg-navy);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-navy);
   color: #fff;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .btn-primario:hover:not(:disabled) {
-  background: var(--sesion-accent-hover);
-}
-
-.btn-primario:focus-visible,
-.campo input:focus-visible {
-  outline: 3px solid var(--sesion-accent-ring);
-  outline-offset: 2px;
+  background: var(--sg-navy-hover);
+  border-color: var(--sg-navy-hover);
 }
 
 .btn-primario:disabled {
   cursor: progress;
   opacity: 0.7;
+}
+
+.pie-formulario {
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--sg-border);
+  color: var(--sg-ink-muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+@media (max-width: 1080px) {
+  .pagina {
+    grid-template-columns: minmax(0, 1fr) minmax(25rem, 0.9fr);
+    gap: 2rem;
+    padding: 2rem;
+  }
+
+  .panel-academico__contenido {
+    padding: 3rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .pagina {
+    display: block;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .panel-academico {
+    min-height: 14rem;
+    border-radius: 0 0 var(--sg-radius-card) var(--sg-radius-card);
+  }
+
+  .panel-academico__contenido {
+    width: min(32rem, 100%);
+    gap: 2rem;
+    padding: 2rem 1.5rem;
+  }
+
+  .panel-academico__copy h1 {
+    max-width: 20rem;
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+
+  .panel-academico__copy p {
+    max-width: 24rem;
+    font-size: 0.95rem;
+  }
+
+  .panel-academico__linea {
+    margin: 1rem 0 0.8rem;
+  }
+
+  .tarjeta {
+    width: 100%;
+    padding: 2rem 1.5rem 1.5rem;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .marca--formulario {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .panel-academico {
+    min-height: 12.5rem;
+  }
+
+  .panel-academico__contenido {
+    gap: 1.5rem;
+  }
+
+  .panel-academico__copy h1 {
+    font-size: 2rem;
+  }
+
+  .tarjeta h1 {
+    font-size: 1.9rem;
+  }
 }
