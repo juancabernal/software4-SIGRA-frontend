@@ -1,0 +1,109 @@
+<app-modal-crud
+  [abierto]="abierto()"
+  [titulo]="titulo()"
+  [etiquetaEnviar]="esModificacion() ? 'Guardar cambios' : 'Registrar'"
+  [procesando]="procesando()"
+  [error]="errorApi()?.mensaje ?? null"
+  [detalles]="errorApi()?.detalles ?? []"
+  [enviarDeshabilitado]="enviarDeshabilitado()"
+  (enviar)="enviar()"
+  (cancelar)="cancelar.emit()"
+  (envioBloqueado)="alIntentarEnviarInvalido()"
+>
+  @if (fila(); as f) {
+    <div class="contexto">
+      <p class="contexto__etiqueta">Estudiante</p>
+      <p class="contexto__nombre">{{ f.nombreCompleto }}</p>
+      <p class="contexto__documento">Documento {{ f.numeroDocumento }}</p>
+    </div>
+  }
+
+  <div class="campos" [formGroup]="form">
+    <div class="campo">
+      <label for="calificacion-nota">Nota <span class="obligatorio" aria-hidden="true">*</span></label>
+      <input
+        id="calificacion-nota"
+        type="number"
+        inputmode="decimal"
+        formControlName="nota"
+        [attr.min]="notaMin"
+        [attr.max]="notaMax"
+        step="0.1"
+        aria-required="true"
+        [attr.aria-invalid]="mostrarError('nota')"
+        aria-describedby="calificacion-nota-ayuda calificacion-nota-error"
+      />
+      <p class="ayuda" id="calificacion-nota-ayuda">Entre 0.0 y 5.0, con un decimal como máximo</p>
+      @if (mostrarError('nota')) {
+        <p class="error-campo" id="calificacion-nota-error">
+          @if (form.controls.nota.hasError('required')) {
+            Escribe la nota.
+          } @else if (form.controls.nota.hasError('decimales')) {
+            La nota admite como máximo un decimal (por ejemplo 3.5).
+          } @else {
+            La nota debe estar entre 0.0 y 5.0.
+          }
+        </p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="calificacion-observacion"
+        >Observación <span class="obligatorio" aria-hidden="true">*</span></label
+      >
+      <textarea
+        id="calificacion-observacion"
+        formControlName="observacion"
+        rows="4"
+        placeholder="Describe el desempeño del estudiante en esta evaluación"
+        aria-required="true"
+        [attr.maxlength]="observacionMax"
+        [attr.aria-invalid]="mostrarError('observacion')"
+        aria-describedby="calificacion-observacion-ayuda calificacion-observacion-error"
+      ></textarea>
+      <p class="ayuda" id="calificacion-observacion-ayuda">
+        Entre {{ observacionMin }} y {{ observacionMax }} caracteres · {{ largoObservacion() }} escritos
+      </p>
+      @if (mostrarError('observacion')) {
+        <p class="error-campo" id="calificacion-observacion-error">
+          @if (form.controls.observacion.hasError('required')) {
+            Escribe una observación.
+          } @else if (form.controls.observacion.hasError('caracteres')) {
+            La observación no puede contener los caracteres &lt; o &gt;.
+          } @else {
+            La observación debe tener entre {{ observacionMin }} y {{ observacionMax }} caracteres.
+          }
+        </p>
+      }
+    </div>
+  </div>
+
+  @if (esModificacion()) {
+    <section class="historial" aria-labelledby="titulo-historial">
+      <h3 id="titulo-historial" class="historial__titulo">Historial de esta nota</h3>
+      @if (cargandoHistorial()) {
+        <p class="ayuda" role="status">Cargando historial…</p>
+      } @else if (historial().length === 0) {
+        <p class="ayuda">Sin eventos registrados.</p>
+      } @else {
+        <ol class="historial__lista">
+          @for (e of historial(); track e.id) {
+            <li class="historial__evento">
+              <span class="historial__fecha">{{ formatearFecha(e.fechaEvento) }}</span>
+              @if (e.tipoEvento === 'REGISTRO') {
+                <span>Registrada con <strong>{{ e.notaNueva }}</strong></span>
+              } @else {
+                <span
+                  >Cambió de <strong>{{ e.notaAnterior }}</strong> a <strong>{{ e.notaNueva }}</strong></span
+                >
+              }
+              @if (e.fueraDeFecha) {
+                <span class="historial__tarde">⚠ fuera de fecha</span>
+              }
+            </li>
+          }
+        </ol>
+      }
+    </section>
+  }
+</app-modal-crud>
