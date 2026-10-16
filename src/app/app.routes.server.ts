@@ -1,21 +1,15 @@
 import { RenderMode, ServerRoute } from '@angular/ssr';
 
+/**
+ * SIGRA conserva navegación por roles en el navegador. No prerenderizamos el
+ * comodín: una redirección calculada en build podría servir HTML de otro rol
+ * al actualizar la página. En producción Vercel entrega index.html (SPA).
+ *
+ * El servidor Node del build de desarrollo sigue disponible para el smoke SSR.
+ */
 export const serverRoutes: ServerRoute[] = [
-  // Las pantallas privadas consumen la API con la sesión del usuario: no se prerenderizan.
-  {
-    path: 'admin/**',
-    renderMode: RenderMode.Client,
-  },
-  {
-    path: 'profesor/**',
-    renderMode: RenderMode.Client,
-  },
-  {
-    path: 'estudiante/**',
-    renderMode: RenderMode.Client,
-  },
   {
     path: '**',
-    renderMode: RenderMode.Prerender,
+    renderMode: RenderMode.Client,
   },
 ];

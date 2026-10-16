@@ -1,4 +1,4 @@
-import { UsuarioSesion } from '../../../core/models/sesion.model';
+import { RespuestaLogin } from '../../../core/models/sesion.model';
 
 /**
  * Contrato de autenticación de POST /api/v1/auth/login (RF-04).
@@ -12,9 +12,4 @@ export interface LoginRequest {
 }
 
 /** Respuesta 200 del login. */
-export interface LoginResponse {
-  token: string;
-  tipo: string;
-  expiraEn: number;
-  usuario: UsuarioSesion;
-}
+export type LoginResponse = RespuestaLogin;
