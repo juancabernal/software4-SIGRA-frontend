@@ -150,7 +150,10 @@ export const routes: Routes = [
       {
         ...administrador,
         path: 'admin/asignacion',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import('./features/asignacion-docente/components/asignacion-docente-page/asignacion-docente-page').then(
+            (m) => m.AsignacionDocentePage,
+          ),
         title: 'Asignación docente · SIGRA',
         data: {
           ...administrador.data,
