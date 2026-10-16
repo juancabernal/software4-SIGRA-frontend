@@ -73,15 +73,14 @@ export const routes: Routes = [
         title: 'Matrícula de estudiantes · SIGRA',
       },
       {
+        // RF-10 / RF-11: evaluaciones por RA con el porcentaje acumulado del semestre.
         ...profesor,
         path: 'profesor/evaluaciones',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import('./features/evaluaciones/components/evaluaciones-page/evaluaciones-page').then(
+            (m) => m.EvaluacionesPage,
+          ),
         title: 'Evaluaciones por RA · SIGRA',
-        data: {
-          ...profesor.data,
-          titulo: 'Evaluaciones por RA',
-          subtitulo: 'Evaluaciones asociadas a cada resultado de aprendizaje',
-        },
       },
       {
         // RF-12 / RF-13: planilla de notas por evaluación, con la marca ⚠ de fuera de fecha.
