@@ -3,8 +3,8 @@
  * (co.edu.uco.sigra.mejoras.dto). Ruta base: /api/v1/acciones-mejora.
  */
 
-export const NOMBRE_ACCION_MAX = 150;
-export const DESCRIPCION_ACCION_MAX = 500;
+export const NOMBRE_ACCION_MAX = 30;
+export const DESCRIPCION_ACCION_MAX = 100;
 
 /** AccionMejoraResponseDTO. */
 export interface AccionMejora {
@@ -38,5 +38,6 @@ export interface FiltrosAccionMejora {
 
 /** Cuerpo de POST /acciones-mejora/{id}/conversion (RF-18). */
 export interface ConversionAccionMejora {
+  fechaTentativa: string;
   porcentaje: number;
 }

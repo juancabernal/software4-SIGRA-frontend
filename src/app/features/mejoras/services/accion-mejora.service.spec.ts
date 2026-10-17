@@ -95,11 +95,13 @@ describe('AccionMejoraService', () => {
   describe('convertir', () => {
     it('hace POST a /acciones-mejora/{id}/conversion con el porcentaje', () => {
       let resultado: AccionMejora | undefined;
-      service.convertir('am1', { porcentaje: 20 }).subscribe((r) => (resultado = r));
+      service
+        .convertir('am1', { fechaTentativa: '2026-06-10', porcentaje: 20 })
+        .subscribe((r) => (resultado = r));
 
       const req = http.expectOne(`${URL_ACCIONES}/am1/conversion`);
       expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual({ porcentaje: 20 });
+      expect(req.request.body).toEqual({ fechaTentativa: '2026-06-10', porcentaje: 20 });
       const convertida = { ...ACCION, convertida: true, evaluacionGeneradaId: 'ev1' };
       req.flush(convertida);
       expect(resultado).toEqual(convertida);
