@@ -84,6 +84,7 @@ describe('EstadisticasPage', () => {
   });
 
   afterEach(() => {
+    fixture.destroy();
     html.remove();
     http.verify();
   });

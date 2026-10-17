@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { catchError, combineLatest, map, of, startWith, switchMap } from 'rxjs';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { catchError, combineLatest, map, of, skip, startWith, switchMap } from 'rxjs';
 
+import { refrescoAutomatico } from '../../../../core/util/refresco-automatico';
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
@@ -73,6 +74,8 @@ export class EstadisticasPage {
   private temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
   protected readonly aviso = signal<Aviso | null>(null);
 
+  private readonly refresco = refrescoAutomatico();
+
   // ── Materias ─────────────────────────────────────────────────────────
   protected readonly cargandoAsignaturas = signal(true);
   protected readonly errorAsignaturas = signal<MensajeError | null>(null);
@@ -128,6 +131,7 @@ export class EstadisticasPage {
       toObservable(this.resultadoAprendizajeId),
       toObservable(this.semestreId),
       toObservable(this.recargaAcciones),
+      toObservable(this.refresco),
     ]).pipe(
       switchMap(([resultadoAprendizajeId, semestreId]) => {
         if (!resultadoAprendizajeId || !semestreId) {
@@ -162,6 +166,29 @@ export class EstadisticasPage {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.temporizadorAviso));
     this.cargarAsignaturas();
     this.cargarSemestres();
+
+    toObservable(this.refresco)
+      .pipe(skip(1), takeUntilDestroyed())
+      .subscribe(() => this.refrescarConclusionEnSegundoPlano());
+  }
+
+  /** Vuelve a consultar la conclusión sin mostrar "cargando" ni borrar lo que ya hay en pantalla. */
+  private refrescarConclusionEnSegundoPlano(): void {
+    if (!this.puedeConsultar() || this.consulta().estado === 'inactivo') {
+      return;
+    }
+    this.conclusionService
+      .listar({
+        resultadoAprendizajeId: this.resultadoAprendizajeId(),
+        semestreId: this.semestreId(),
+        estado: 'VIGENTE',
+      })
+      .subscribe({
+        next: (lista) => this.consulta.set({ estado: 'listo', conclusion: lista[0] ?? null }),
+        error: () => {
+          // refresco en segundo plano: ante un fallo se conservan los datos previos sin avisar
+        },
+      });
   }
 
   protected cargarAsignaturas(): void {
