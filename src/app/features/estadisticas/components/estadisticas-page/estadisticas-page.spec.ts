@@ -182,6 +182,30 @@ describe('EstadisticasPage', () => {
       expect(boton(html, 'Crear acción de mejora')).toBeDefined();
     });
 
+    it('un refresco de fondo no pone la pantalla en estado de carga y conserva los datos anteriores', async () => {
+      await iniciarConSeleccion([ra(1)]);
+
+      boton(html, 'Consultar conclusión').click();
+      await fixture.whenStable();
+      http.expectOne((r) => r.url === URL_CONCLUSIONES).flush([CONCLUSION]);
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain(CONCLUSION.mensaje);
+
+      document.dispatchEvent(new Event('visibilitychange'));
+      await fixture.whenStable();
+
+      expect(html.textContent).not.toContain('Consultando…');
+      expect(html.textContent).not.toContain('Cargando acciones de mejora');
+      expect(html.textContent).toContain(CONCLUSION.mensaje);
+
+      http.expectOne((r) => r.url === URL_CONCLUSIONES).flush([CONCLUSION]);
+      http.expectOne((r) => r.url === URL_ACCIONES_MEJORA).flush([]);
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain(CONCLUSION.mensaje);
+    });
+
     it('sin conclusión vigente muestra el estado vacío y no ofrece «Crear acción de mejora»', async () => {
       await iniciarConSeleccion([ra(1)]);
 
