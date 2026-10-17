@@ -18,6 +18,15 @@ export const PATRON_NUMERO_DOCUMENTO = /^\d{6,10}$/;
 /** Admite mayúsculas y espacios alrededor; se recortan antes de enviar. */
 export const PATRON_CORREO_INSTITUCIONAL = /^\s*[\w.-]+@uco\.net\.co\s*$/i;
 
+/**
+ * Solo letras (con tildes y Ñ) y un único espacio entre palabras — mismo patrón que valida el
+ * backend (@Pattern en EstudianteRequestDTO). Nada de dígitos, símbolos ni espacios dobles o al
+ * borde.
+ */
+export const PATRON_NOMBRE_COMPLETO = /^\p{L}+(?:\s\p{L}+)*$/u;
+export const LONGITUD_MINIMA_NOMBRE_COMPLETO = 3;
+export const LONGITUD_MAXIMA_NOMBRE_COMPLETO = 150;
+
 /** Los cuatro campos de identificación de un estudiante. */
 export type CampoEstudiante =
   'tipoDocumentoId' | 'numeroDocumento' | 'nombreCompleto' | 'correoInstitucional';
@@ -31,7 +40,12 @@ export function validadoresEstudiante(): Record<CampoEstudiante, ValidatorFn[]> 
   return {
     tipoDocumentoId: [Validators.required],
     numeroDocumento: [Validators.required, Validators.pattern(PATRON_NUMERO_DOCUMENTO)],
-    nombreCompleto: [Validators.required],
+    nombreCompleto: [
+      Validators.required,
+      Validators.minLength(LONGITUD_MINIMA_NOMBRE_COMPLETO),
+      Validators.maxLength(LONGITUD_MAXIMA_NOMBRE_COMPLETO),
+      Validators.pattern(PATRON_NOMBRE_COMPLETO),
+    ],
     correoInstitucional: [Validators.required, Validators.pattern(PATRON_CORREO_INSTITUCIONAL)],
   };
 }

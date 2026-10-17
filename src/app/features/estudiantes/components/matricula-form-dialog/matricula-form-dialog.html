@@ -5,7 +5,7 @@
       @if (estudianteNombre()) {
         <p>Elige la asignatura y el semestre para {{ estudianteNombre() }}.</p>
       } @else if (!estudianteFijadoPorPadre()) {
-        <p>Identifica al estudiante por su número de documento y elige asignatura y semestre.</p>
+        <p>Busca al estudiante por nombre, apellido o documento y elige asignatura y semestre.</p>
       }
     </div>
 
@@ -64,25 +64,24 @@
       } @else if (modo() === 'buscar') {
         <div class="busqueda" [formGroup]="formBusqueda">
           <div class="campo">
-            <label for="matricula-buscar-documento">Número de documento del estudiante</label>
+            <label for="matricula-buscar-criterio">Nombre, apellido o número de documento</label>
             <div class="busqueda__linea">
               <input
-                id="matricula-buscar-documento"
+                id="matricula-buscar-criterio"
                 type="text"
-                inputmode="numeric"
-                formControlName="numeroDocumento"
+                formControlName="criterio"
                 autocomplete="off"
                 autofocus
-                [attr.aria-invalid]="mostrarErrorDocumento()"
-                aria-describedby="matricula-buscar-documento-error"
+                [attr.aria-invalid]="mostrarErrorCriterio()"
+                aria-describedby="matricula-buscar-criterio-error"
               />
               <button type="button" class="btn" [disabled]="buscando()" (click)="buscar()">
                 {{ buscando() ? 'Buscando…' : 'Buscar' }}
               </button>
             </div>
-            @if (mostrarErrorDocumento()) {
-              <p class="error-campo" id="matricula-buscar-documento-error">
-                Escribe un número de documento de 6 a 10 dígitos.
+            @if (mostrarErrorCriterio()) {
+              <p class="error-campo" id="matricula-buscar-criterio-error">
+                Escribe al menos 3 caracteres del nombre, el apellido o el documento.
               </p>
             }
           </div>
@@ -91,7 +90,9 @@
             @if (buscando()) {
               Buscando al estudiante…
             } @else if (noEncontrado()) {
-              Ningún estudiante registrado con ese número de documento.
+              Ningún estudiante coincide con esa búsqueda.
+            } @else if (resultadosFiltrados().length) {
+              {{ resultadosFiltrados().length }} estudiantes coinciden. Elige uno de la lista.
             }
           </p>
 
@@ -106,9 +107,60 @@
             </div>
           }
 
+          @if (resultados().length) {
+            <div class="resultados">
+              <div class="campo campo--filtro">
+                <label for="matricula-filtro-estado">Estado</label>
+                <select
+                  id="matricula-filtro-estado"
+                  [value]="filtroEstado()"
+                  (change)="cambiarFiltroEstado($any($event.target).value)"
+                >
+                  <option value="TODOS">Todos</option>
+                  <option value="ACTIVO">Activos</option>
+                  <option value="INACTIVO">Inactivos</option>
+                </select>
+              </div>
+
+              @if (ocultosPorEstado()) {
+                <p class="resultados__vacio">
+                  Hay coincidencias, pero ninguna con ese estado. Cambia el filtro para verlas.
+                </p>
+              } @else {
+                <ul class="resultados__lista">
+                  @for (e of resultadosFiltrados(); track e.id) {
+                    <li>
+                      <button
+                        type="button"
+                        class="resultado"
+                        (click)="seleccionar(e)"
+                        [attr.aria-label]="'Elegir a ' + e.nombreCompleto"
+                      >
+                        <span class="resultado__nombre">{{ e.nombreCompleto }}</span>
+                        <span class="resultado__dato">
+                          {{ e.tipoDocumentoNombre }} {{ e.numeroDocumento }} ·
+                          {{ e.correoInstitucional }}
+                        </span>
+                        <app-chip-estado
+                          [etiqueta]="presentacionEstado[e.estado].etiqueta"
+                          [variante]="presentacionEstado[e.estado].variante"
+                          [icono]="presentacionEstado[e.estado].icono"
+                        />
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+
+              <button type="button" class="btn btn--pequeno" (click)="registrarEnSuLugar()">
+                Ninguno es: registrar uno nuevo
+              </button>
+            </div>
+          }
+
           @if (noEncontrado()) {
             <div class="no-encontrado">
-              <p>Ningún estudiante registrado con ese número de documento.</p>
+              <p>Ningún estudiante coincide con esa búsqueda.</p>
               <button type="button" class="btn btn--primario" (click)="registrarEnSuLugar()">
                 Registrarlo y matricularlo
               </button>
@@ -133,8 +185,10 @@
               [attr.aria-invalid]="mostrarErrorNuevo('tipoDocumentoId')"
               aria-describedby="matricula-nuevo-tipo-error"
             >
-              <option value="" disabled>Selecciona un tipo</option>
-              @for (t of tiposDocumento; track t.id) {
+              <option value="" disabled>
+                {{ cargandoTiposDocumento() ? 'Cargando tipos…' : 'Selecciona un tipo' }}
+              </option>
+              @for (t of tiposDocumento(); track t.id) {
                 <option [value]="t.id">{{ t.nombre }}</option>
               }
             </select>
@@ -173,7 +227,16 @@
             />
             @if (mostrarErrorNuevo('nombreCompleto')) {
               <p class="error-campo" id="matricula-nuevo-nombre-error">
-                Escribe el nombre completo.
+                @if (formNuevo.controls.nombreCompleto.hasError('required')) {
+                  Escribe el nombre completo.
+                } @else if (
+                  formNuevo.controls.nombreCompleto.hasError('minlength') ||
+                  formNuevo.controls.nombreCompleto.hasError('maxlength')
+                ) {
+                  El nombre completo debe tener entre 3 y 150 caracteres.
+                } @else {
+                  Usa solo letras y un único espacio entre cada palabra, sin números ni símbolos.
+                }
               </p>
             }
           </div>

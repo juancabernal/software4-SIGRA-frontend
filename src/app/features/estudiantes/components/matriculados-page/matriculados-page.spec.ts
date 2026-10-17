@@ -4,6 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../../../environments/environment';
 import { EstudianteMatriculado } from '../../models/matricula.model';
+import { ConfettiService } from '../../../../shared/ui/confetti/confetti.service';
 import { MatriculadosPage } from './matriculados-page';
 
 const URL_ASIGNATURAS = `${environment.apiUrl}/v1/asignaturas`;
@@ -24,6 +25,7 @@ describe('MatriculadosPage', () => {
   let fixture: ComponentFixture<MatriculadosPage>;
   let http: HttpTestingController;
   let html: HTMLElement;
+  let confettiSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -31,6 +33,9 @@ describe('MatriculadosPage', () => {
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     http = TestBed.inject(HttpTestingController);
+    confettiSpy = vi
+      .spyOn(TestBed.inject(ConfettiService), 'celebrar')
+      .mockImplementation(() => {});
     fixture = TestBed.createComponent(MatriculadosPage);
     html = fixture.nativeElement as HTMLElement;
     document.body.appendChild(html);
@@ -298,7 +303,7 @@ describe('MatriculadosPage', () => {
       expect(asignatura.value).toBe('a1');
       expect(semestre.value).toBe('s1');
       // Sin estudiante fijado: toca identificarlo aquí.
-      expect(dialogoMatricula().querySelector('#matricula-buscar-documento')).toBeTruthy();
+      expect(dialogoMatricula().querySelector('#matricula-buscar-criterio')).toBeTruthy();
     });
 
     it('con los filtros vacíos abre sin preselección', async () => {
@@ -322,7 +327,7 @@ describe('MatriculadosPage', () => {
       await abrirDialogo();
 
       const campo = dialogoMatricula().querySelector(
-        '#matricula-buscar-documento',
+        '#matricula-buscar-criterio',
       ) as HTMLInputElement;
       campo.value = '1234567890';
       campo.dispatchEvent(new Event('input'));
@@ -357,6 +362,7 @@ describe('MatriculadosPage', () => {
       await fixture.whenStable();
 
       expect(html.textContent).toContain('Estudiante matriculado.');
+      expect(confettiSpy).toHaveBeenCalledTimes(1);
       // Se relee del servidor (D9): la fila nueva llega de la consulta, no de un parche en memoria.
       consultaMatriculados().flush([ANA]);
       await fixture.whenStable();

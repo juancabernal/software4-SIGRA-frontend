@@ -12,6 +12,7 @@ import { catchError, forkJoin, map, of, switchMap, tap } from 'rxjs';
 
 import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
 import { MatriculaFormDialog } from '../matricula-form-dialog/matricula-form-dialog';
+import { ConfettiService } from '../../../../shared/ui/confetti/confetti.service';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
 import {
@@ -51,6 +52,7 @@ export class MatriculadosPage {
   private readonly service = inject(MatriculaService);
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly destroyRef = inject(DestroyRef);
+  private readonly confetti = inject(ConfettiService);
   private temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
   private readonly asignaturaInicial =
     this.route?.snapshot.queryParamMap.get('asignaturaId') ?? null;
@@ -193,6 +195,7 @@ export class MatriculadosPage {
   protected alMatricular(texto: string): void {
     this.matriculaAbierta.set(false);
     this.mostrarAviso({ texto, tono: 'ok' });
+    this.confetti.celebrar();
     this.recargar();
   }
 

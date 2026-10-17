@@ -13,17 +13,43 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { catchError, forkJoin, of, switchMap } from 'rxjs';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
+import {
+  Subject,
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  forkJoin,
+  map,
+  of,
+  switchMap,
+} from 'rxjs';
 
-import { Estudiante, EstudianteRequest } from '../../models/estudiante.model';
+import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
+import {
+  EstadoEstudiante,
+  Estudiante,
+  EstudianteRequest,
+  PRESENTACION_ESTADO_ESTUDIANTE,
+} from '../../models/estudiante.model';
 import { OpcionAsignatura, OpcionSemestre } from '../../models/matricula.model';
-import { TIPOS_DOCUMENTO } from '../../models/tipos-documento';
+import { TipoDocumento } from '../../models/tipos-documento';
 import { validadoresEstudiante } from '../../models/validadores-estudiante';
-import { MensajeError, mensajeDeError } from '../../services/estudiante-error';
+import {
+  MensajeError,
+  mensajeDeError,
+  registrarErrorTecnico,
+} from '../../services/estudiante-error';
 import { CatalogosMatriculaService } from '../../services/catalogos-matricula.service';
 import { EstudianteService } from '../../services/estudiante.service';
 import { MatriculaService } from '../../services/matricula.service';
+import { TipoDocumentoOpcionesService } from '../../services/tipo-documento-opciones.service';
 
 type Campo = 'asignaturaId' | 'semestreId';
 type CampoEstudianteNuevo =
@@ -31,6 +57,23 @@ type CampoEstudianteNuevo =
 
 /** Cómo se está indicando al estudiante cuando el padre no lo fija. */
 type Modo = 'buscar' | 'nuevo';
+
+/** Opciones del filtro de estado sobre los resultados de la búsqueda. */
+type FiltroEstado = 'TODOS' | EstadoEstudiante;
+
+/** Documento completo: lo que el backend valida al registrar (@Pattern del DTO). */
+const PATRON_DOCUMENTO_COMPLETO = /^\d{6,10}$/;
+
+/** Un criterio más corto haría un LIKE '%%' que devuelve la tabla entera. */
+const LONGITUD_MINIMA_CRITERIO = 3;
+
+/** Pausa al teclear antes de consultar: evita una petición por cada letra. */
+const RETARDO_BUSQUEDA_MS = 300;
+
+function criterioSuficiente(control: AbstractControl): ValidationErrors | null {
+  const texto = String(control.value ?? '').trim();
+  return texto.length >= LONGITUD_MINIMA_CRITERIO ? null : { criterioCorto: true };
+}
 
 /**
  * Diálogo de matrícula (RF-08, RF-09a). Sirve a dos entradas distintas:
@@ -45,7 +88,7 @@ type Modo = 'buscar' | 'nuevo';
  */
 @Component({
   selector: 'app-matricula-form-dialog',
-  imports: [ReactiveFormsModule],
+  imports: [ChipEstado, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './matricula-form-dialog.html',
   styleUrl: './matricula-form-dialog.scss',
@@ -54,6 +97,7 @@ export class MatriculaFormDialog implements OnInit {
   private readonly catalogos = inject(CatalogosMatriculaService);
   private readonly service = inject(MatriculaService);
   private readonly estudiantes = inject(EstudianteService);
+  private readonly tiposDocumentoService = inject(TipoDocumentoOpcionesService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
   private readonly dialogo = viewChild.required<ElementRef<HTMLDialogElement>>('dialogo');
@@ -69,7 +113,9 @@ export class MatriculaFormDialog implements OnInit {
   readonly matriculado = output<string>();
   readonly cerrado = output<void>();
 
-  protected readonly tiposDocumento = TIPOS_DOCUMENTO;
+  /** Catálogo servido por el backend: los ids tienen que ser los de la base en uso. */
+  protected readonly tiposDocumento = signal<TipoDocumento[]>([]);
+  protected readonly cargandoTiposDocumento = signal(false);
 
   // ── Identificación del estudiante ─────────────────────────────────
   protected readonly modo = signal<Modo>('buscar');
@@ -83,6 +129,22 @@ export class MatriculaFormDialog implements OnInit {
   protected readonly buscando = signal(false);
   protected readonly noEncontrado = signal(false);
   protected readonly errorBusqueda = signal<string | null>(null);
+
+  // ── Resultados de la búsqueda ─────────────────────────────────────
+  /** Todas las coincidencias del servidor; el usuario elige cuál es (D18). */
+  protected readonly resultados = signal<Estudiante[]>([]);
+  protected readonly filtroEstado = signal<FiltroEstado>('TODOS');
+  /** El estado se filtra aquí: el backend no admite ese parámetro. */
+  protected readonly resultadosFiltrados = computed(() => {
+    const estado = this.filtroEstado();
+    const encontrados = this.resultados();
+    return estado === 'TODOS' ? encontrados : encontrados.filter((e) => e.estado === estado);
+  });
+  /** Hay coincidencias, pero el filtro de estado las esconde todas. */
+  protected readonly ocultosPorEstado = computed(
+    () => this.resultados().length > 0 && this.resultadosFiltrados().length === 0,
+  );
+  protected readonly presentacionEstado = PRESENTACION_ESTADO_ESTUDIANTE;
   /** Mensaje que distingue «el alta sí, la matrícula no» (D14). */
   protected readonly altaParcial = signal<string | null>(null);
 
@@ -110,8 +172,9 @@ export class MatriculaFormDialog implements OnInit {
     semestreId: ['', Validators.required],
   });
 
+  /** Un solo campo: el backend resuelve el LIKE sobre nombre completo o documento. */
   protected readonly formBusqueda = this.fb.nonNullable.group({
-    numeroDocumento: ['', validadoresEstudiante().numeroDocumento],
+    criterio: ['', [Validators.required, criterioSuficiente]],
   });
 
   private readonly validadores = validadoresEstudiante();
@@ -141,8 +204,15 @@ export class MatriculaFormDialog implements OnInit {
       (!!this.idEfectivo() || this.modo() === 'nuevo'),
   );
 
+  /** Cada criterio que hay que consultar, venga de teclear o del botón. */
+  private readonly criterioBuscado = new Subject<string>();
+  /** Lo último que se consultó, para que teclear no repita lo que el botón ya pidió. */
+  private ultimoCriterio = '';
+
   constructor() {
     this.cargarCatalogos();
+    this.escucharTecleo();
+    this.atenderBusquedas();
     afterNextRender(() => {
       const dialogo = this.dialogo().nativeElement;
       if (typeof dialogo.showModal === 'function' && !dialogo.open) {
@@ -169,8 +239,8 @@ export class MatriculaFormDialog implements OnInit {
     return control.invalid && (control.touched || control.dirty);
   }
 
-  protected mostrarErrorDocumento(): boolean {
-    const control = this.formBusqueda.controls.numeroDocumento;
+  protected mostrarErrorCriterio(): boolean {
+    const control = this.formBusqueda.controls.criterio;
     return control.invalid && (control.touched || control.dirty);
   }
 
@@ -181,54 +251,131 @@ export class MatriculaFormDialog implements OnInit {
   // ── Identificar al estudiante ─────────────────────────────────────
 
   /**
-   * Busca por documento y se queda **solo** con la coincidencia exacta (D18): el `filtro` del
-   * backend es un LIKE sobre nombre o documento, así que puede devolver gente que el usuario no
-   * escribió. Preseleccionar a cualquiera de ellos matricularía a otra persona.
+   * Busca por nombre, apellido o documento: el `filtro` del backend es un LIKE sobre el nombre
+   * completo o el número de documento.
+   *
+   * Nunca preselecciona una coincidencia parcial (D18): matricularía a otra persona. Solo se
+   * resuelve sola cuando el usuario escribió un documento completo y existe tal cual; en
+   * cualquier otro caso se listan las coincidencias para que él elija.
    */
   protected buscar(): void {
-    this.errorBusqueda.set(null);
-    this.noEncontrado.set(false);
-    this.errorApi.set(null);
     if (this.formBusqueda.invalid) {
       this.formBusqueda.markAllAsTouched();
       return;
     }
-    const documento = this.formBusqueda.getRawValue().numeroDocumento.trim();
-    this.buscando.set(true);
-    this.estudiantes
-      .listar(documento)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (resultados) => {
+    this.lanzarBusqueda(this.formBusqueda.getRawValue().criterio.trim());
+  }
+
+  /**
+   * Busca sola mientras el usuario escribe, tras una pausa. El botón «Buscar» sigue ahí para
+   * quien prefiera pedirlo explícitamente y para reintentar tras un fallo.
+   */
+  private escucharTecleo(): void {
+    this.formBusqueda.controls.criterio.valueChanges
+      .pipe(
+        debounceTime(RETARDO_BUSQUEDA_MS),
+        map((texto) => texto.trim()),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((criterio) => {
+        // Con un criterio demasiado corto no se consulta, y lo mostrado antes deja de valer.
+        if (criterio.length < LONGITUD_MINIMA_CRITERIO) {
+          this.resultados.set([]);
+          this.noEncontrado.set(false);
           this.buscando.set(false);
-          const exacto = resultados.find((e) => e.numeroDocumento === documento) ?? null;
-          this.encontrado.set(exacto);
-          this.noEncontrado.set(exacto === null);
-        },
-        error: (error: unknown) => {
-          this.buscando.set(false);
-          this.errorBusqueda.set(mensajeDeError(error).mensaje);
-        },
+          return;
+        }
+        // El botón pudo adelantarse a la pausa: no se repite la misma consulta.
+        if (criterio === this.ultimoCriterio) {
+          return;
+        }
+        this.lanzarBusqueda(criterio);
       });
   }
 
-  /** Pasa al alta en un paso, conservando el documento que el usuario ya escribió. */
+  private lanzarBusqueda(criterio: string): void {
+    this.ultimoCriterio = criterio;
+    this.errorBusqueda.set(null);
+    this.noEncontrado.set(false);
+    this.errorApi.set(null);
+    this.resultados.set([]);
+    this.buscando.set(true);
+    this.criterioBuscado.next(criterio);
+  }
+
+  /**
+   * `switchMap` descarta la respuesta de un criterio que el usuario ya cambió: sin eso, una
+   * consulta lenta podría pisar con sus resultados a los de lo que está escrito ahora.
+   */
+  private atenderBusquedas(): void {
+    this.criterioBuscado
+      .pipe(
+        switchMap((criterio) =>
+          this.estudiantes.listar(criterio).pipe(
+            map((resultados) => ({ criterio, resultados, fallo: null as unknown })),
+            catchError((fallo: unknown) => of({ criterio, resultados: [] as Estudiante[], fallo })),
+          ),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(({ criterio, resultados, fallo }) => {
+        this.buscando.set(false);
+        if (fallo !== null) {
+          this.errorBusqueda.set(mensajeDeError(fallo).mensaje);
+          return;
+        }
+        const exacto = PATRON_DOCUMENTO_COMPLETO.test(criterio)
+          ? (resultados.find((e) => e.numeroDocumento === criterio) ?? null)
+          : null;
+        if (exacto) {
+          this.encontrado.set(exacto);
+          return;
+        }
+        this.resultados.set(resultados);
+        this.noEncontrado.set(resultados.length === 0);
+      });
+  }
+
+  /** El usuario elige a quién matricular entre las coincidencias (D18). */
+  protected seleccionar(estudiante: Estudiante): void {
+    this.encontrado.set(estudiante);
+    this.resultados.set([]);
+    this.noEncontrado.set(false);
+  }
+
+  protected cambiarFiltroEstado(valor: string): void {
+    this.filtroEstado.set(valor as FiltroEstado);
+  }
+
+  /**
+   * Pasa al alta en un paso conservando lo que el usuario ya escribió. Como el criterio ahora
+   * puede ser un nombre, se copia al campo que le corresponde y no siempre al del documento.
+   */
   protected registrarEnSuLugar(): void {
-    const documento = this.formBusqueda.getRawValue().numeroDocumento.trim();
+    const criterio = this.formBusqueda.getRawValue().criterio.trim();
+    this.cargarTiposDocumento();
     this.modo.set('nuevo');
     this.noEncontrado.set(false);
     this.errorBusqueda.set(null);
     this.errorApi.set(null);
-    this.formNuevo.patchValue({ numeroDocumento: documento });
+    this.resultados.set([]);
+    this.formNuevo.patchValue(
+      PATRON_DOCUMENTO_COMPLETO.test(criterio)
+        ? { numeroDocumento: criterio }
+        : { nombreCompleto: criterio },
+    );
   }
 
-  /** Vuelve a buscar por documento, conservando lo escrito en el alta. */
+  /** Vuelve a la búsqueda conservando lo escrito en el alta. */
   protected volverABuscar(): void {
-    const documento = this.formNuevo.getRawValue().numeroDocumento.trim();
+    const { numeroDocumento, nombreCompleto } = this.formNuevo.getRawValue();
+    const criterio = numeroDocumento.trim() || nombreCompleto.trim();
     this.modo.set('buscar');
     this.errorApi.set(null);
     this.noEncontrado.set(false);
-    this.formBusqueda.patchValue({ numeroDocumento: documento });
+    // Sin `emitEvent` la escucha del tecleo repetiría esta misma búsqueda 300 ms después.
+    this.formBusqueda.patchValue({ criterio }, { emitEvent: false });
     if (this.formBusqueda.valid) {
       this.buscar();
     }
@@ -238,6 +385,7 @@ export class MatriculaFormDialog implements OnInit {
     this.encontrado.set(null);
     this.noEncontrado.set(false);
     this.errorApi.set(null);
+    this.resultados.set([]);
   }
 
   // ── Matricular ────────────────────────────────────────────────────
@@ -265,7 +413,7 @@ export class MatriculaFormDialog implements OnInit {
     // se avisa en lugar de enviar una matrícula sin estudiante.
     this.formBusqueda.markAllAsTouched();
     this.noEncontrado.set(false);
-    this.errorBusqueda.set('Busca primero al estudiante por su número de documento.');
+    this.errorBusqueda.set('Busca primero al estudiante y elígelo de la lista.');
   }
 
   /** Matrícula sola: el estudiante ya existe (lo fijó el padre, se encontró, o se acaba de crear). */
@@ -300,9 +448,9 @@ export class MatriculaFormDialog implements OnInit {
       this.formNuevo.markAllAsTouched();
       return;
     }
-    // No hace falta resolver el tipo de documento con `idDeTipoDocumento` (D3): a diferencia de
+    // No hace falta resolver el tipo de documento por nombre: a diferencia de
     // `estudiante-form-dialog`, que parte del *nombre* que devuelve el servidor, aquí el selector
-    // ya ofrece los ids del propio catálogo `TIPOS_DOCUMENTO`.
+    // ya ofrece los ids que sirvió el backend en GET /tipos-documento.
     const valores = this.formNuevo.getRawValue();
     const dto: EstudianteRequest = {
       tipoDocumentoId: valores.tipoDocumentoId,
@@ -337,6 +485,11 @@ export class MatriculaFormDialog implements OnInit {
           this.guardando.set(false);
           const mensaje = mensajeDeError(error);
           const creado = this.creado();
+          // El usuario solo ve `mensaje` (RNF-17); el detalle técnico queda en consola.
+          registrarErrorTecnico(
+            creado ? 'matriculas.matricular-tras-registro' : 'estudiantes.registrar',
+            error,
+          );
           if (creado) {
             // El alta sí ocurrió. Se dice explícitamente, para que el usuario no crea que no pasó
             // nada y vuelva a registrarlo.
@@ -383,6 +536,24 @@ export class MatriculaFormDialog implements OnInit {
         }
         this.asignaturas.set(asignaturas);
         this.semestres.set(semestres);
+      });
+  }
+
+  /** Solo hace falta en el modo «nuevo»; se pide al entrar en él y una sola vez. */
+  private cargarTiposDocumento(): void {
+    if (this.cargandoTiposDocumento() || this.tiposDocumento().length > 0) {
+      return;
+    }
+    this.cargandoTiposDocumento.set(true);
+    this.tiposDocumentoService
+      .listar()
+      .pipe(
+        catchError(() => of([] as TipoDocumento[])),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((tipos) => {
+        this.tiposDocumento.set(tipos);
+        this.cargandoTiposDocumento.set(false);
       });
   }
 

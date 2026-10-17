@@ -5,13 +5,19 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { environment } from '../../../../../environments/environment';
 import { Estudiante } from '../../models/estudiante.model';
 import { MatriculaRequest } from '../../models/matricula.model';
-import { TIPOS_DOCUMENTO } from '../../models/tipos-documento';
 import { MatriculaFormDialog } from './matricula-form-dialog';
 
 const URL_ASIGNATURAS = `${environment.apiUrl}/v1/asignaturas`;
 const URL_SEMESTRES = `${environment.apiUrl}/v1/semestres`;
 const URL_MATRICULAS = `${environment.apiUrl}/v1/matriculas`;
 const URL_ESTUDIANTES = `${environment.apiUrl}/v1/estudiantes`;
+const URL_TIPOS_DOCUMENTO = `${environment.apiUrl}/v1/tipos-documento`;
+
+/** El selector se llena con lo que sirve el backend, no con un catálogo fijo del front. */
+const TIPOS = [
+  { id: 'td1', nombre: 'Cédula de Ciudadanía' },
+  { id: 'td2', nombre: 'Tarjeta de Identidad' },
+];
 
 const ASIGNATURAS = [
   { id: 'a1', nombre: 'Cálculo I', estado: 'ACTIVA' as const },
@@ -273,7 +279,7 @@ describe('MatriculaFormDialog', () => {
   it('con estudianteId fijado por el padre no aparece ningún campo de búsqueda', async () => {
     await abrirConCatalogos();
 
-    expect(html.querySelector('#matricula-buscar-documento')).toBeNull();
+    expect(html.querySelector('#matricula-buscar-criterio')).toBeNull();
     expect(html.querySelector('#matricula-nuevo-documento')).toBeNull();
     expect(boton('Matricular').disabled).toBe(false);
   });
@@ -306,7 +312,7 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
 
   const CREADO: Estudiante = {
     id: 'e10',
-    tipoDocumentoNombre: TIPOS_DOCUMENTO[0].nombre,
+    tipoDocumentoNombre: TIPOS[0].nombre,
     numeroDocumento: '9876543210',
     nombreCompleto: 'Carlos Ruiz',
     correoInstitucional: 'carlos@uco.net.co',
@@ -358,6 +364,14 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
     await fixture.whenStable();
   }
 
+  /** El catálogo de tipos se pide al entrar al modo «nuevo», no al abrir el diálogo. */
+  async function pasarARegistrar(): Promise<void> {
+    boton('Registrarlo y matricularlo').click();
+    await fixture.whenStable();
+    http.expectOne((r) => r.url === URL_TIPOS_DOCUMENTO).flush(TIPOS);
+    await fixture.whenStable();
+  }
+
   const busquedaDe = (documento: string) =>
     http.expectOne((r) => r.url === URL_ESTUDIANTES && r.params.get('filtro') === documento);
 
@@ -369,30 +383,66 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
     await fixture.whenStable();
   }
 
-  describe('identificar al estudiante por documento (D18)', () => {
-    it('no busca sin documento ni con uno de menos de 6 dígitos', async () => {
+  describe('identificar al estudiante (D18)', () => {
+    /** El campo consulta solo, tras la pausa al teclear. */
+    async function esperarPausaDeTecleo(): Promise<void> {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      await fixture.whenStable();
+    }
+
+    it('no busca con el criterio vacío ni con menos de 3 caracteres', async () => {
       await abrirConCatalogos();
 
       boton('Buscar').click();
       await fixture.whenStable();
-      expect(html.textContent).toContain('Escribe un número de documento de 6 a 10 dígitos.');
+      expect(html.textContent).toContain(
+        'Escribe al menos 3 caracteres del nombre, el apellido o el documento.',
+      );
 
-      escribir('#matricula-buscar-documento', '12345');
+      escribir('#matricula-buscar-criterio', 'ab');
       boton('Buscar').click();
-      await fixture.whenStable();
+      await esperarPausaDeTecleo();
 
       http.expectNone((r) => r.url === URL_ESTUDIANTES);
     });
 
-    it('no busca con un documento de más de 10 dígitos', async () => {
+    it('busca sola al teclear, sin pulsar el botón', async () => {
       await abrirConCatalogos();
+      escribir('#matricula-buscar-criterio', 'Ana');
+      await esperarPausaDeTecleo();
 
-      escribir('#matricula-buscar-documento', '12345678901');
+      busquedaDe('Ana').flush([ANA]);
+      await fixture.whenStable();
+
+      expect(html.querySelectorAll('.resultado').length).toBe(1);
+      expect(html.textContent).toContain('Ana María Gómez');
+    });
+
+    it('pulsar el botón y la pausa posterior no repiten la misma consulta', async () => {
+      await abrirConCatalogos();
+      escribir('#matricula-buscar-criterio', 'Ana');
       boton('Buscar').click();
       await fixture.whenStable();
 
-      http.expectNone((r) => r.url === URL_ESTUDIANTES);
-      expect(html.textContent).toContain('Escribe un número de documento de 6 a 10 dígitos.');
+      busquedaDe('Ana').flush([ANA]);
+      await esperarPausaDeTecleo();
+
+      http.expectNone((r) => r.url.startsWith(URL_ESTUDIANTES));
+    });
+
+    it('borrar lo escrito deja de mostrar las coincidencias anteriores', async () => {
+      await abrirConCatalogos();
+      escribir('#matricula-buscar-criterio', 'Ana');
+      await esperarPausaDeTecleo();
+      busquedaDe('Ana').flush([ANA]);
+      await fixture.whenStable();
+      expect(html.querySelectorAll('.resultado').length).toBe(1);
+
+      escribir('#matricula-buscar-criterio', 'A');
+      await esperarPausaDeTecleo();
+
+      http.expectNone((r) => r.url.startsWith(URL_ESTUDIANTES));
+      expect(html.querySelectorAll('.resultado').length).toBe(0);
     });
 
     it('la confirmación está deshabilitada mientras no haya estudiante identificado', async () => {
@@ -404,7 +454,7 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
 
     it('una coincidencia exacta habilita la matrícula y envía ese estudianteId', async () => {
       await abrirConCatalogos();
-      escribir('#matricula-buscar-documento', '1234567890');
+      escribir('#matricula-buscar-criterio', '1234567890');
       boton('Buscar').click();
       await fixture.whenStable();
 
@@ -435,9 +485,9 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
       );
     });
 
-    it('coincidencias parciales sin ninguna exacta no preseleccionan a nadie y ofrecen registrar', async () => {
+    it('las coincidencias parciales se listan pero no preseleccionan a nadie', async () => {
       await abrirConCatalogos();
-      escribir('#matricula-buscar-documento', '123456');
+      escribir('#matricula-buscar-criterio', '123456');
       boton('Buscar').click();
       await fixture.whenStable();
 
@@ -445,19 +495,74 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
       busquedaDe('123456').flush([ANA]);
       await fixture.whenStable();
 
-      expect(html.textContent).not.toContain('Ana María Gómez');
-      expect(html.textContent).toContain(
-        'Ningún estudiante registrado con ese número de documento',
-      );
-      expect(boton('Registrarlo y matricularlo')).toBeTruthy();
+      // Aparece como opción, pero nadie queda elegido: elegir por él matricularía a otra persona.
+      expect(html.querySelector('.resultados')).toBeTruthy();
+      expect(html.textContent).toContain('Ana María Gómez');
+      expect(html.textContent).not.toContain('Estudiante encontrado');
 
       await elegirAsignaturaYSemestre();
       expect(boton('Matricular').disabled).toBe(true);
     });
 
+    it('busca por nombre y al elegir una coincidencia queda identificada', async () => {
+      await abrirConCatalogos();
+      escribir('#matricula-buscar-criterio', 'Ana');
+      boton('Buscar').click();
+      await fixture.whenStable();
+
+      busquedaDe('Ana').flush([ANA, { ...ANA, id: 'e8', nombreCompleto: 'Ana Lucía Soto' }]);
+      await fixture.whenStable();
+
+      const opciones = html.querySelectorAll('.resultado');
+      expect(opciones.length).toBe(2);
+
+      (opciones[0] as HTMLButtonElement).click();
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('Estudiante encontrado');
+      expect(html.textContent).toContain('Ana María Gómez');
+
+      await elegirAsignaturaYSemestre();
+      expect(boton('Matricular').disabled).toBe(false);
+      enviar();
+      await fixture.whenStable();
+
+      const matricula = http.expectOne(URL_MATRICULAS);
+      expect(matricula.request.body).toEqual({
+        estudianteId: 'e9',
+        asignaturaId: 'a1',
+        semestreId: 's1',
+      });
+      matricula.flush(
+        { id: 'm1', estudianteId: 'e9', asignaturaId: 'a1', semestreId: 's1', estado: 'ACTIVA' },
+        { status: 201, statusText: 'Created' },
+      );
+    });
+
+    it('el filtro de estado esconde las coincidencias que no lo cumplen', async () => {
+      await abrirConCatalogos();
+      escribir('#matricula-buscar-criterio', 'Ana');
+      boton('Buscar').click();
+      await fixture.whenStable();
+
+      busquedaDe('Ana').flush([
+        ANA,
+        { ...ANA, id: 'e8', nombreCompleto: 'Ana Lucía Soto', estado: 'INACTIVO' as const },
+      ]);
+      await fixture.whenStable();
+      expect(html.querySelectorAll('.resultado').length).toBe(2);
+
+      elegir('#matricula-filtro-estado', 'INACTIVO');
+      await fixture.whenStable();
+
+      expect(html.querySelectorAll('.resultado').length).toBe(1);
+      expect(html.textContent).toContain('Ana Lucía Soto');
+      expect(html.textContent).not.toContain('Ana María Gómez');
+    });
+
     it('un estudiante inactivo se muestra con su estado y deja intentar la matrícula', async () => {
       await abrirConCatalogos();
-      escribir('#matricula-buscar-documento', '1234567890');
+      escribir('#matricula-buscar-criterio', '1234567890');
       boton('Buscar').click();
       await fixture.whenStable();
       busquedaDe('1234567890').flush([{ ...ANA, estado: 'INACTIVO' }]);
@@ -470,7 +575,7 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
 
     it('el fallo de la búsqueda deja mensaje y reintento, sin perder lo escrito', async () => {
       await abrirConCatalogos();
-      escribir('#matricula-buscar-documento', '1234567890');
+      escribir('#matricula-buscar-criterio', '1234567890');
       boton('Buscar').click();
       await fixture.whenStable();
       busquedaDe('1234567890').flush(null, { status: 0, statusText: 'Unknown Error' });
@@ -479,7 +584,7 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
       expect(html.querySelector('[role="alert"]')?.textContent).toContain(
         'No se pudo conectar con el servidor',
       );
-      const campo = html.querySelector('#matricula-buscar-documento') as HTMLInputElement;
+      const campo = html.querySelector('#matricula-buscar-criterio') as HTMLInputElement;
       expect(campo.value).toBe('1234567890');
 
       boton('Reintentar').click();
@@ -492,14 +597,13 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
 
     it('al pasar a registrar conserva el documento que ya escribió', async () => {
       await abrirConCatalogos();
-      escribir('#matricula-buscar-documento', '9876543210');
+      escribir('#matricula-buscar-criterio', '9876543210');
       boton('Buscar').click();
       await fixture.whenStable();
       busquedaDe('9876543210').flush([]);
       await fixture.whenStable();
 
-      boton('Registrarlo y matricularlo').click();
-      await fixture.whenStable();
+      await pasarARegistrar();
 
       const campo = html.querySelector('#matricula-nuevo-documento') as HTMLInputElement;
       expect(campo.value).toBe('9876543210');
@@ -509,17 +613,16 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
   describe('registrar y matricular en un paso (RF-09a, D14)', () => {
     async function irAEstudianteNuevo(): Promise<void> {
       await abrirConCatalogos();
-      escribir('#matricula-buscar-documento', '9876543210');
+      escribir('#matricula-buscar-criterio', '9876543210');
       boton('Buscar').click();
       await fixture.whenStable();
       busquedaDe('9876543210').flush([]);
       await fixture.whenStable();
-      boton('Registrarlo y matricularlo').click();
-      await fixture.whenStable();
+      await pasarARegistrar();
     }
 
     async function completarEstudianteNuevo(): Promise<void> {
-      elegir('#matricula-nuevo-tipo', TIPOS_DOCUMENTO[0].id);
+      elegir('#matricula-nuevo-tipo', TIPOS[0].id);
       escribir('#matricula-nuevo-documento', '9876543210');
       escribir('#matricula-nuevo-nombre', 'Carlos Ruiz');
       escribir('#matricula-nuevo-correo', 'carlos@uco.net.co');
@@ -540,7 +643,7 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
 
     it('rechaza un correo de otro dominio', async () => {
       await irAEstudianteNuevo();
-      elegir('#matricula-nuevo-tipo', TIPOS_DOCUMENTO[0].id);
+      elegir('#matricula-nuevo-tipo', TIPOS[0].id);
       escribir('#matricula-nuevo-nombre', 'Carlos Ruiz');
       escribir('#matricula-nuevo-correo', 'carlos@gmail.com');
       await elegirAsignaturaYSemestre();
@@ -549,6 +652,21 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
       await fixture.whenStable();
 
       expect(html.textContent).toContain('El correo debe ser del dominio institucional');
+      http.expectNone((r) => r.method === 'POST');
+    });
+
+    it('rechaza un nombre con dígitos o símbolos', async () => {
+      await irAEstudianteNuevo();
+      await completarEstudianteNuevo();
+      escribir('#matricula-nuevo-nombre', 'Carlos2 Ruiz');
+      await elegirAsignaturaYSemestre();
+
+      enviar();
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain(
+        'Usa solo letras y un único espacio entre cada palabra, sin números ni símbolos.',
+      );
       http.expectNone((r) => r.method === 'POST');
     });
 
@@ -566,7 +684,7 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
 
       const peticionAlta = alta();
       expect(peticionAlta.request.body).toEqual({
-        tipoDocumentoId: TIPOS_DOCUMENTO[0].id,
+        tipoDocumentoId: TIPOS[0].id,
         numeroDocumento: '9876543210',
         nombreCompleto: 'Carlos Ruiz',
         correoInstitucional: 'carlos@uco.net.co',
