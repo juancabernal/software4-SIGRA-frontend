@@ -47,10 +47,7 @@ Thumbs.db
 
 #Archivos ignorado por Andres
 .claude
-/scripts
-!/scripts/
-!/scripts/e2e-preflight.mjs
-!/scripts/smoke-ssr.mjs
+/scripts_andres
 /openspec
 .agents
 .dockerignore
