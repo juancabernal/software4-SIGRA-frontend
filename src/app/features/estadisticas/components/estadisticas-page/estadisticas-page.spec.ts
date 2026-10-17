@@ -7,15 +7,16 @@ import { AccionMejora } from '../../../mejoras/models/accion-mejora.model';
 import { Asignatura } from '../../../asignaturas/models/asignatura.model';
 import { ResultadoAprendizaje } from '../../../resultadosaprendizaje/models/resultado-aprendizaje.model';
 import { Semestre } from '../../../semestres/models/semestre.model';
-import { Conclusion } from '../../models/conclusion.model';
+import { Conclusion, ConclusionEstado } from '../../models/conclusion.model';
 import { EstadisticasPage } from './estadisticas-page';
 
 const API = `${environment.apiUrl}/v1`;
 const URL_ASIGNATURAS = `${API}/asignaturas`;
 const URL_SEMESTRES = `${API}/semestres`;
-const URL_CONCLUSIONES = `${API}/conclusiones`;
 const URL_ACCIONES_MEJORA = `${API}/acciones-mejora`;
 const urlRa = (asignaturaId: string) => `${API}/asignaturas/${asignaturaId}/resultados-aprendizaje`;
+const urlEstadoConclusion = (raId: string, semestreId: string) =>
+  `${API}/resultados-aprendizaje/${raId}/semestres/${semestreId}/conclusiones/estado`;
 
 const MATERIA: Asignatura = {
   id: 'a1',
@@ -65,6 +66,34 @@ const CONCLUSION: Conclusion = {
   fechaGeneracion: '2026-06-01',
   porcentajeInsuficiente: 45,
   estado: 'VIGENTE',
+};
+
+const RESULTADO_VIGENTE: ConclusionEstado = {
+  estado: 'VIGENTE',
+  conclusion: CONCLUSION,
+  totalEvaluados: null,
+  porcentajeInsuficiente: null,
+};
+
+const RESULTADO_ATENDIDA: ConclusionEstado = {
+  estado: 'ATENDIDA',
+  conclusion: null,
+  totalEvaluados: 20,
+  porcentajeInsuficiente: 45,
+};
+
+const RESULTADO_SATISFACTORIO: ConclusionEstado = {
+  estado: 'SATISFACTORIO',
+  conclusion: null,
+  totalEvaluados: 20,
+  porcentajeInsuficiente: 10,
+};
+
+const RESULTADO_SIN_DATOS: ConclusionEstado = {
+  estado: 'SIN_DATOS_SUFICIENTES',
+  conclusion: null,
+  totalEvaluados: 2,
+  porcentajeInsuficiente: null,
 };
 
 describe('EstadisticasPage', () => {
@@ -169,12 +198,8 @@ describe('EstadisticasPage', () => {
 
       boton(html, 'Consultar conclusión').click();
       await fixture.whenStable();
-      const req = http.expectOne(
-        (r) => r.url === URL_CONCLUSIONES && r.params.get('estado') === 'VIGENTE',
-      );
-      expect(req.request.params.get('resultadoAprendizajeId')).toBe('ra-1');
-      expect(req.request.params.get('semestreId')).toBe(SEMESTRE_ACTIVO.id);
-      req.flush([CONCLUSION]);
+      const req = http.expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id));
+      req.flush(RESULTADO_VIGENTE);
       await fixture.whenStable();
 
       expect(html.textContent).toContain(CONCLUSION.mensaje);
@@ -187,7 +212,7 @@ describe('EstadisticasPage', () => {
 
       boton(html, 'Consultar conclusión').click();
       await fixture.whenStable();
-      http.expectOne((r) => r.url === URL_CONCLUSIONES).flush([CONCLUSION]);
+      http.expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id)).flush(RESULTADO_VIGENTE);
       await fixture.whenStable();
 
       expect(html.textContent).toContain(CONCLUSION.mensaje);
@@ -199,7 +224,7 @@ describe('EstadisticasPage', () => {
       expect(html.textContent).not.toContain('Cargando acciones de mejora');
       expect(html.textContent).toContain(CONCLUSION.mensaje);
 
-      http.expectOne((r) => r.url === URL_CONCLUSIONES).flush([CONCLUSION]);
+      http.expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id)).flush(RESULTADO_VIGENTE);
       http.expectOne((r) => r.url === URL_ACCIONES_MEJORA).flush([]);
       await fixture.whenStable();
 
@@ -221,7 +246,13 @@ describe('EstadisticasPage', () => {
         semestreAnteriorCodigo: '2025-2',
         recomendacion: 'Reforzar la unidad de integrales con talleres prácticos.',
       };
-      http.expectOne((r) => r.url === URL_CONCLUSIONES).flush([CONCLUSION_CON_DIAGNOSTICO]);
+      const RESULTADO_CON_DIAGNOSTICO: ConclusionEstado = {
+        ...RESULTADO_VIGENTE,
+        conclusion: CONCLUSION_CON_DIAGNOSTICO,
+      };
+      http
+        .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id))
+        .flush(RESULTADO_CON_DIAGNOSTICO);
       await fixture.whenStable();
 
       expect(html.textContent).toContain('quedaron por debajo del nivel esperado');
@@ -236,7 +267,7 @@ describe('EstadisticasPage', () => {
 
       boton(html, 'Consultar conclusión').click();
       await fixture.whenStable();
-      http.expectOne((r) => r.url === URL_CONCLUSIONES).flush([CONCLUSION]);
+      http.expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id)).flush(RESULTADO_VIGENTE);
       await fixture.whenStable();
 
       expect(html.textContent).toContain('Desempeño insuficiente');
@@ -244,17 +275,56 @@ describe('EstadisticasPage', () => {
       expect(html.textContent).not.toContain('quedaron por debajo del nivel esperado');
     });
 
-    it('sin conclusión vigente muestra el estado vacío y no ofrece «Crear acción de mejora»', async () => {
+    it('con estado ATENDIDA informa que el RA ya tiene una acción de mejora, sin ofrecer crear otra', async () => {
       await iniciarConSeleccion([ra(1)]);
 
       boton(html, 'Consultar conclusión').click();
       await fixture.whenStable();
-      http.expectOne((r) => r.url === URL_CONCLUSIONES).flush([]);
+      http
+        .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id))
+        .flush(RESULTADO_ATENDIDA);
       await fixture.whenStable();
 
-      expect(html.textContent).toContain('Sin conclusión vigente');
+      expect(html.textContent).toContain('Atendida');
+      expect(html.textContent).toContain('ya tiene una acción de mejora registrada');
+      expect(html.textContent).toContain('45%');
       expect(boton(html, 'Crear acción de mejora')).toBeUndefined();
     });
+
+    it('con estado SATISFACTORIO muestra la buena noticia con el número de evaluados y el porcentaje', async () => {
+      await iniciarConSeleccion([ra(1)]);
+
+      boton(html, 'Consultar conclusión').click();
+      await fixture.whenStable();
+      http
+        .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id))
+        .flush(RESULTADO_SATISFACTORIO);
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('Satisfactorio');
+      expect(html.textContent).toContain('dentro de lo esperado');
+      expect(html.textContent).toContain('20');
+      expect(html.textContent).toContain('10%');
+      expect(boton(html, 'Crear acción de mejora')).toBeUndefined();
+    });
+
+    it('con estado SIN_DATOS_SUFICIENTES indica cuántas calificaciones hay y cuántas se necesitan', async () => {
+      await iniciarConSeleccion([ra(1)]);
+
+      boton(html, 'Consultar conclusión').click();
+      await fixture.whenStable();
+      http
+        .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id))
+        .flush(RESULTADO_SIN_DATOS);
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('Sin datos suficientes');
+      expect(html.textContent).toContain('Todavía no hay suficientes calificaciones');
+      expect(html.textContent).toContain('2');
+      expect(html.textContent).toContain('no es un error');
+      expect(boton(html, 'Crear acción de mejora')).toBeUndefined();
+    });
+
   });
 
   describe('acción de mejora', () => {
@@ -263,7 +333,7 @@ describe('EstadisticasPage', () => {
 
       boton(html, 'Consultar conclusión').click();
       await fixture.whenStable();
-      http.expectOne((r) => r.url === URL_CONCLUSIONES).flush([CONCLUSION]);
+      http.expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id)).flush(RESULTADO_VIGENTE);
       await fixture.whenStable();
 
       boton(html, 'Crear acción de mejora').click();

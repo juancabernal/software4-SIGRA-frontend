@@ -19,7 +19,7 @@ import {
 import { ResultadoAprendizajeService } from '../../../resultadosaprendizaje/services/resultado-aprendizaje.service';
 import { Semestre } from '../../../semestres/models/semestre.model';
 import { SemestreService } from '../../../semestres/services/semestre.service';
-import { Conclusion } from '../../models/conclusion.model';
+import { Conclusion, ConclusionEstado } from '../../models/conclusion.model';
 import { ConclusionService } from '../../services/conclusion.service';
 
 type CargaRa =
@@ -31,7 +31,7 @@ type CargaRa =
 type CargaConclusion =
   | { estado: 'inactivo' }
   | { estado: 'cargando' }
-  | { estado: 'listo'; conclusion: Conclusion | null }
+  | { estado: 'listo'; resultado: ConclusionEstado }
   | { estado: 'error'; error: MensajeError };
 
 type CargaAccionesMejora =
@@ -51,11 +51,12 @@ const DURACION_AVISO_MS = 6000;
 
 /**
  * RF-16: vista de estadísticas del profesor. Se elige materia → RA activo → semestre y se
- * consulta si hay una conclusión VIGENTE (desempeño insuficiente) para esa combinación.
+ * consulta el estado de ese (RA, semestre): Vigente (desempeño insuficiente sin atender),
+ * Atendida (ya tiene acción de mejora), Satisfactorio o datos insuficientes.
  *
  * La generación de la conclusión la dispara el recálculo de estadísticas de otro módulo; aquí
- * solo se consulta. «Crear acción de mejora» abre el registro de RF-17; la conversión a
- * evaluación (RF-18) todavía no existe.
+ * solo se consulta, sin generar ni modificar nada. «Crear acción de mejora» abre el registro de
+ * RF-17; la conversión a evaluación (RF-18) todavía no existe.
  */
 @Component({
   selector: 'app-estadisticas-page',
@@ -179,25 +180,20 @@ export class EstadisticasPage {
       });
   }
 
-  /** Vuelve a consultar la conclusión sin mostrar "cargando" ni borrar lo que ya hay en pantalla. */
+  /** Vuelve a consultar el estado sin mostrar "cargando" ni borrar lo que ya hay en pantalla. */
   private refrescarConclusionEnSegundoPlano(): void {
     if (!this.puedeConsultar() || this.consulta().estado === 'inactivo') {
       return;
     }
     this.conclusionService
-      .listar({
-        resultadoAprendizajeId: this.resultadoAprendizajeId(),
-        semestreId: this.semestreId(),
-        estado: 'VIGENTE',
-      })
+      .consultarEstado(this.resultadoAprendizajeId(), this.semestreId())
       .subscribe({
-        next: (lista) => {
-          const conclusion = lista[0] ?? null;
+        next: (resultado) => {
           const actual = this.consulta();
-          if (actual.estado === 'listo' && JSON.stringify(actual.conclusion) === JSON.stringify(conclusion)) {
+          if (actual.estado === 'listo' && JSON.stringify(actual.resultado) === JSON.stringify(resultado)) {
             return;
           }
-          this.consulta.set({ estado: 'listo', conclusion });
+          this.consulta.set({ estado: 'listo', resultado });
         },
         error: () => {
           // refresco en segundo plano: ante un fallo se conservan los datos previos sin avisar
@@ -282,13 +278,9 @@ export class EstadisticasPage {
     }
     this.consulta.set({ estado: 'cargando' });
     this.conclusionService
-      .listar({
-        resultadoAprendizajeId: this.resultadoAprendizajeId(),
-        semestreId: this.semestreId(),
-        estado: 'VIGENTE',
-      })
+      .consultarEstado(this.resultadoAprendizajeId(), this.semestreId())
       .subscribe({
-        next: (lista) => this.consulta.set({ estado: 'listo', conclusion: lista[0] ?? null }),
+        next: (resultado) => this.consulta.set({ estado: 'listo', resultado }),
         error: (error: unknown) =>
           this.consulta.set({ estado: 'error', error: mensajeDeError(error) }),
       });
@@ -303,9 +295,15 @@ export class EstadisticasPage {
     return consulta.estado === 'error' ? consulta.error : null;
   }
 
+  /** Resultado completo de RF-16 (estado + conclusión + cifras), cuando la consulta ya respondió. */
+  protected consultaResultado(): ConclusionEstado | null {
+    const consulta = this.consulta();
+    return consulta.estado === 'listo' ? consulta.resultado : null;
+  }
+
   protected consultaConclusion(): Conclusion | null {
     const consulta = this.consulta();
-    return consulta.estado === 'listo' ? consulta.conclusion : null;
+    return consulta.estado === 'listo' ? consulta.resultado.conclusion : null;
   }
 
   protected readonly dialogoAbierto = signal(false);
