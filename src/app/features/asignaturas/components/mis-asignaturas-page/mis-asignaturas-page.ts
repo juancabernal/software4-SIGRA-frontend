@@ -28,11 +28,24 @@ interface PresentacionEstado {
   icono: string;
 }
 
+interface OpcionPrograma {
+  id: string;
+  nombre: string;
+}
+
 const PRESENTACION_ESTADO: Readonly<Record<EstadoAsignatura, PresentacionEstado>> = {
   BORRADOR: { etiqueta: 'Borrador', variante: 'advertencia', icono: 'documento-borrador' },
   ACTIVA: { etiqueta: 'Activa', variante: 'ok', icono: 'check' },
   INACTIVA: { etiqueta: 'Inactiva', variante: 'neutro', icono: 'prohibido' },
 };
+
+/** Quita tildes y normaliza mayúsculas para comparar texto sin distinguir acentos. */
+function normalizar(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+}
 
 /**
  * Consulta de las asignaturas que el backend ya autorizó para la sesión actual.
@@ -75,6 +88,68 @@ export class MisAsignaturasPage {
 
   protected readonly esProfesor = computed(() => this.vista() === 'PROFESOR');
 
+  protected readonly etiquetaRecurso = computed(() => (this.esProfesor() ? 'asignaturas' : 'materias'));
+
+  protected readonly tituloVacio = computed(() =>
+    this.esProfesor() ? 'Aún no tienes asignaturas asignadas' : 'Aún no estás matriculado en ninguna materia',
+  );
+
+  protected readonly mensajeVacio = computed(() =>
+    this.esProfesor()
+      ? 'Cuando el administrador te asigne una asignatura, aparecerá en esta lista.'
+      : 'Cuando te matricules en una materia, aparecerá en esta lista.',
+  );
+
+  protected readonly texto = signal('');
+  protected readonly programaId = signal('');
+  protected readonly estadoFiltro = signal<EstadoAsignatura | ''>('');
+
+  protected readonly programas = computed<OpcionPrograma[]>(() => {
+    const vistos = new Map<string, string>();
+    for (const asignatura of this.asignaturas()) {
+      if (!vistos.has(asignatura.programaId)) {
+        vistos.set(asignatura.programaId, asignatura.programaNombre);
+      }
+    }
+    return Array.from(vistos, ([id, nombre]) => ({ id, nombre })).sort((a, b) =>
+      a.nombre.localeCompare(b.nombre),
+    );
+  });
+
+  protected readonly estadosDisponibles = computed<EstadoAsignatura[]>(() => {
+    const vistos = new Set<EstadoAsignatura>();
+    for (const asignatura of this.asignaturas()) {
+      vistos.add(asignatura.estado);
+    }
+    return Array.from(vistos);
+  });
+
+  protected readonly hayFiltros = computed(
+    () => this.texto().trim() !== '' || this.programaId() !== '' || this.estadoFiltro() !== '',
+  );
+
+  protected readonly asignaturasFiltradas = computed(() => {
+    const texto = normalizar(this.texto().trim());
+    const programaId = this.programaId();
+    const estado = this.estadoFiltro();
+    return this.asignaturas().filter((asignatura) => {
+      if (programaId && asignatura.programaId !== programaId) {
+        return false;
+      }
+      if (estado && asignatura.estado !== estado) {
+        return false;
+      }
+      if (texto) {
+        const coincide =
+          normalizar(asignatura.codigo).includes(texto) || normalizar(asignatura.nombre).includes(texto);
+        if (!coincide) {
+          return false;
+        }
+      }
+      return true;
+    });
+  });
+
   private readonly refresco = refrescoAutomatico();
 
   constructor() {
@@ -116,6 +191,24 @@ export class MisAsignaturasPage {
 
   protected reintentar(): void {
     this.cargarAsignaturas();
+  }
+
+  protected alEscribir(evento: Event): void {
+    this.texto.set((evento.target as HTMLInputElement).value);
+  }
+
+  protected alCambiarPrograma(evento: Event): void {
+    this.programaId.set((evento.target as HTMLSelectElement).value);
+  }
+
+  protected alCambiarEstado(evento: Event): void {
+    this.estadoFiltro.set((evento.target as HTMLSelectElement).value as EstadoAsignatura | '');
+  }
+
+  protected limpiarFiltros(): void {
+    this.texto.set('');
+    this.programaId.set('');
+    this.estadoFiltro.set('');
   }
 
   /** Vuelve a consultar las asignaturas sin mostrar "cargando" ni borrar lo que ya hay en pantalla. */
