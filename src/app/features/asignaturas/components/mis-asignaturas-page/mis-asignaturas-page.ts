@@ -7,10 +7,11 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { catchError, finalize, of } from 'rxjs';
+import { catchError, finalize, of, skip } from 'rxjs';
 
+import { refrescoAutomatico } from '../../../../core/util/refresco-automatico';
 import { mensajeDeError, MensajeError } from '../../../../core/http/mensaje-de-error';
 import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
@@ -74,8 +75,14 @@ export class MisAsignaturasPage {
 
   protected readonly esProfesor = computed(() => this.vista() === 'PROFESOR');
 
+  private readonly refresco = refrescoAutomatico();
+
   constructor() {
     this.cargarAsignaturas();
+
+    toObservable(this.refresco)
+      .pipe(skip(1), takeUntilDestroyed())
+      .subscribe(() => this.refrescarAsignaturasEnSegundoPlano());
   }
 
   protected seleccionar(asignatura: MiAsignatura): void {
@@ -109,6 +116,28 @@ export class MisAsignaturasPage {
 
   protected reintentar(): void {
     this.cargarAsignaturas();
+  }
+
+  /** Vuelve a consultar las asignaturas sin mostrar "cargando" ni borrar lo que ya hay en pantalla. */
+  private refrescarAsignaturasEnSegundoPlano(): void {
+    if (this.cargando()) {
+      return;
+    }
+    this.asignaturaService
+      .misAsignaturas()
+      .pipe(
+        catchError(() => of(null)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((asignaturas) => {
+        if (asignaturas === null) {
+          return;
+        }
+        if (JSON.stringify(this.asignaturas()) === JSON.stringify(asignaturas)) {
+          return;
+        }
+        this.asignaturas.set(asignaturas);
+      });
   }
 
   private cargarAsignaturas(): void {
