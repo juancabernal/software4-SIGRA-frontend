@@ -19,6 +19,27 @@
 
   <div class="campos" [formGroup]="form">
     <div class="campo">
+      <label for="conversion-fecha-tentativa"
+        >Fecha tentativa de la evaluación
+        <span class="obligatorio" aria-hidden="true">*</span></label
+      >
+      <input
+        id="conversion-fecha-tentativa"
+        type="date"
+        formControlName="fechaTentativa"
+        aria-required="true"
+        [attr.aria-invalid]="mostrarErrorFecha()"
+        aria-describedby="conversion-fecha-tentativa-ayuda conversion-fecha-tentativa-error"
+      />
+      <p class="ayuda" id="conversion-fecha-tentativa-ayuda">Dentro del semestre activo</p>
+      @if (mostrarErrorFecha()) {
+        <p class="error-campo" id="conversion-fecha-tentativa-error">
+          Escribe la fecha tentativa de la evaluación.
+        </p>
+      }
+    </div>
+
+    <div class="campo">
       <label for="conversion-porcentaje"
         >Porcentaje de la evaluación <span class="obligatorio" aria-hidden="true">*</span></label
       >
@@ -29,7 +50,7 @@
         placeholder="Ej. 20"
         min="0"
         max="100"
-        step="1"
+        step="0.01"
         aria-required="true"
         [attr.aria-invalid]="mostrarErrorPorcentaje()"
         aria-describedby="conversion-porcentaje-ayuda conversion-porcentaje-error"
@@ -37,7 +58,7 @@
       <p class="ayuda" id="conversion-porcentaje-ayuda">Mayor que 0 y máximo 100</p>
       @if (mostrarErrorPorcentaje()) {
         <p class="error-campo" id="conversion-porcentaje-error">
-          Escribe un porcentaje mayor que 0 y máximo 100.
+          Escribe un porcentaje mayor que 0 y máximo 100, con máximo 2 decimales.
         </p>
       }
     </div>

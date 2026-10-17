@@ -84,6 +84,7 @@ describe('EstadisticasPage', () => {
   });
 
   afterEach(() => {
+    fixture.destroy();
     html.remove();
     http.verify();
   });
@@ -267,6 +268,10 @@ describe('EstadisticasPage', () => {
     }
 
     async function confirmarConversion(porcentaje: string): Promise<void> {
+      const fecha = html.querySelector('#conversion-fecha-tentativa') as HTMLInputElement;
+      fecha.value = '2026-06-10';
+      fecha.dispatchEvent(new Event('input'));
+      fecha.dispatchEvent(new Event('blur'));
       const input = html.querySelector('#conversion-porcentaje') as HTMLInputElement;
       input.value = porcentaje;
       input.dispatchEvent(new Event('input'));
