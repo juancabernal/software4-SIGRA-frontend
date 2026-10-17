@@ -187,15 +187,15 @@ h1 {
   color: var(--sg-error-fg);
 }
 
-// La alerta de desempeño insuficiente va prominente: fondo de advertencia, no solo texto (RNF-21).
+// La alerta de desempeño insuficiente va prominente: fondo navy solido, no solo texto (RNF-21).
 .alerta-conclusion {
   display: grid;
   gap: 0.75rem;
   margin: 1.25rem;
   padding: 1.25rem;
-  border: 1px solid var(--sg-warning);
+  border: 1px solid var(--sg-navy);
   border-radius: var(--sg-radius-card);
-  background: var(--sg-warning-bg);
+  background: var(--sg-navy);
 }
 
 .alerta-conclusion__cabecera {
@@ -203,18 +203,18 @@ h1 {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-  color: var(--sg-warning-fg);
+  color: var(--sg-warning);
 }
 
 .alerta-conclusion__semestre {
   margin-left: auto;
-  color: var(--sg-ink-muted);
+  color: rgba(255, 255, 255, 0.75);
   font-size: 0.8125rem;
 }
 
 .alerta-conclusion__mensaje {
   margin: 0;
-  color: var(--sg-ink-body);
+  color: #fff;
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.5;
@@ -222,11 +222,27 @@ h1 {
 
 .alerta-conclusion__porcentaje {
   margin: 0;
-  color: var(--sg-ink-body);
+  color: rgba(255, 255, 255, 0.75);
   font-size: 0.875rem;
 
   strong {
-    color: var(--sg-navy);
+    color: #fff;
+  }
+}
+
+.alerta-conclusion app-chip-estado {
+  display: inline-flex;
+  background: #fff;
+  border-radius: var(--sg-radius-control);
+}
+
+.btn--sobre-navy {
+  border-color: #fff;
+  background: #fff;
+  color: var(--sg-navy);
+
+  &:hover:not([aria-disabled='true']) {
+    background: rgba(255, 255, 255, 0.85);
   }
 }
 
