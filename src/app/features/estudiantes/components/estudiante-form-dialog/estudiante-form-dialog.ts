@@ -14,12 +14,18 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { catchError, of } from 'rxjs';
 
 import { Estudiante, EstudianteRequest } from '../../models/estudiante.model';
-import { TIPOS_DOCUMENTO, idDeTipoDocumento } from '../../models/tipos-documento';
+import { TipoDocumento, mismoNombreDeTipo } from '../../models/tipos-documento';
 import { CampoEstudiante, validadoresEstudiante } from '../../models/validadores-estudiante';
-import { MensajeError, mensajeDeError } from '../../services/estudiante-error';
+import {
+  MensajeError,
+  mensajeDeError,
+  registrarErrorTecnico,
+} from '../../services/estudiante-error';
 import { EstudianteService } from '../../services/estudiante.service';
+import { TipoDocumentoOpcionesService } from '../../services/tipo-documento-opciones.service';
 
 // Los patrones del borde viven en `models/validadores-estudiante.ts`: los comparte con el modo
 // «estudiante nuevo» de `matricula-form-dialog`, para no duplicar las expresiones (D14).
@@ -30,10 +36,13 @@ type Campo = CampoEstudiante;
  * acciones: si `estudiante` llega con valor, el formulario se precarga para modificar y
  * «Guardar» llama a `modificar`; si es null, llama a `registrar`.
  *
+ * El catálogo de tipos de documento se pide a `GET /tipos-documento`: son los del ambiente al
+ * que esté conectada la aplicación, no una lista escrita en el código.
+ *
  * En modificación, el documento y el tipo de documento quedan en solo lectura: el backend no
- * permite cambiarlos. El id del tipo de documento se resuelve con `idDeTipoDocumento` a partir
- * del nombre que devuelve el servidor (D3); si ese nombre no está en el catálogo declarado, el
- * formulario avisa y no permite guardar en lugar de enviar un id arbitrario.
+ * permite cambiarlos. Como la respuesta del estudiante trae el *nombre* del tipo y nunca su id
+ * (D3), el id se resuelve buscando ese nombre dentro del catálogo recibido; si no aparece, el
+ * formulario avisa y no permite guardar, en lugar de enviar un id arbitrario.
  */
 @Component({
   selector: 'app-estudiante-form-dialog',
@@ -44,6 +53,7 @@ type Campo = CampoEstudiante;
 })
 export class EstudianteFormDialog implements OnInit {
   private readonly service = inject(EstudianteService);
+  private readonly tiposDocumentoService = inject(TipoDocumentoOpcionesService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialogo = viewChild.required<ElementRef<HTMLDialogElement>>('dialogo');
 
@@ -53,7 +63,8 @@ export class EstudianteFormDialog implements OnInit {
   readonly guardado = output<Estudiante>();
   readonly cerrado = output<void>();
 
-  protected readonly tiposDocumento = TIPOS_DOCUMENTO;
+  protected readonly tiposDocumento = signal<TipoDocumento[]>([]);
+  protected readonly cargandoTiposDocumento = signal(true);
   protected readonly esModificar = computed(() => this.estudiante() !== null);
   protected readonly titulo = computed(() =>
     this.esModificar() ? 'Modificar estudiante' : 'Registrar estudiante',
@@ -79,6 +90,18 @@ export class EstudianteFormDialog implements OnInit {
   });
 
   constructor() {
+    this.tiposDocumentoService
+      .listar()
+      .pipe(
+        catchError(() => of([] as TipoDocumento[])),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((tipos) => {
+        this.tiposDocumento.set(tipos);
+        this.cargandoTiposDocumento.set(false);
+        this.resolverTipoDelEstudiante();
+      });
+
     afterNextRender(() => {
       const dialogo = this.dialogo().nativeElement;
       if (typeof dialogo.showModal === 'function' && !dialogo.open) {
@@ -92,22 +115,43 @@ export class EstudianteFormDialog implements OnInit {
     if (!estudiante) {
       return;
     }
-    const tipoDocumentoId = idDeTipoDocumento(estudiante.tipoDocumentoNombre);
-    if (tipoDocumentoId === undefined) {
-      this.errorTipoDocumento.set(
-        `El tipo de documento «${estudiante.tipoDocumentoNombre}» no se pudo resolver contra ` +
-          'el catálogo declarado. No es posible modificar esta ficha hasta que se corrija.',
-      );
-      return;
-    }
+    // El tipo de documento se completa aparte: depende del catálogo, que llega del servidor.
     this.form.patchValue({
-      tipoDocumentoId,
       numeroDocumento: estudiante.numeroDocumento,
       nombreCompleto: estudiante.nombreCompleto,
       correoInstitucional: estudiante.correoInstitucional,
     });
-    this.form.controls.tipoDocumentoId.disable();
     this.form.controls.numeroDocumento.disable();
+  }
+
+  /**
+   * Modificación: traduce el nombre del tipo que devolvió el servidor al id que exige el `PUT`.
+   * Se ejecuta cuando el catálogo ya está, no antes.
+   */
+  private resolverTipoDelEstudiante(): void {
+    const estudiante = this.estudiante();
+    if (!estudiante) {
+      return;
+    }
+    if (this.tiposDocumento().length === 0) {
+      this.errorTipoDocumento.set(
+        'No se pudo cargar el catálogo de tipos de documento. Cierra el formulario y ' +
+          'vuelve a intentarlo.',
+      );
+      return;
+    }
+    const tipo = this.tiposDocumento().find((t) =>
+      mismoNombreDeTipo(t.nombre, estudiante.tipoDocumentoNombre),
+    );
+    if (!tipo) {
+      this.errorTipoDocumento.set(
+        `El tipo de documento «${estudiante.tipoDocumentoNombre}» no figura en el catálogo del ` +
+          'servidor. No es posible modificar esta ficha hasta que se corrija.',
+      );
+      return;
+    }
+    this.form.patchValue({ tipoDocumentoId: tipo.id });
+    this.form.controls.tipoDocumentoId.disable();
   }
 
   protected mostrarError(campo: Campo): boolean {
@@ -147,6 +191,11 @@ export class EstudianteFormDialog implements OnInit {
       },
       error: (error: unknown) => {
         this.guardando.set(false);
+        // El usuario solo ve el mensaje amigable (RNF-17); el detalle técnico queda en consola.
+        registrarErrorTecnico(
+          estudiante ? 'estudiantes.modificar' : 'estudiantes.registrar',
+          error,
+        );
         this.errorApi.set(mensajeDeError(error));
       },
     });
