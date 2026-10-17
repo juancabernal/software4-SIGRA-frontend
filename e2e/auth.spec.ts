@@ -1,4 +1,4 @@
-import { expect, Page, test } from '@playwright/test';
+import { expect, Page, Request, test } from '@playwright/test';
 
 type Rol = 'admin' | 'profesor' | 'estudiante';
 
@@ -32,20 +32,185 @@ const usuarios: Record<Rol, UsuarioE2E> = {
 
 const e2eHabilitado = process.env['SIGRA_E2E_ENABLED'] === '1';
 const CLAVE_SESION = 'sigra.sesion';
+const LOGIN_PATH = '/v1/auth/login';
+const MAXIMO_CUERPO_DIAGNOSTICO = 1_200;
+const CLAVE_SENSIBLE_REGEX =
+  /(pass(word)?|contrasena|contraseña|token|authorization|cookie|set-cookie|secret|jwt)/i;
+
+interface IntentoLogin {
+  readonly request: Request;
+  response?: Awaited<ReturnType<Request['response']>>;
+  errorRed?: string;
+}
 
 function usuarioDisponible(rol: Rol): boolean {
   const usuario = usuarios[rol];
   return e2eHabilitado && usuario.correo !== '' && usuario.contrasena !== '';
 }
 
+function truncarDiagnostico(valor: string): string {
+  return valor.length <= MAXIMO_CUERPO_DIAGNOSTICO
+    ? valor
+    : `${valor.slice(0, MAXIMO_CUERPO_DIAGNOSTICO)}… [truncado]`;
+}
+
+function sanitizarTextoDiagnostico(valor: string): string {
+  return valor
+    .replace(
+      /("?(?:password|contrasena|contraseña|token|access_token|refresh_token|authorization|cookie|set-cookie|jwt)"?\s*[:=]\s*)("[^"]*"|'[^']*'|[^,\s}\]]+)/gi,
+      '$1"[REDACTED]"',
+    )
+    .replace(/\bBearer\s+[A-Za-z0-9\-._~+/]+=*/gi, '******')
+    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[REDACTED_JWT]');
+}
+
+function sanitizarValorDiagnostico(valor: unknown): unknown {
+  if (typeof valor === 'string') {
+    return sanitizarTextoDiagnostico(valor);
+  }
+  if (Array.isArray(valor)) {
+    return valor.map((item) => sanitizarValorDiagnostico(item));
+  }
+  if (valor !== null && typeof valor === 'object') {
+    const limpio: Record<string, unknown> = {};
+    for (const [clave, contenido] of Object.entries(valor as Record<string, unknown>)) {
+      limpio[clave] = CLAVE_SENSIBLE_REGEX.test(clave)
+        ? '[REDACTED]'
+        : sanitizarValorDiagnostico(contenido);
+    }
+    return limpio;
+  }
+  return valor;
+}
+
+function sanitizarUrlDiagnostico(url: string): string {
+  try {
+    const diagnosticoUrl = new URL(url);
+    const claves = [...diagnosticoUrl.searchParams.keys()];
+    for (const clave of claves) {
+      if (CLAVE_SENSIBLE_REGEX.test(clave)) {
+        diagnosticoUrl.searchParams.set(clave, '[REDACTED]');
+      }
+    }
+    return diagnosticoUrl.toString();
+  } catch {
+    return sanitizarTextoDiagnostico(url);
+  }
+}
+
+function esPeticionLogin(request: Request): boolean {
+  if (request.method() !== 'POST') {
+    return false;
+  }
+  try {
+    const pathname = new URL(request.url()).pathname.replace(/\/+$/, '');
+    return pathname === '/api/v1/auth/login' || pathname.endsWith(LOGIN_PATH);
+  } catch {
+    return false;
+  }
+}
+
+async function leerCuerpoRespuestaDiagnostico(intento: IntentoLogin): Promise<string | undefined> {
+  if (intento.response === null || intento.response === undefined) {
+    return undefined;
+  }
+  try {
+    const cuerpo = await intento.response.text();
+    if (cuerpo.trim() === '') {
+      return '(vacío)';
+    }
+    try {
+      const comoJson = JSON.parse(cuerpo) as unknown;
+      return truncarDiagnostico(JSON.stringify(sanitizarValorDiagnostico(comoJson)));
+    } catch {
+      return truncarDiagnostico(sanitizarTextoDiagnostico(cuerpo));
+    }
+  } catch {
+    return '(no se pudo leer el cuerpo de la respuesta)';
+  }
+}
+
+async function construirDiagnosticoLogin(intentos: readonly IntentoLogin[]): Promise<string> {
+  if (intentos.length === 0) {
+    return 'No se detectaron peticiones POST de login hacia /api/v1/auth/login (o ruta equivalente).';
+  }
+
+  const detalles = await Promise.all(
+    intentos.map(async (intento, indice) => {
+      const status =
+        intento.response === null || intento.response === undefined
+          ? 'sin respuesta HTTP'
+          : `${intento.response.status()} ${intento.response.statusText()}`;
+      const cuerpo = await leerCuerpoRespuestaDiagnostico(intento);
+      const lineas = [
+        `Intento ${indice + 1}: ${intento.request.method()} ${sanitizarUrlDiagnostico(
+          intento.request.url(),
+        )}`,
+        `status: ${status}`,
+      ];
+      if (intento.errorRed !== undefined) {
+        lineas.push(`error de red: ${sanitizarTextoDiagnostico(intento.errorRed)}`);
+      }
+      if (cuerpo !== undefined) {
+        lineas.push(`cuerpo: ${cuerpo}`);
+      }
+      return lineas.join('\n');
+    }),
+  );
+
+  return detalles.join('\n\n');
+}
+
 async function iniciarSesion(page: Page, rol: Rol, returnUrl?: string): Promise<void> {
   const destino = returnUrl === undefined ? '/login' : `/login?returnUrl=${encodeURIComponent(returnUrl)}`;
   const usuario = usuarios[rol];
+  const intentosLogin: IntentoLogin[] = [];
+  const intentosPorRequest = new Map<Request, IntentoLogin>();
+  const registrarRequest = (request: Request): void => {
+    if (!esPeticionLogin(request)) {
+      return;
+    }
+    const intento: IntentoLogin = { request };
+    intentosLogin.push(intento);
+    intentosPorRequest.set(request, intento);
+  };
+  const registrarRequestFinalizado = async (request: Request): Promise<void> => {
+    const intento = intentosPorRequest.get(request);
+    if (intento === undefined) {
+      return;
+    }
+    intento.response = await request.response();
+  };
+  const registrarRequestFallido = (request: Request): void => {
+    const intento = intentosPorRequest.get(request);
+    if (intento === undefined) {
+      return;
+    }
+    const fallo = request.failure();
+    if (fallo !== null) {
+      intento.errorRed = fallo.errorText;
+    }
+  };
+
+  page.on('request', registrarRequest);
+  page.on('requestfinished', registrarRequestFinalizado);
+  page.on('requestfailed', registrarRequestFallido);
+
   await page.goto(destino);
   await page.getByLabel('Correo institucional').fill(usuario.correo);
   await page.getByLabel('Contraseña', { exact: true }).fill(usuario.contrasena);
-  await page.getByRole('button', { name: /iniciar sesión/i }).click();
-  await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
+  try {
+    await page.getByRole('button', { name: /iniciar sesión/i }).click();
+    await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
+  } catch (error) {
+    const mensajeOriginal = error instanceof Error ? error.message : String(error);
+    const diagnostico = await construirDiagnosticoLogin(intentosLogin);
+    throw new Error(`${mensajeOriginal}\n\nDiagnóstico de login:\n${diagnostico}`);
+  } finally {
+    page.off('request', registrarRequest);
+    page.off('requestfinished', registrarRequestFinalizado);
+    page.off('requestfailed', registrarRequestFallido);
+  }
 }
 
 test.describe('autenticación y RBAC en navegador real', () => {
