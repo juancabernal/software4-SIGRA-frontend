@@ -230,6 +230,45 @@ h1 {
   }
 }
 
+// ── Diagnóstico extendido (texto jerarquizado, no tarjetas ni gráficos) ──
+.alerta-conclusion__diagnostico {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.alerta-conclusion__diagnostico-principal {
+  margin: 0;
+  color: #fff;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+
+  strong {
+    color: #fff;
+  }
+}
+
+.alerta-conclusion__diagnostico-umbral {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8125rem;
+}
+
+.alerta-conclusion__diagnostico-desglose,
+.alerta-conclusion__diagnostico-comparacion {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.875rem;
+}
+
+.alerta-conclusion__diagnostico-recomendacion {
+  margin: 0.4rem 0 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
 .alerta-conclusion app-chip-estado {
   display: inline-flex;
   background: #fff;
