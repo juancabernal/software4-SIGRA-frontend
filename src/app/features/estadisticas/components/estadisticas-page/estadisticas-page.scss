@@ -275,6 +275,56 @@ h1 {
   border-radius: var(--sg-radius-control);
 }
 
+// ── Atendida / Satisfactorio / Sin datos suficientes (tono informativo, no de alerta) ──
+.estado-resultado {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--sg-border);
+  border-left: 4px solid var(--sg-neutral-fg);
+  border-radius: var(--sg-radius-card);
+  background: var(--sg-field);
+}
+
+.estado-resultado--satisfactorio {
+  border-left-color: var(--sg-ok-fg);
+}
+
+.estado-resultado__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.estado-resultado__icono {
+  color: var(--sg-neutral-fg);
+}
+
+.estado-resultado--satisfactorio .estado-resultado__icono {
+  color: var(--sg-ok-fg);
+}
+
+.estado-resultado__mensaje {
+  margin: 0;
+  color: var(--sg-ink-body);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.estado-resultado__detalle {
+  margin: 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+
+  strong {
+    color: var(--sg-ink-body);
+  }
+}
+
 .btn--sobre-navy {
   border-color: #fff;
   background: #fff;

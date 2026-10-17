@@ -139,54 +139,106 @@
             </div>
           }
           @case ('listo') {
-            @if (consultaConclusion(); as conclusion) {
-              <div class="alerta-conclusion" role="alert">
-                <div class="alerta-conclusion__cabecera">
-                  <app-icono nombre="advertencia" [tamano]="20" />
-                  <app-chip-estado etiqueta="Vigente" variante="advertencia" icono="advertencia" />
-                  <span class="alerta-conclusion__semestre">Semestre {{ conclusion.semestreCodigo }}</span>
-                </div>
-                <p class="alerta-conclusion__mensaje">{{ conclusion.mensaje }}</p>
-                @if (conclusion.totalEvaluados != null) {
-                  <div class="alerta-conclusion__diagnostico">
-                    <p class="alerta-conclusion__diagnostico-principal tabular">
-                      <strong>{{ debajoDelNivel(conclusion) }}</strong> de
-                      <strong>{{ conclusion.totalEvaluados }}</strong> estudiantes evaluados
-                      (<strong>{{ conclusion.porcentajeInsuficiente }}%</strong>) quedaron por debajo del
-                      nivel esperado.
+            @if (consultaResultado(); as resultado) {
+              @switch (resultado.estado) {
+                @case ('VIGENTE') {
+                  @if (resultado.conclusion; as conclusion) {
+                    <div class="alerta-conclusion" role="alert">
+                      <div class="alerta-conclusion__cabecera">
+                        <app-icono nombre="advertencia" [tamano]="20" />
+                        <app-chip-estado etiqueta="Vigente" variante="advertencia" icono="advertencia" />
+                        <span class="alerta-conclusion__semestre">Semestre {{ conclusion.semestreCodigo }}</span>
+                      </div>
+                      <p class="alerta-conclusion__mensaje">{{ conclusion.mensaje }}</p>
+                      @if (conclusion.totalEvaluados != null) {
+                        <div class="alerta-conclusion__diagnostico">
+                          <p class="alerta-conclusion__diagnostico-principal tabular">
+                            <strong>{{ debajoDelNivel(conclusion) }}</strong> de
+                            <strong>{{ conclusion.totalEvaluados }}</strong> estudiantes evaluados
+                            (<strong>{{ conclusion.porcentajeInsuficiente }}%</strong>) quedaron por debajo del
+                            nivel esperado.
+                          </p>
+                          <p class="alerta-conclusion__diagnostico-umbral tabular">
+                            El umbral que dispara la alerta es del {{ conclusion.umbralPorcentaje }}%.
+                          </p>
+                          <p class="alerta-conclusion__diagnostico-desglose">
+                            {{ conclusion.enNivelBajo ?? 0 }} en nivel Bajo y {{ conclusion.enNivelMedio ?? 0 }}
+                            en nivel Medio.
+                          </p>
+                          <p class="alerta-conclusion__diagnostico-comparacion">
+                            {{ comparacionSemestreAnterior(conclusion) }}
+                          </p>
+                          @if (conclusion.recomendacion) {
+                            <p class="alerta-conclusion__diagnostico-recomendacion">
+                              {{ conclusion.recomendacion }}
+                            </p>
+                          }
+                        </div>
+                      } @else {
+                        <p class="alerta-conclusion__porcentaje tabular">
+                          Desempeño insuficiente: <strong>{{ conclusion.porcentajeInsuficiente }}%</strong>
+                        </p>
+                      }
+                      <button type="button" class="btn btn--primario btn--sobre-navy" (click)="crearAccionDeMejora()">
+                        <app-icono nombre="mas" [tamano]="16" />
+                        Crear acción de mejora
+                      </button>
+                    </div>
+                  }
+                }
+                @case ('ATENDIDA') {
+                  <div class="estado-resultado estado-resultado--atendida">
+                    <div class="estado-resultado__cabecera">
+                      <app-icono class="estado-resultado__icono" nombre="check" [tamano]="20" />
+                      <app-chip-estado etiqueta="Atendida" variante="neutro" icono="check" />
+                    </div>
+                    <p class="estado-resultado__mensaje">
+                      Este resultado de aprendizaje superó el umbral de desempeño insuficiente, pero ya
+                      tiene una acción de mejora registrada.
                     </p>
-                    <p class="alerta-conclusion__diagnostico-umbral tabular">
-                      El umbral que dispara la alerta es del {{ conclusion.umbralPorcentaje }}%.
-                    </p>
-                    <p class="alerta-conclusion__diagnostico-desglose">
-                      {{ conclusion.enNivelBajo ?? 0 }} en nivel Bajo y {{ conclusion.enNivelMedio ?? 0 }}
-                      en nivel Medio.
-                    </p>
-                    <p class="alerta-conclusion__diagnostico-comparacion">
-                      {{ comparacionSemestreAnterior(conclusion) }}
-                    </p>
-                    @if (conclusion.recomendacion) {
-                      <p class="alerta-conclusion__diagnostico-recomendacion">
-                        {{ conclusion.recomendacion }}
+                    @if (resultado.porcentajeInsuficiente != null) {
+                      <p class="estado-resultado__detalle tabular">
+                        El <strong>{{ resultado.porcentajeInsuficiente }}%</strong> de los estudiantes
+                        evaluados quedó por debajo del nivel esperado; ya se registró una acción de
+                        mejora para atenderlo.
                       </p>
                     }
                   </div>
-                } @else {
-                  <p class="alerta-conclusion__porcentaje tabular">
-                    Desempeño insuficiente: <strong>{{ conclusion.porcentajeInsuficiente }}%</strong>
-                  </p>
                 }
-                <button type="button" class="btn btn--primario btn--sobre-navy" (click)="crearAccionDeMejora()">
-                  <app-icono nombre="mas" [tamano]="16" />
-                  Crear acción de mejora
-                </button>
-              </div>
-            } @else {
-              <div class="estado-vista">
-                <app-icono nombre="check" [tamano]="20" />
-                <p class="estado-vista__titulo">Sin conclusión vigente</p>
-                <p>No hay una conclusión de desempeño insuficiente para este RA en este semestre.</p>
-              </div>
+                @case ('SATISFACTORIO') {
+                  <div class="estado-resultado estado-resultado--satisfactorio">
+                    <div class="estado-resultado__cabecera">
+                      <app-icono class="estado-resultado__icono" nombre="usuario-ok" [tamano]="20" />
+                      <app-chip-estado etiqueta="Satisfactorio" variante="ok" icono="usuario-ok" />
+                    </div>
+                    <p class="estado-resultado__mensaje">
+                      El desempeño de este resultado de aprendizaje está dentro de lo esperado.
+                    </p>
+                    <p class="estado-resultado__detalle tabular">
+                      Se evaluaron <strong>{{ resultado.totalEvaluados }}</strong> estudiantes y solo el
+                      <strong>{{ resultado.porcentajeInsuficiente }}%</strong> quedó por debajo del nivel
+                      esperado.
+                    </p>
+                  </div>
+                }
+                @case ('SIN_DATOS_SUFICIENTES') {
+                  <div class="estado-resultado estado-resultado--sin-datos">
+                    <div class="estado-resultado__cabecera">
+                      <app-icono class="estado-resultado__icono" nombre="reloj" [tamano]="20" />
+                      <app-chip-estado etiqueta="Sin datos suficientes" variante="neutro" icono="reloj" />
+                    </div>
+                    <p class="estado-resultado__mensaje">
+                      Todavía no hay suficientes calificaciones para analizar este resultado de
+                      aprendizaje.
+                    </p>
+                    <p class="estado-resultado__detalle tabular">
+                      Hay <strong>{{ resultado.totalEvaluados }}</strong> estudiantes evaluados; se
+                      necesitan al menos 3 para generar un análisis. Esto no es un error ni un problema
+                      del RA, solo falta evaluar más estudiantes.
+                    </p>
+                  </div>
+                }
+              }
             }
           }
         }
