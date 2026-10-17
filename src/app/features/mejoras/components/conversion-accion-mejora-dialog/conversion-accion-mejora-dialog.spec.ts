@@ -71,10 +71,19 @@ describe('ConversionAccionMejoraDialog', () => {
     await fixture.whenStable();
   }
 
-  it.each(['', '0', '-5', '101'])(
+  async function escribirFecha(valor: string): Promise<void> {
+    const control = campo<HTMLInputElement>('conversion-fecha-tentativa');
+    control.value = valor;
+    control.dispatchEvent(new Event('input'));
+    control.dispatchEvent(new Event('blur'));
+    await fixture.whenStable();
+  }
+
+  it.each(['', '0', '-5', '101', '20.123'])(
     'no deja confirmar con porcentaje «%s»',
     async (valor) => {
       await abrir();
+      await escribirFecha('2026-06-10');
       if (valor !== '') {
         await escribir(valor);
       }
@@ -85,15 +94,25 @@ describe('ConversionAccionMejoraDialog', () => {
     },
   );
 
+  it('no deja confirmar sin fecha tentativa', async () => {
+    await abrir();
+    await escribir('20');
+
+    expect(enviarBoton().getAttribute('aria-disabled')).toBe('true');
+    await enviar();
+    http.expectNone(URL);
+  });
+
   it('al confirmar con un valor válido llama al endpoint de conversión', async () => {
     await abrir();
+    await escribirFecha('2026-06-10');
     await escribir('20');
     expect(enviarBoton().hasAttribute('aria-disabled')).toBe(false);
 
     await enviar();
     const req = http.expectOne(URL);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ porcentaje: 20 });
+    expect(req.request.body).toEqual({ fechaTentativa: '2026-06-10', porcentaje: 20 });
     const convertida = { ...ACCION, convertida: true, evaluacionGeneradaId: 'ev1' };
     req.flush(convertida);
     await fixture.whenStable();
@@ -103,6 +122,7 @@ describe('ConversionAccionMejoraDialog', () => {
 
   it('un error del backend (ya convertida o supera el 100%) muestra el mensaje y no deja la pantalla rota', async () => {
     await abrir();
+    await escribirFecha('2026-06-10');
     await escribir('20');
     await enviar();
 

@@ -32,6 +32,16 @@ function mayorQueCero(control: AbstractControl): ValidationErrors | null {
   return typeof valor === 'number' && valor > 0 ? null : { mayorQueCero: true };
 }
 
+/** Rechaza más de 2 decimales sin restringir el formato numérico en sí. */
+function maximoDosDecimales(control: AbstractControl): ValidationErrors | null {
+  const valor = control.value as number | null;
+  if (typeof valor !== 'number') {
+    return null;
+  }
+  const decimales = valor.toString().split('.')[1]?.length ?? 0;
+  return decimales <= 2 ? null : { maximoDosDecimales: true };
+}
+
 /**
  * Convertir una acción de mejora en evaluación (RF-18): pide el porcentaje de la evaluación y
  * llama a POST /acciones-mejora/{id}/conversion. Un 400 (supera el 100% del RA en el semestre) o
@@ -58,10 +68,12 @@ export class ConversionAccionMejoraDialog {
   protected readonly errorApi = signal<MensajeError | null>(null);
 
   protected readonly form = new FormGroup({
+    fechaTentativa: new FormControl<string | null>(null, [Validators.required]),
     porcentaje: new FormControl<number | null>(null, [
       Validators.required,
       mayorQueCero,
       Validators.max(100),
+      maximoDosDecimales,
     ]),
   });
 
@@ -83,6 +95,11 @@ export class ConversionAccionMejoraDialog {
     });
   }
 
+  protected mostrarErrorFecha(): boolean {
+    const control = this.form.controls.fechaTentativa;
+    return control.invalid && (control.touched || control.dirty);
+  }
+
   protected mostrarErrorPorcentaje(): boolean {
     const control = this.form.controls.porcentaje;
     return control.invalid && (control.touched || control.dirty);
@@ -94,15 +111,15 @@ export class ConversionAccionMejoraDialog {
 
   protected enviar(): void {
     const accion = this.accion();
-    const porcentaje = this.form.getRawValue().porcentaje;
-    if (!accion || porcentaje == null) {
+    const { fechaTentativa, porcentaje } = this.form.getRawValue();
+    if (!accion || fechaTentativa == null || porcentaje == null) {
       return;
     }
     this.errorApi.set(null);
     this.procesando.set(true);
 
     this.service
-      .convertir(accion.id, { porcentaje })
+      .convertir(accion.id, { fechaTentativa, porcentaje })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (accionConvertida) => {
