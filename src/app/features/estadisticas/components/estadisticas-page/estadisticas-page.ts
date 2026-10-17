@@ -126,28 +126,7 @@ export class EstadisticasPage {
 
   // ── Acciones de mejora del (RA, semestre) elegidos (RF-18) ─────────────
   private readonly recargaAcciones = signal(0);
-  private readonly cargaAcciones = toSignal(
-    combineLatest([
-      toObservable(this.resultadoAprendizajeId),
-      toObservable(this.semestreId),
-      toObservable(this.recargaAcciones),
-      toObservable(this.refresco),
-    ]).pipe(
-      switchMap(([resultadoAprendizajeId, semestreId]) => {
-        if (!resultadoAprendizajeId || !semestreId) {
-          return of<CargaAccionesMejora>({ estado: 'inactivo' });
-        }
-        return this.accionMejoraService.listar({ resultadoAprendizajeId, semestreId }).pipe(
-          map((lista): CargaAccionesMejora => ({ estado: 'listo', lista })),
-          catchError((error: unknown) =>
-            of<CargaAccionesMejora>({ estado: 'error', error: mensajeDeError(error) }),
-          ),
-          startWith<CargaAccionesMejora>({ estado: 'cargando' }),
-        );
-      }),
-    ),
-    { initialValue: { estado: 'inactivo' } as CargaAccionesMejora },
-  );
+  protected readonly cargaAcciones = signal<CargaAccionesMejora>({ estado: 'inactivo' });
 
   protected readonly accionesEstado = computed(() => this.cargaAcciones().estado);
   protected readonly accionesError = computed(() => {
@@ -167,9 +146,37 @@ export class EstadisticasPage {
     this.cargarAsignaturas();
     this.cargarSemestres();
 
+    combineLatest([
+      toObservable(this.resultadoAprendizajeId),
+      toObservable(this.semestreId),
+      toObservable(this.recargaAcciones),
+    ])
+      .pipe(
+        switchMap(([resultadoAprendizajeId, semestreId]) => {
+          if (!resultadoAprendizajeId || !semestreId) {
+            return of<CargaAccionesMejora>({ estado: 'inactivo' });
+          }
+          return this.accionMejoraService.listar({ resultadoAprendizajeId, semestreId }).pipe(
+            map((lista): CargaAccionesMejora => ({ estado: 'listo', lista })),
+            catchError((error: unknown) =>
+              of<CargaAccionesMejora>({ estado: 'error', error: mensajeDeError(error) }),
+            ),
+            startWith<CargaAccionesMejora>({ estado: 'cargando' }),
+          );
+        }),
+        takeUntilDestroyed(),
+      )
+      .subscribe((carga) => this.cargaAcciones.set(carga));
+
     toObservable(this.refresco)
       .pipe(skip(1), takeUntilDestroyed())
-      .subscribe(() => this.refrescarConclusionEnSegundoPlano());
+      .subscribe(() => {
+        if (this.dialogoAbierto() || this.dialogoConversionAbierto()) {
+          return;
+        }
+        this.refrescarConclusionEnSegundoPlano();
+        this.refrescarAccionesEnSegundoPlano();
+      });
   }
 
   /** Vuelve a consultar la conclusión sin mostrar "cargando" ni borrar lo que ya hay en pantalla. */
@@ -184,11 +191,39 @@ export class EstadisticasPage {
         estado: 'VIGENTE',
       })
       .subscribe({
-        next: (lista) => this.consulta.set({ estado: 'listo', conclusion: lista[0] ?? null }),
+        next: (lista) => {
+          const conclusion = lista[0] ?? null;
+          const actual = this.consulta();
+          if (actual.estado === 'listo' && JSON.stringify(actual.conclusion) === JSON.stringify(conclusion)) {
+            return;
+          }
+          this.consulta.set({ estado: 'listo', conclusion });
+        },
         error: () => {
           // refresco en segundo plano: ante un fallo se conservan los datos previos sin avisar
         },
       });
+  }
+
+  /** Vuelve a cargar las acciones de mejora sin mostrar "cargando" ni borrar lo que ya hay en pantalla. */
+  private refrescarAccionesEnSegundoPlano(): void {
+    const resultadoAprendizajeId = this.resultadoAprendizajeId();
+    const semestreId = this.semestreId();
+    if (!resultadoAprendizajeId || !semestreId || this.cargaAcciones().estado === 'inactivo') {
+      return;
+    }
+    this.accionMejoraService.listar({ resultadoAprendizajeId, semestreId }).subscribe({
+      next: (lista) => {
+        const actual = this.cargaAcciones();
+        if (actual.estado === 'listo' && JSON.stringify(actual.lista) === JSON.stringify(lista)) {
+          return;
+        }
+        this.cargaAcciones.set({ estado: 'listo', lista });
+      },
+      error: () => {
+        // refresco en segundo plano: ante un fallo se conservan los datos previos sin avisar
+      },
+    });
   }
 
   protected cargarAsignaturas(): void {
