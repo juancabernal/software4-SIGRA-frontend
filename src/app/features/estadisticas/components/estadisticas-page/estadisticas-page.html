@@ -147,9 +147,35 @@
                   <span class="alerta-conclusion__semestre">Semestre {{ conclusion.semestreCodigo }}</span>
                 </div>
                 <p class="alerta-conclusion__mensaje">{{ conclusion.mensaje }}</p>
-                <p class="alerta-conclusion__porcentaje tabular">
-                  Desempeño insuficiente: <strong>{{ conclusion.porcentajeInsuficiente }}%</strong>
-                </p>
+                @if (conclusion.totalEvaluados != null) {
+                  <div class="alerta-conclusion__diagnostico">
+                    <p class="alerta-conclusion__diagnostico-principal tabular">
+                      <strong>{{ debajoDelNivel(conclusion) }}</strong> de
+                      <strong>{{ conclusion.totalEvaluados }}</strong> estudiantes evaluados
+                      (<strong>{{ conclusion.porcentajeInsuficiente }}%</strong>) quedaron por debajo del
+                      nivel esperado.
+                    </p>
+                    <p class="alerta-conclusion__diagnostico-umbral tabular">
+                      El umbral que dispara la alerta es del {{ conclusion.umbralPorcentaje }}%.
+                    </p>
+                    <p class="alerta-conclusion__diagnostico-desglose">
+                      {{ conclusion.enNivelBajo ?? 0 }} en nivel Bajo y {{ conclusion.enNivelMedio ?? 0 }}
+                      en nivel Medio.
+                    </p>
+                    <p class="alerta-conclusion__diagnostico-comparacion">
+                      {{ comparacionSemestreAnterior(conclusion) }}
+                    </p>
+                    @if (conclusion.recomendacion) {
+                      <p class="alerta-conclusion__diagnostico-recomendacion">
+                        {{ conclusion.recomendacion }}
+                      </p>
+                    }
+                  </div>
+                } @else {
+                  <p class="alerta-conclusion__porcentaje tabular">
+                    Desempeño insuficiente: <strong>{{ conclusion.porcentajeInsuficiente }}%</strong>
+                  </p>
+                }
                 <button type="button" class="btn btn--primario btn--sobre-navy" (click)="crearAccionDeMejora()">
                   <app-icono nombre="mas" [tamano]="16" />
                   Crear acción de mejora

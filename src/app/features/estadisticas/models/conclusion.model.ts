@@ -19,6 +19,14 @@ export interface Conclusion {
   fechaGeneracion: string;
   porcentajeInsuficiente: number;
   estado: EstadoConclusion;
+  /** Diagnóstico extendido; nulo en conclusiones generadas antes de agregar estos campos. */
+  totalEvaluados?: number | null;
+  enNivelBajo?: number | null;
+  enNivelMedio?: number | null;
+  umbralPorcentaje?: number | null;
+  porcentajeSemestreAnterior?: number | null;
+  semestreAnteriorCodigo?: string | null;
+  recomendacion?: string | null;
 }
 
 /** Filtros de GET /conclusiones; todos opcionales y combinados con AND en el backend. */

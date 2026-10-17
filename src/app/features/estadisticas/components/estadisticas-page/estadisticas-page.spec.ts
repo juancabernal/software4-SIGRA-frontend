@@ -206,6 +206,44 @@ describe('EstadisticasPage', () => {
       expect(html.textContent).toContain(CONCLUSION.mensaje);
     });
 
+    it('con diagnóstico disponible muestra los números y la recomendación', async () => {
+      await iniciarConSeleccion([ra(1)]);
+
+      boton(html, 'Consultar conclusión').click();
+      await fixture.whenStable();
+      const CONCLUSION_CON_DIAGNOSTICO: Conclusion = {
+        ...CONCLUSION,
+        totalEvaluados: 20,
+        enNivelBajo: 7,
+        enNivelMedio: 5,
+        umbralPorcentaje: 30,
+        porcentajeSemestreAnterior: 35,
+        semestreAnteriorCodigo: '2025-2',
+        recomendacion: 'Reforzar la unidad de integrales con talleres prácticos.',
+      };
+      http.expectOne((r) => r.url === URL_CONCLUSIONES).flush([CONCLUSION_CON_DIAGNOSTICO]);
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('quedaron por debajo del nivel esperado');
+      expect(html.textContent).toContain('El umbral que dispara la alerta es del 30%');
+      expect(html.textContent).toContain('7 en nivel Bajo y 5 en nivel Medio');
+      expect(html.textContent).toContain('Empeoró frente al semestre 2025-2 (35%)');
+      expect(html.textContent).toContain('Reforzar la unidad de integrales con talleres prácticos.');
+    });
+
+    it('sin datos de diagnóstico (conclusión generada antes del cambio) mantiene el aviso de siempre', async () => {
+      await iniciarConSeleccion([ra(1)]);
+
+      boton(html, 'Consultar conclusión').click();
+      await fixture.whenStable();
+      http.expectOne((r) => r.url === URL_CONCLUSIONES).flush([CONCLUSION]);
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('Desempeño insuficiente');
+      expect(html.textContent).toContain('45%');
+      expect(html.textContent).not.toContain('quedaron por debajo del nivel esperado');
+    });
+
     it('sin conclusión vigente muestra el estado vacío y no ofrece «Crear acción de mejora»', async () => {
       await iniciarConSeleccion([ra(1)]);
 

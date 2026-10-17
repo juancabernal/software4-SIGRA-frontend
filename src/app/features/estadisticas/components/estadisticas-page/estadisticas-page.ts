@@ -350,4 +350,26 @@ export class EstadisticasPage {
     clearTimeout(this.temporizadorAviso);
     this.aviso.set(null);
   }
+
+  /** Cantidad de estudiantes en nivel Bajo o Medio (por debajo del nivel esperado). */
+  protected debajoDelNivel(conclusion: Conclusion): number {
+    return (conclusion.enNivelBajo ?? 0) + (conclusion.enNivelMedio ?? 0);
+  }
+
+  /** Redacta la comparación con el semestre anterior, o indica que es la primera conclusión del RA. */
+  protected comparacionSemestreAnterior(conclusion: Conclusion): string {
+    const anterior = conclusion.porcentajeSemestreAnterior;
+    if (anterior == null) {
+      return 'Es la primera vez que este RA genera una conclusión.';
+    }
+    const actual = conclusion.porcentajeInsuficiente;
+    const semestre = conclusion.semestreAnteriorCodigo ?? '';
+    if (actual > anterior) {
+      return `Empeoró frente al semestre ${semestre} (${anterior}%).`;
+    }
+    if (actual < anterior) {
+      return `Mejoró frente al semestre ${semestre} (${anterior}%), pero sigue por encima del umbral.`;
+    }
+    return `Se mantiene igual que en el semestre ${semestre} (${anterior}%).`;
+  }
 }
