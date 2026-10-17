@@ -56,6 +56,65 @@ h1 {
   font-size: 0.8125rem;
 }
 
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.buscador {
+  display: flex;
+  flex: 1 1 14rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
+  color: var(--sg-ink-soft);
+
+  &:focus-within {
+    border-color: var(--sg-navy);
+    background: var(--sg-card);
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.55rem 0;
+    border: 0;
+    background: transparent;
+    color: var(--sg-ink);
+    font: inherit;
+    font-size: 0.875rem;
+
+    &:focus-visible {
+      outline: none;
+    }
+
+    &::placeholder {
+      color: var(--sg-ink-muted);
+    }
+  }
+}
+
+.selector {
+  max-width: 14rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
+  color: var(--sg-ink-body);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.barra__limpiar {
+  margin-left: auto;
+}
+
 .tarjetas {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));

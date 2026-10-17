@@ -22,6 +22,18 @@ const ASIGNATURA: MiAsignatura = {
   profesores: ['Profesor Uno'],
 };
 
+const ASIGNATURA_FISICA: MiAsignatura = {
+  id: 'a2',
+  codigo: 'FIS-100',
+  nombre: 'Física I',
+  programaId: 'p2',
+  programaNombre: 'Ingeniería Electrónica',
+  estado: 'ACTIVA',
+  cantidadRa: 4,
+  cantidadEstudiantes: 10,
+  profesores: ['Profesora Dos'],
+};
+
 describe('MisAsignaturasPage', () => {
   let fixture: ComponentFixture<MisAsignaturasPage>;
   let http: HttpTestingController;
@@ -99,26 +111,75 @@ describe('MisAsignaturasPage', () => {
     expect(html.querySelector('button')?.textContent).toContain('Reintentar');
   });
 
-  it('muestra el estado vacío sin datos ficticios', () => {
-    const html = cargar([]);
+  it('el estado vacío dice lo correcto según el rol, sin mencionar el backend', () => {
+    const htmlProfesor = cargar([]);
+    expect(htmlProfesor.textContent).toContain('Aún no tienes asignaturas asignadas');
+    expect(htmlProfesor.textContent?.toLowerCase()).not.toContain('backend');
+    expect(htmlProfesor.querySelector('.tarjeta')).toBeNull();
 
-    expect(html.textContent).toContain('No tienes asignaturas para mostrar');
-    expect(html.querySelector('.tarjeta')).toBeNull();
+    fixture = TestBed.createComponent(MisAsignaturasPage);
+    fixture.componentRef.setInput('vista', 'ESTUDIANTE');
+    http = TestBed.inject(HttpTestingController);
+    const htmlEstudiante = cargar([]);
+    expect(htmlEstudiante.textContent).toContain('Aún no estás matriculado en ninguna materia');
   });
 
-  it('un refresco de fondo no muestra "cargando" y conserva los datos previos', () => {
-    const html = cargar();
+  it('buscar por código deja solo la asignatura esperada', () => {
+    const html = cargar([ASIGNATURA, ASIGNATURA_FISICA]);
+
+    const buscador = html.querySelector('input[type="search"]') as HTMLInputElement;
+    buscador.value = 'fis-100';
+    buscador.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(html.textContent).toContain('Física I');
+    expect(html.textContent).not.toContain('Álgebra QA');
+  });
+
+  it('filtrar por programa deja solo las asignaturas de ese programa', () => {
+    const html = cargar([ASIGNATURA, ASIGNATURA_FISICA]);
+
+    const selectorPrograma = html.querySelector('#filtro-programa') as HTMLSelectElement;
+    selectorPrograma.value = 'p2';
+    selectorPrograma.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(html.textContent).toContain('Física I');
+    expect(html.textContent).not.toContain('Álgebra QA');
+  });
+
+  it('una combinación sin resultados muestra el mensaje de búsqueda vacía, no el de "no tienes asignaturas"', () => {
+    const html = cargar([ASIGNATURA, ASIGNATURA_FISICA]);
+
+    const buscador = html.querySelector('input[type="search"]') as HTMLInputElement;
+    buscador.value = 'no existe ninguna materia con esto';
+    buscador.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(html.textContent).toContain('No hay resultados para esta búsqueda');
+    expect(html.textContent).not.toContain('Aún no tienes asignaturas asignadas');
+  });
+
+  it('un refresco de fondo no muestra "cargando", conserva los datos y lo que el usuario escribió', () => {
+    const html = cargar([ASIGNATURA, ASIGNATURA_FISICA]);
+
+    const buscador = html.querySelector('input[type="search"]') as HTMLInputElement;
+    buscador.value = 'fis';
+    buscador.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
 
     document.dispatchEvent(new Event('visibilitychange'));
     fixture.detectChanges();
 
     expect(html.querySelector('[role="status"]')).toBeNull();
-    expect(html.textContent).toContain('QA-VEC3B41597D');
+    expect(html.textContent).toContain('Física I');
 
     const req = http.expectOne(URL_MIAS);
-    req.flush([ASIGNATURA]);
+    req.flush([ASIGNATURA, ASIGNATURA_FISICA]);
     fixture.detectChanges();
 
-    expect(html.textContent).toContain('QA-VEC3B41597D');
+    expect((html.querySelector('input[type="search"]') as HTMLInputElement).value).toBe('fis');
+    expect(html.textContent).toContain('Física I');
+    expect(html.textContent).not.toContain('Álgebra QA');
   });
 });
