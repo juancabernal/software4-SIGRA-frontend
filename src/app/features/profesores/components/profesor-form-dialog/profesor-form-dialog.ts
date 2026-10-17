@@ -23,7 +23,7 @@ import { TipoDocumentoOpcionesService } from '../../services/tipo-documento-opci
 
 /** Mismo patrón que valida el backend (@Pattern en ProfesorRequestDTO). */
 export const PATRON_NUMERO_DOCUMENTO = /^\d{6,10}$/;
-export const PATRON_CORREO_INSTITUCIONAL = /^[\w.-]+@uco\.net\.co$/;
+export const PATRON_CORREO_INSTITUCIONAL = /^\s*[\w.-]+@uco\.net\.co\s*$/i;
 
 /**
  * Diálogo de Registrar / Modificar profesor (RF-01). El mismo componente sirve para las dos
@@ -102,10 +102,8 @@ export class ProfesorFormDialog implements OnInit {
   ngOnInit(): void {
     const profesor = this.profesor();
     if (profesor) {
-      // tipoDocumentoId no viaja en ProfesorResponseDTO (solo tipoDocumentoNombre), así que al
-      // modificar el selector arranca vacío y el usuario debe volver a elegir el tipo de
-      // documento. Si el backend llega a exponer el id en la respuesta, se precarga aquí.
       this.form.patchValue({
+        tipoDocumentoId: profesor.tipoDocumentoId ?? '',
         numeroDocumento: profesor.numeroDocumento,
         nombreCompleto: profesor.nombreCompleto,
         correoInstitucional: profesor.correoInstitucional,

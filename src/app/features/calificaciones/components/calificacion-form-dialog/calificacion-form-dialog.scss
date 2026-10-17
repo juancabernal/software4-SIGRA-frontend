@@ -1,0 +1,140 @@
+// Mismos tokens (--sg-*) que el resto de diálogos del sistema (ver accion-mejora-form-dialog).
+
+.contexto {
+  display: grid;
+  gap: 0.2rem;
+  margin-bottom: 1.1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px dashed var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-divider);
+}
+
+.contexto__etiqueta {
+  margin: 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.contexto__nombre {
+  margin: 0;
+  color: var(--sg-navy);
+  font-weight: 700;
+}
+
+.contexto__documento {
+  margin: 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.campos {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.campo {
+  display: grid;
+  gap: 0.35rem;
+
+  label {
+    color: var(--sg-ink-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--sg-border);
+    border-radius: var(--sg-radius-control);
+    background: var(--sg-field);
+    color: var(--sg-ink);
+    font: inherit;
+    font-size: 0.875rem;
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--sg-navy);
+      background: var(--sg-card);
+    }
+
+    &[aria-invalid='true'] {
+      border-color: var(--sg-error-fg);
+    }
+  }
+
+  input {
+    max-width: 8rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  textarea {
+    resize: vertical;
+  }
+}
+
+.obligatorio {
+  color: var(--sg-error-fg);
+}
+
+.ayuda {
+  margin: 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.75rem;
+}
+
+.error-campo {
+  margin: 0;
+  color: var(--sg-error-fg);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.historial {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--sg-divider);
+}
+
+.historial__titulo {
+  margin: 0;
+  color: var(--sg-navy);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.historial__lista {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.historial__evento {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  color: var(--sg-ink-body);
+  font-size: 0.8125rem;
+}
+
+.historial__fecha {
+  color: var(--sg-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.historial__tarde {
+  color: var(--sg-warning-fg);
+  font-weight: 600;
+}

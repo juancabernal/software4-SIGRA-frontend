@@ -14,6 +14,7 @@ const URL_ASIGNACIONES = `${environment.apiUrl}/v1/asignaciones-docentes`;
 
 const PROFESOR_ACTIVO: Profesor = {
   id: 'prof-activo',
+  tipoDocumentoId: 'td-cc',
   tipoDocumentoNombre: 'CC',
   numeroDocumento: '123456',
   nombreCompleto: 'Ana Activa',
