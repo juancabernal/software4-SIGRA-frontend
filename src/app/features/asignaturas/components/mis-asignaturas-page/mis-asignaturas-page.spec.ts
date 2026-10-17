@@ -105,4 +105,20 @@ describe('MisAsignaturasPage', () => {
     expect(html.textContent).toContain('No tienes asignaturas para mostrar');
     expect(html.querySelector('.tarjeta')).toBeNull();
   });
+
+  it('un refresco de fondo no muestra "cargando" y conserva los datos previos', () => {
+    const html = cargar();
+
+    document.dispatchEvent(new Event('visibilitychange'));
+    fixture.detectChanges();
+
+    expect(html.querySelector('[role="status"]')).toBeNull();
+    expect(html.textContent).toContain('QA-VEC3B41597D');
+
+    const req = http.expectOne(URL_MIAS);
+    req.flush([ASIGNATURA]);
+    fixture.detectChanges();
+
+    expect(html.textContent).toContain('QA-VEC3B41597D');
+  });
 });

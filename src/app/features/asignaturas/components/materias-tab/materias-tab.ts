@@ -9,8 +9,9 @@ import {
   untracked,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { catchError, debounceTime, distinctUntilChanged, map, of, switchMap, tap } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, map, of, skip, switchMap, tap } from 'rxjs';
 
+import { refrescoAutomatico } from '../../../../core/util/refresco-automatico';
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
 import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
 import { PanelLateral } from '../../../../shared/components/panel-lateral/panel-lateral';
@@ -106,6 +107,8 @@ export class MateriasTab {
   private readonly programasService = inject(ProgramaOpcionesService);
   private readonly destroyRef = inject(DestroyRef);
   private temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
+
+  private readonly refresco = refrescoAutomatico();
 
   protected readonly rangos = RANGOS_RA;
   protected readonly estados = ESTADOS_FILTRO;
@@ -280,6 +283,38 @@ export class MateriasTab {
           this.errorCarga.set(resultado.error);
         }
         this.cargando.set(false);
+      });
+
+    toObservable(this.refresco)
+      .pipe(skip(1), takeUntilDestroyed())
+      .subscribe(() => {
+        if (this.formularioAbierto() || this.aInactivar() !== null) {
+          return;
+        }
+        this.refrescarEnSegundoPlano();
+      });
+  }
+
+  /** Vuelve a consultar el listado sin mostrar "cargando" ni borrar lo que ya hay en pantalla. */
+  private refrescarEnSegundoPlano(): void {
+    if (this.cargando()) {
+      return;
+    }
+    this.service
+      .listar(this.filtros())
+      .pipe(
+        catchError(() => of(null)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((lista) => {
+        if (lista === null) {
+          return;
+        }
+        const actual = this.asignaturas();
+        if (JSON.stringify(actual) === JSON.stringify(lista)) {
+          return;
+        }
+        this.asignaturas.set(lista);
       });
   }
 
