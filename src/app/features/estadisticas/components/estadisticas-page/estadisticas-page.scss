@@ -163,6 +163,35 @@ h1 {
   padding: 0;
 }
 
+// ── Secciones del resultado: Nivel de logro (RF-14/15) y Conclusión (RF-16) ──
+.seccion + .seccion {
+  border-top: 1px solid var(--sg-divider);
+}
+
+.seccion__titulo {
+  margin: 0;
+  padding: 1.25rem 1.25rem 0;
+  color: var(--sg-navy);
+  font-family: var(--sg-font-titulo);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.seccion__cuerpo {
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.estado-inline--fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+
+  p {
+    margin: 0;
+  }
+}
+
 .estado-vista {
   display: grid;
   justify-items: center;

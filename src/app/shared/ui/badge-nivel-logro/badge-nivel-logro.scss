@@ -1,0 +1,47 @@
+// Pares de estado de la guía (§3.3), con la misma forma de `app-chip-estado`. Para el TEXTO se
+// oscurecen dentro del componente los pares que no llegan a contraste AA sobre su fondo (ok e
+// info); los tokens globales no se tocan.
+//
+// Bajo → error · Medio → advertencia · Alto → info · Sobresaliente → ok (éxito).
+
+:host {
+  display: inline-flex;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.badge--bajo {
+  background: var(--sg-error-bg);
+  color: var(--sg-error-fg);
+}
+
+.badge--medio {
+  background: var(--sg-warning-bg);
+  color: var(--sg-warning-fg);
+}
+
+.badge--alto {
+  background: var(--sg-info-bg);
+  color: color-mix(in srgb, var(--sg-info-fg) 80%, black);
+}
+
+.badge--sobresaliente {
+  background: var(--sg-ok-bg);
+  color: color-mix(in srgb, var(--sg-ok-fg) 55%, black);
+}
+
+.badge--sin-datos,
+.badge--sin-evaluar {
+  background: var(--sg-neutral-bg);
+  color: color-mix(in srgb, var(--sg-neutral-fg) 80%, black);
+}

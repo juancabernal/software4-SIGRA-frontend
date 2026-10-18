@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, combineLatest, map, of, skip, startWith, switchMap } from 'rxjs';
 
@@ -20,7 +27,10 @@ import { ResultadoAprendizajeService } from '../../../resultadosaprendizaje/serv
 import { Semestre } from '../../../semestres/models/semestre.model';
 import { SemestreService } from '../../../semestres/services/semestre.service';
 import { Conclusion, ConclusionEstado } from '../../models/conclusion.model';
+import { EstadisticasResultadoAprendizaje, RangoNivelLogro } from '../../models/nivel-logro.model';
 import { ConclusionService } from '../../services/conclusion.service';
+import { NivelLogroService } from '../../services/nivel-logro.service';
+import { NivelLogroResumen } from '../nivel-logro-resumen/nivel-logro-resumen';
 
 type CargaRa =
   | { estado: 'inactivo' }
@@ -32,6 +42,12 @@ type CargaConclusion =
   | { estado: 'inactivo' }
   | { estado: 'cargando' }
   | { estado: 'listo'; resultado: ConclusionEstado }
+  | { estado: 'error'; error: MensajeError };
+
+type CargaEstadisticas =
+  | { estado: 'inactivo' }
+  | { estado: 'cargando' }
+  | { estado: 'listo'; estadisticas: EstadisticasResultadoAprendizaje }
   | { estado: 'error'; error: MensajeError };
 
 type CargaAccionesMejora =
@@ -50,17 +66,27 @@ interface Aviso {
 const DURACION_AVISO_MS = 6000;
 
 /**
- * RF-16: vista de estadísticas del profesor. Se elige materia → RA activo → semestre y se
- * consulta el estado de ese (RA, semestre): Vigente (desempeño insuficiente sin atender),
- * Atendida (ya tiene acción de mejora), Satisfactorio o datos insuficientes.
+ * Vista de estadísticas del profesor. Se elige materia → RA activo → semestre y «Consultar» trae,
+ * en paralelo y con estados independientes:
  *
- * La generación de la conclusión la dispara el recálculo de estadísticas de otro módulo; aquí
- * solo se consulta, sin generar ni modificar nada. «Crear acción de mejora» abre el registro de
- * RF-17; la conversión a evaluación (RF-18) todavía no existe.
+ * 1. RF-14 / RF-15: nivel de logro — totales, promedio y distribución por los 4 niveles.
+ * 2. RF-16: el estado de la conclusión de ese (RA, semestre): Vigente (desempeño insuficiente sin
+ *    atender), Atendida (ya tiene acción de mejora), Satisfactorio o datos insuficientes.
+ * 3. RF-17 / RF-18: las acciones de mejora y su conversión en evaluación.
+ *
+ * Consultar es de solo lectura. «Recalcular» fuerza el cálculo del nivel de logro (en operación
+ * normal lo dispara el registro de calificaciones), que a su vez genera la conclusión de RF-16;
+ * por eso después se vuelve a consultar la conclusión.
  */
 @Component({
   selector: 'app-estadisticas-page',
-  imports: [AccionMejoraFormDialog, ConversionAccionMejoraDialog, ChipEstado, Icono],
+  imports: [
+    AccionMejoraFormDialog,
+    ConversionAccionMejoraDialog,
+    ChipEstado,
+    Icono,
+    NivelLogroResumen,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './estadisticas-page.html',
   styleUrl: './estadisticas-page.scss',
@@ -71,6 +97,7 @@ export class EstadisticasPage {
   private readonly semestreService = inject(SemestreService);
   private readonly conclusionService = inject(ConclusionService);
   private readonly accionMejoraService = inject(AccionMejoraService);
+  private readonly nivelLogroService = inject(NivelLogroService);
 
   private temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
   protected readonly aviso = signal<Aviso | null>(null);
@@ -92,7 +119,9 @@ export class EstadisticasPage {
         }
         return this.resultadosService.listarPorAsignatura(id).pipe(
           map((lista): CargaRa => ({ estado: 'listo', lista })),
-          catchError((error: unknown) => of<CargaRa>({ estado: 'error', error: mensajeDeError(error) })),
+          catchError((error: unknown) =>
+            of<CargaRa>({ estado: 'error', error: mensajeDeError(error) }),
+          ),
           startWith<CargaRa>({ estado: 'cargando' }),
         );
       }),
@@ -122,8 +151,26 @@ export class EstadisticasPage {
   // ── Consulta de la conclusión ────────────────────────────────────────
   protected readonly consulta = signal<CargaConclusion>({ estado: 'inactivo' });
   protected readonly puedeConsultar = computed(
-    () => this.asignaturaId() !== '' && this.resultadoAprendizajeId() !== '' && this.semestreId() !== '',
+    () =>
+      this.asignaturaId() !== '' &&
+      this.resultadoAprendizajeId() !== '' &&
+      this.semestreId() !== '',
   );
+
+  // ── Nivel de logro y estadísticas (RF-14, RF-15) ──────────────────────
+  protected readonly cargaEstadisticas = signal<CargaEstadisticas>({ estado: 'inactivo' });
+  protected readonly recalculando = signal(false);
+  /** Catálogo de rangos; si falla, la distribución se muestra igual, sin la leyenda de rangos. */
+  protected readonly rangos = signal<RangoNivelLogro[]>([]);
+
+  protected readonly estadisticas = computed(() => {
+    const carga = this.cargaEstadisticas();
+    return carga.estado === 'listo' ? carga.estadisticas : null;
+  });
+  protected readonly errorEstadisticas = computed(() => {
+    const carga = this.cargaEstadisticas();
+    return carga.estado === 'error' ? carga.error : null;
+  });
 
   // ── Acciones de mejora del (RA, semestre) elegidos (RF-18) ─────────────
   private readonly recargaAcciones = signal(0);
@@ -146,6 +193,7 @@ export class EstadisticasPage {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.temporizadorAviso));
     this.cargarAsignaturas();
     this.cargarSemestres();
+    this.cargarCatalogoNiveles();
 
     combineLatest([
       toObservable(this.resultadoAprendizajeId),
@@ -175,6 +223,7 @@ export class EstadisticasPage {
         if (this.dialogoAbierto() || this.dialogoConversionAbierto()) {
           return;
         }
+        this.refrescarEstadisticasEnSegundoPlano();
         this.refrescarConclusionEnSegundoPlano();
         this.refrescarAccionesEnSegundoPlano();
       });
@@ -190,10 +239,38 @@ export class EstadisticasPage {
       .subscribe({
         next: (resultado) => {
           const actual = this.consulta();
-          if (actual.estado === 'listo' && JSON.stringify(actual.resultado) === JSON.stringify(resultado)) {
+          if (
+            actual.estado === 'listo' &&
+            JSON.stringify(actual.resultado) === JSON.stringify(resultado)
+          ) {
             return;
           }
           this.consulta.set({ estado: 'listo', resultado });
+        },
+        error: () => {
+          // refresco en segundo plano: ante un fallo se conservan los datos previos sin avisar
+        },
+      });
+  }
+
+  /** Vuelve a consultar el nivel de logro sin mostrar "cargando" ni borrar lo que ya hay en pantalla. */
+  private refrescarEstadisticasEnSegundoPlano(): void {
+    if (
+      !this.puedeConsultar() ||
+      this.cargaEstadisticas().estado !== 'listo' ||
+      this.recalculando()
+    ) {
+      return;
+    }
+    this.nivelLogroService
+      .consultarEstadisticas(this.resultadoAprendizajeId(), this.semestreId())
+      .subscribe({
+        next: (estadisticas) => {
+          const actual = this.estadisticas();
+          if (actual && JSON.stringify(actual) === JSON.stringify(estadisticas)) {
+            return;
+          }
+          this.cargaEstadisticas.set({ estado: 'listo', estadisticas });
         },
         error: () => {
           // refresco en segundo plano: ante un fallo se conservan los datos previos sin avisar
@@ -256,23 +333,88 @@ export class EstadisticasPage {
     });
   }
 
+  private cargarCatalogoNiveles(): void {
+    this.nivelLogroService.consultarCatalogo().subscribe({
+      next: (rangos) => this.rangos.set(rangos),
+      error: () => {
+        // sin catálogo solo se pierde la leyenda de rangos; la distribución se muestra igual
+      },
+    });
+  }
+
+  /** Al cambiar la selección se descarta lo consultado, para no mostrar datos de otro RA. */
+  private reiniciarConsulta(): void {
+    this.consulta.set({ estado: 'inactivo' });
+    this.cargaEstadisticas.set({ estado: 'inactivo' });
+  }
+
   protected alCambiarAsignatura(evento: Event): void {
     this.asignaturaId.set((evento.target as HTMLSelectElement).value);
     this.resultadoAprendizajeId.set('');
-    this.consulta.set({ estado: 'inactivo' });
+    this.reiniciarConsulta();
   }
 
   protected alCambiarRa(evento: Event): void {
     this.resultadoAprendizajeId.set((evento.target as HTMLSelectElement).value);
-    this.consulta.set({ estado: 'inactivo' });
+    this.reiniciarConsulta();
   }
 
   protected alCambiarSemestre(evento: Event): void {
     this.semestreId.set((evento.target as HTMLSelectElement).value);
-    this.consulta.set({ estado: 'inactivo' });
+    this.reiniciarConsulta();
   }
 
+  /** Consulta a la vez el nivel de logro y la conclusión; cada sección carga y falla por su cuenta. */
   protected consultar(): void {
+    if (!this.puedeConsultar()) {
+      return;
+    }
+    this.consultarEstadisticas();
+    this.consultarConclusion();
+  }
+
+  protected consultarEstadisticas(): void {
+    if (!this.puedeConsultar()) {
+      return;
+    }
+    this.cargaEstadisticas.set({ estado: 'cargando' });
+    this.nivelLogroService
+      .consultarEstadisticas(this.resultadoAprendizajeId(), this.semestreId())
+      .subscribe({
+        next: (estadisticas) => this.cargaEstadisticas.set({ estado: 'listo', estadisticas }),
+        error: (error: unknown) =>
+          this.cargaEstadisticas.set({ estado: 'error', error: mensajeDeError(error) }),
+      });
+  }
+
+  /**
+   * Fuerza el recálculo del nivel de logro. La respuesta trae las estadísticas nuevas; la
+   * conclusión se vuelve a consultar porque el recálculo pudo generarla o cambiarla (RF-16).
+   */
+  protected recalcular(): void {
+    if (!this.puedeConsultar() || this.recalculando()) {
+      return;
+    }
+    this.recalculando.set(true);
+    this.nivelLogroService.recalcular(this.resultadoAprendizajeId(), this.semestreId()).subscribe({
+      next: (respuesta) => {
+        this.recalculando.set(false);
+        this.cargaEstadisticas.set({ estado: 'listo', estadisticas: respuesta.estadisticas });
+        this.consultarConclusion();
+        this.mostrarAviso(
+          respuesta.conclusion?.generada
+            ? 'Nivel de logro recalculado. Se generó una conclusión de desempeño insuficiente.'
+            : 'Nivel de logro recalculado correctamente.',
+        );
+      },
+      error: (error: unknown) => {
+        this.recalculando.set(false);
+        this.mostrarAviso(mensajeDeError(error).mensaje, 'error');
+      },
+    });
+  }
+
+  protected consultarConclusion(): void {
     if (!this.puedeConsultar()) {
       return;
     }
@@ -315,7 +457,7 @@ export class EstadisticasPage {
   protected alGuardarAccionMejora(): void {
     this.dialogoAbierto.set(false);
     this.mostrarAviso('Acción de mejora registrada correctamente.');
-    this.consultar();
+    this.consultarConclusion();
     this.recargaAcciones.update((valor) => valor + 1);
   }
 

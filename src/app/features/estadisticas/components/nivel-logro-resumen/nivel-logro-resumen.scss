@@ -1,0 +1,230 @@
+// Tokens --sg-* de styles.scss. Botón y estado vacío con la misma forma que en `estadisticas-page`.
+
+:host {
+  display: grid;
+  gap: 1rem;
+}
+
+// Resumen: el promedio destacado en navy y cuatro conteos en tarjetas pequeñas.
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.resumen__item {
+  display: grid;
+  align-content: start;
+  gap: 0.15rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
+
+  dt {
+    color: var(--sg-ink-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--sg-ink);
+    font-family: var(--sg-font-titulo);
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+}
+
+.resumen__item--promedio {
+  border-color: var(--sg-navy);
+  background: var(--sg-navy);
+
+  dt,
+  .resumen__nota,
+  small {
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  dd {
+    color: #fff;
+  }
+
+  small {
+    font-size: 0.875rem;
+  }
+}
+
+.resumen__nota {
+  color: var(--sg-ink-soft);
+  font-size: 0.75rem;
+}
+
+// Distribución: badge (color + texto + ícono), barra y cifras; el color nunca va solo (RNF-21).
+.distribucion {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.distribucion__fila {
+  display: grid;
+  grid-template-columns: minmax(9.5rem, 12rem) 1fr minmax(7.5rem, auto);
+  align-items: center;
+  gap: 0.75rem 1rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-card);
+}
+
+.distribucion__nivel {
+  display: grid;
+  justify-items: start;
+  gap: 0.2rem;
+}
+
+.distribucion__rango {
+  color: var(--sg-ink-soft);
+  font-size: 0.75rem;
+}
+
+.distribucion__pista {
+  height: 0.65rem;
+  border-radius: 999px;
+  background: var(--sg-divider);
+  overflow: hidden;
+}
+
+.distribucion__barra {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width var(--sg-transition-layout);
+}
+
+.distribucion__barra--bajo {
+  background: var(--sg-error-fg);
+}
+
+.distribucion__barra--medio {
+  background: var(--sg-warning);
+}
+
+.distribucion__barra--alto {
+  background: var(--sg-info-fg);
+}
+
+.distribucion__barra--sobresaliente {
+  background: var(--sg-ok-fg);
+}
+
+.distribucion__cifras {
+  display: grid;
+  justify-items: end;
+  margin: 0;
+  line-height: 1.3;
+
+  strong {
+    color: var(--sg-ink);
+  }
+
+  span {
+    color: var(--sg-ink-muted);
+    font-size: 0.75rem;
+  }
+}
+
+.situacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--sg-border);
+  border-left: 4px solid var(--sg-neutral-fg);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
+
+  p {
+    flex: 1 1 16rem;
+    margin: 0;
+    color: var(--sg-ink-body);
+    font-size: 0.875rem;
+  }
+}
+
+.nota {
+  margin: 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.8125rem;
+}
+
+.pie {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--sg-ink-soft);
+  font-size: 0.8125rem;
+}
+
+.vacio {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
+  color: var(--sg-ink-muted);
+  text-align: center;
+
+  p {
+    margin: 0;
+    max-width: 36rem;
+  }
+}
+
+.vacio__titulo {
+  color: var(--sg-navy);
+  font-family: var(--sg-font-titulo);
+  font-weight: 700;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--sg-navy);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-navy);
+  color: #fff;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not([aria-disabled='true']) {
+    background: var(--sg-navy-hover);
+  }
+
+  &[aria-disabled='true'] {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+@media (max-width: 640px) {
+  .distribucion__fila {
+    grid-template-columns: 1fr auto;
+  }
+
+  .distribucion__pista {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
