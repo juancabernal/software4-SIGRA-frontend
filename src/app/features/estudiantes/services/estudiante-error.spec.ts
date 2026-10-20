@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 
-import { mensajeDeError } from './estudiante-error';
+import { mensajeDeError, registrarErrorTecnico } from './estudiante-error';
 
 const URL = 'http://localhost:8080/api/v1/estudiantes';
 
@@ -61,5 +61,43 @@ describe('mensajeDeError', () => {
 
   it('explica cuando no hay conexión con el backend', () => {
     expect(mensajeDeError(error(0, null)).mensaje).toContain('No se pudo conectar con el servidor');
+  });
+});
+
+describe('registrarErrorTecnico', () => {
+  let consoleSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
+  });
+
+  it('registra el status, el texto de estado y el cuerpo crudo de un HttpErrorResponse', () => {
+    const cuerpo = {
+      mensaje: 'Los datos de entrada no cumplen con las validaciones requeridas',
+      detalles: [
+        'nombreCompleto: El nombre completo solo puede contener letras y un único espacio entre cada palabra',
+      ],
+    };
+
+    registrarErrorTecnico('estudiantes.registrar', error(400, cuerpo));
+
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
+    const [etiqueta, cuerpoRegistrado] = consoleSpy.mock.calls[0];
+    expect(etiqueta).toContain('estudiantes.registrar');
+    expect(etiqueta).toContain('400');
+    expect(cuerpoRegistrado).toEqual(cuerpo);
+  });
+
+  it('registra también un error que no es HttpErrorResponse, sin romperse', () => {
+    registrarErrorTecnico('estudiantes.registrar', new TypeError('algo explotó'));
+
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
+    const [etiqueta, valorRegistrado] = consoleSpy.mock.calls[0];
+    expect(etiqueta).toContain('estudiantes.registrar');
+    expect(valorRegistrado).toBeInstanceOf(TypeError);
   });
 });

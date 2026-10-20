@@ -8,6 +8,7 @@ import { Estudiante } from '../../models/estudiante.model';
 import { EstudiantesPage } from './estudiantes-page';
 
 const URL = `${environment.apiUrl}/v1/estudiantes`;
+const URL_TIPOS_DOCUMENTO = `${environment.apiUrl}/v1/tipos-documento`;
 
 function estudiante(parcial: Partial<Estudiante>): Estudiante {
   return {
@@ -194,6 +195,9 @@ describe('EstudiantesPage', () => {
     await iniciar([ANA]);
     boton(html, 'Registrar estudiante').click();
     await fixture.whenStable();
+    // El diálogo pide su catálogo de tipos de documento al abrirse.
+    http.expectOne((r) => r.url === URL_TIPOS_DOCUMENTO).flush([]);
+    await fixture.whenStable();
 
     const dialogo = html.querySelector('app-estudiante-form-dialog dialog') as HTMLDialogElement;
     expect(dialogo).toBeTruthy();
@@ -209,6 +213,9 @@ describe('EstudiantesPage', () => {
   it('abrir "Modificar" sobre una fila deja el diálogo abierto, y cancelarlo no llama al servicio de guardado', async () => {
     await iniciar([ANA]);
     boton(fila('Ana María Gómez'), 'Modificar').click();
+    await fixture.whenStable();
+    // El diálogo pide su catálogo de tipos de documento al abrirse.
+    http.expectOne((r) => r.url === URL_TIPOS_DOCUMENTO).flush([]);
     await fixture.whenStable();
 
     const dialogo = html.querySelector('app-estudiante-form-dialog dialog') as HTMLDialogElement;

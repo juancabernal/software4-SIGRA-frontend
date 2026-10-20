@@ -31,13 +31,23 @@
         [attr.aria-invalid]="mostrarError('tipoDocumentoId')"
         aria-describedby="estudiante-tipo-documento-ayuda estudiante-tipo-documento-error"
       >
-        <option value="" disabled>Selecciona un tipo de documento</option>
-        @for (tipo of tiposDocumento; track tipo.id) {
+        <option value="" disabled>
+          {{
+            cargandoTiposDocumento()
+              ? 'Cargando tipos de documento…'
+              : 'Selecciona un tipo de documento'
+          }}
+        </option>
+        @for (tipo of tiposDocumento(); track tipo.id) {
           <option [value]="tipo.id">{{ tipo.nombre }}</option>
         }
       </select>
       @if (form.controls.tipoDocumentoId.disabled) {
         <p class="ayuda" id="estudiante-tipo-documento-ayuda">No se puede modificar.</p>
+      } @else if (!cargandoTiposDocumento() && !tiposDocumento().length) {
+        <p class="error-campo" id="estudiante-tipo-documento-error">
+          No se pudieron cargar los tipos de documento. Cierra el formulario y vuelve a intentarlo.
+        </p>
       } @else if (mostrarError('tipoDocumentoId')) {
         <p class="error-campo" id="estudiante-tipo-documento-error">
           Selecciona el tipo de documento.
@@ -86,7 +96,18 @@
         aria-describedby="estudiante-nombre-error"
       />
       @if (mostrarError('nombreCompleto')) {
-        <p class="error-campo" id="estudiante-nombre-error">Escribe el nombre completo.</p>
+        <p class="error-campo" id="estudiante-nombre-error">
+          @if (form.controls.nombreCompleto.hasError('required')) {
+            Escribe el nombre completo.
+          } @else if (
+            form.controls.nombreCompleto.hasError('minlength') ||
+            form.controls.nombreCompleto.hasError('maxlength')
+          ) {
+            El nombre completo debe tener entre 3 y 150 caracteres.
+          } @else {
+            Usa solo letras y un único espacio entre cada palabra, sin números ni símbolos.
+          }
+        </p>
       }
     </div>
 
