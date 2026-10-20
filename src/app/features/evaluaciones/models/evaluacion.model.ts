@@ -94,6 +94,29 @@ export function esSemestreEnCurso(semestre: SemestreOpcion, hoy = hoyIso()): boo
   return semestre.fechaInicio <= hoy && hoy <= semestre.fechaFin;
 }
 
+/**
+ * Semestre que se muestra por defecto: el que está en curso. Si hoy no hay ninguno (por ejemplo,
+ * entre dos semestres), el último que ya empezó; y si ninguno ha empezado, el próximo en empezar.
+ * Así nunca se elige por defecto un semestre lejano en el futuro.
+ */
+export function semestrePorDefecto(
+  semestres: readonly SemestreOpcion[],
+  hoy = hoyIso(),
+): SemestreOpcion | null {
+  const enCurso = semestres.find((s) => esSemestreEnCurso(s, hoy));
+  if (enCurso) {
+    return enCurso;
+  }
+  const yaEmpezados = semestres
+    .filter((s) => s.fechaInicio <= hoy)
+    .sort((a, b) => b.fechaInicio.localeCompare(a.fechaInicio));
+  if (yaEmpezados.length) {
+    return yaEmpezados[0];
+  }
+  const futuros = [...semestres].sort((a, b) => a.fechaInicio.localeCompare(b.fechaInicio));
+  return futuros[0] ?? null;
+}
+
 const formatoFecha = new Intl.DateTimeFormat('es-CO', {
   day: 'numeric',
   month: 'short',

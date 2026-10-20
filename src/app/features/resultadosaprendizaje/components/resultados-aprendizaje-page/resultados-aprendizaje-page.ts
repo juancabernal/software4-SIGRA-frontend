@@ -6,10 +6,11 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { catchError, map, of, startWith, switchMap } from 'rxjs';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { EMPTY, catchError, map, of, skip, startWith, switchMap } from 'rxjs';
 
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
+import { refrescoAutomatico } from '../../../../core/util/refresco-automatico';
 import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
 import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
@@ -19,9 +20,13 @@ import {
   EstadoResultadoAprendizaje,
   MAX_RA_ACTIVOS,
   MIN_RA_ACTIVOS,
+  NivelLogro,
+  RendimientoAsignatura,
+  RendimientoResultado,
   ResultadoAprendizaje,
 } from '../../models/resultado-aprendizaje.model';
 import { AsignaturaOpcionesService } from '../../services/asignatura-opciones.service';
+import { marcarRefrescoSilencioso } from '../../services/consulta-con-refresco';
 import { ResultadoAprendizajeService } from '../../services/resultado-aprendizaje.service';
 import {
   ResultadoAprendizajeFormDialog,
@@ -68,6 +73,55 @@ export function indicadorRango(activos: number): IndicadorRango {
   return { texto: 'Máximo alcanzado', variante: 'neutro', icono: 'check' };
 }
 
+/** Cómo se muestra el rendimiento de un RA: texto + ícono + color (RNF-21), nunca solo el color. */
+export interface PresentacionRendimiento {
+  etiqueta: string;
+  variante: VarianteChip;
+  icono: string;
+  /** Detalle para el tooltip nativo: porcentajes asignado y evaluado. */
+  detalle: string;
+}
+
+const NIVELES: Readonly<Record<NivelLogro, { etiqueta: string; variante: VarianteChip }>> = {
+  BAJO: { etiqueta: 'Bajo', variante: 'peligro' },
+  MEDIO: { etiqueta: 'Medio', variante: 'advertencia' },
+  ALTO: { etiqueta: 'Alto', variante: 'ok' },
+  SOBRESALIENTE: { etiqueta: 'Sobresaliente', variante: 'ok' },
+};
+
+/** 60 -> "60%", 33.5 -> "33,5%". Los porcentajes llegan como número (BigDecimal del backend). */
+export function formatearPorcentaje(valor: number): string {
+  return `${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 }).format(valor)}%`;
+}
+
+export function presentarRendimiento(r: RendimientoResultado): PresentacionRendimiento {
+  const detalle = `Asignado: ${formatearPorcentaje(r.porcentajeAsignado)} · Evaluado: ${formatearPorcentaje(r.porcentajeEvaluado)}`;
+  switch (r.estado) {
+    case 'SIN_EVALUAR':
+      return { etiqueta: 'Sin evaluar', variante: 'neutro', icono: 'reloj', detalle };
+    case 'DATOS_INSUFICIENTES':
+      return { etiqueta: 'Datos insuficientes', variante: 'neutro', icono: 'advertencia', detalle };
+    case 'CON_NIVEL': {
+      const nivel = NIVELES[r.nivelLogro ?? 'BAJO'];
+      const avance = r.completo
+        ? 'Completo'
+        : `Parcial (${formatearPorcentaje(r.porcentajeEvaluado)} evaluado)`;
+      return {
+        etiqueta: `${nivel.etiqueta} · ${avance}`,
+        variante: nivel.variante,
+        icono: r.completo ? 'check' : 'torta',
+        detalle,
+      };
+    }
+  }
+}
+
+type CargaRendimiento =
+  | { estado: 'inactivo' }
+  | { estado: 'cargando' }
+  | { estado: 'listo'; datos: RendimientoAsignatura }
+  | { estado: 'error' };
+
 /** Por qué una acción no está disponible; se muestra en el tooltip del botón. */
 export const MOTIVO_MAXIMO = `Ya hay ${MAX_RA_ACTIVOS} RA activos: inactiva uno antes de agregar otro.`;
 export const MOTIVO_MINIMO = `La materia está activa: debe conservar al menos ${MIN_RA_ACTIVOS} RA activos.`;
@@ -113,6 +167,9 @@ type CargaResultados =
  * lista ya cargada: es un filtro de presentación, no de seguridad. La tabla de RA se pagina en el
  * navegador porque la lista de una materia es corta y ya llega completa.
  *
+ * Los datos se refrescan solos en segundo plano (ver `refrescoAutomatico`) para no mostrar
+ * información vieja si otro usuario cambia algo.
+ *
  * Los RA se consultan con `switchMap` sobre la materia elegida: si se cambia de materia antes de
  * que llegue la respuesta, la anterior se descarta. Las reglas las aplica el backend.
  */
@@ -129,6 +186,7 @@ export class ResultadosAprendizajePage {
 
   protected readonly presentacionAsignatura = PRESENTACION_ASIGNATURA;
   protected readonly presentacionRa = PRESENTACION_RA;
+  protected readonly presentarRendimiento = presentarRendimiento;
   protected readonly maxActivos = MAX_RA_ACTIVOS;
   protected readonly motivoMaximo = MOTIVO_MAXIMO;
   protected readonly motivoMinimo = MOTIVO_MINIMO;
@@ -187,23 +245,90 @@ export class ResultadosAprendizajePage {
   /** Se incrementa para volver a consultar los RA de la misma materia. */
   private readonly recarga = signal(0);
 
+  /**
+   * Refresco automático (cada 15 s con la pestaña visible, y al volver a ella), igual que el resto
+   * de pantallas. Solo se aplica si no hay un formulario ni una confirmación abiertos.
+   */
+  private readonly refresco = refrescoAutomatico();
+  /** Refrescos aceptados: las consultas que dispara son silenciosas (sin «Cargando…»). */
+  private readonly refrescoSilencioso = signal(0);
+
+  /** Lo que dispara las consultas de la materia elegida. */
+  private readonly disparoMateria = computed(() => ({
+    id: this.asignaturaId(),
+    recarga: this.recarga(),
+    refresco: this.refrescoSilencioso(),
+  }));
+
   private readonly carga = toSignal(
-    toObservable(computed(() => ({ id: this.asignaturaId(), recarga: this.recarga() }))).pipe(
-      switchMap(({ id }) => {
+    toObservable(this.disparoMateria).pipe(
+      marcarRefrescoSilencioso(),
+      switchMap(({ id, silencioso }) => {
         if (!id) {
           return of<CargaResultados>({ estado: 'inactivo' });
         }
-        return this.resultadosService.listarPorAsignatura(id).pipe(
-          map((lista): CargaResultados => ({ estado: 'listo', lista })),
-          catchError((error: unknown) =>
-            of<CargaResultados>({ estado: 'error', error: mensajeDeError(error) }),
-          ),
-          startWith<CargaResultados>({ estado: 'cargando' }),
-        );
+        const consulta = this.resultadosService
+          .listarPorAsignatura(id)
+          .pipe(map((lista): CargaResultados => ({ estado: 'listo', lista })));
+        // En segundo plano no se muestra «Cargando…» y un fallo conserva lo que hay en pantalla.
+        return silencioso
+          ? consulta.pipe(catchError(() => EMPTY))
+          : consulta.pipe(
+              catchError((error: unknown) =>
+                of<CargaResultados>({ estado: 'error', error: mensajeDeError(error) }),
+              ),
+              startWith<CargaResultados>({ estado: 'cargando' }),
+            );
       }),
     ),
     { initialValue: { estado: 'inactivo' } as CargaResultados },
   );
+
+  /**
+   * Rendimiento (RF-14) de los RA de la materia elegida. Se pide aparte de la lista para que un
+   * fallo del cálculo no impida gestionar los RA: en ese caso la columna muestra un aviso.
+   */
+  private readonly cargaRendimiento = toSignal(
+    toObservable(this.disparoMateria).pipe(
+      marcarRefrescoSilencioso(),
+      switchMap(({ id, silencioso }) => {
+        if (!id) {
+          return of<CargaRendimiento>({ estado: 'inactivo' });
+        }
+        const consulta = this.resultadosService
+          .consultarRendimiento(id)
+          .pipe(map((datos): CargaRendimiento => ({ estado: 'listo', datos })));
+        return silencioso
+          ? consulta.pipe(catchError(() => EMPTY))
+          : consulta.pipe(
+              catchError(() => of<CargaRendimiento>({ estado: 'error' })),
+              startWith<CargaRendimiento>({ estado: 'cargando' }),
+            );
+      }),
+    ),
+    { initialValue: { estado: 'inactivo' } as CargaRendimiento },
+  );
+
+  protected readonly rendimientoPorRa = computed(() => {
+    const carga = this.cargaRendimiento();
+    return new Map(
+      (carga.estado === 'listo' ? carga.datos.resultados : []).map((r) => [
+        r.resultadoAprendizajeId,
+        r,
+      ]),
+    );
+  });
+  protected readonly rendimientoCargando = computed(
+    () => this.cargaRendimiento().estado === 'cargando',
+  );
+  protected readonly rendimientoConError = computed(
+    () => this.cargaRendimiento().estado === 'error',
+  );
+  /** Hay respuesta pero sin semestre activo: no hay contra qué calcular. */
+  protected readonly sinSemestreActivo = computed(() => {
+    const carga = this.cargaRendimiento();
+    return carga.estado === 'listo' && carga.datos.semestreId === null;
+  });
 
   protected readonly cargandoResultados = computed(() => this.carga().estado === 'cargando');
   protected readonly errorResultados = computed(() => {
@@ -258,6 +383,45 @@ export class ResultadosAprendizajePage {
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.temporizadorAviso));
     this.cargarAsignaturas();
+
+    // El primer valor es el inicial (0): la carga inicial ya la hace cargarAsignaturas().
+    toObservable(this.refresco)
+      .pipe(skip(1), takeUntilDestroyed())
+      .subscribe(() => this.refrescarEnSegundoPlano());
+  }
+
+  /**
+   * Vuelve a consultar materias y RA sin mostrar «Cargando…» ni mover la página. No se hace con
+   * un formulario o una confirmación abiertos, para no cambiarle los datos a quien los está usando.
+   */
+  private refrescarEnSegundoPlano(): void {
+    if (this.formAbierto() || this.confirmacion() !== null) {
+      return;
+    }
+    this.refrescoSilencioso.update((n) => n + 1);
+    this.refrescarAsignaturas();
+  }
+
+  /** Actualiza el selector; si la materia elegida dejó de ser gestionable, se avisa y se limpia. */
+  private refrescarAsignaturas(): void {
+    if (this.cargandoAsignaturas() || this.errorAsignaturas()) {
+      return;
+    }
+    this.asignaturasService.listarGestionables().subscribe({
+      next: (asignaturas) => {
+        const elegida = this.asignatura();
+        this.asignaturas.set(asignaturas);
+        if (elegida && !asignaturas.some((a) => a.id === elegida.id)) {
+          this.asignaturaId.set('');
+          this.mostrarAviso(
+            `La materia ${elegida.codigo} ya no está en borrador ni activa: se quitó de la selección.`,
+            'error',
+          );
+        }
+      },
+      // Un fallo en segundo plano no cambia la pantalla; el próximo refresco lo reintenta.
+      error: () => undefined,
+    });
   }
 
   protected cargarAsignaturas(): void {
@@ -328,6 +492,8 @@ export class ResultadosAprendizajePage {
 
   protected cerrarFormulario(): void {
     this.formAbierto.set(false);
+    // Si el backend rechazó el guardado, los datos pudieron cambiar: se ponen al día.
+    this.refrescarEnSegundoPlano();
   }
 
   protected alGuardar({ resultado, modo }: ResultadoFormularioRa): void {
@@ -355,6 +521,7 @@ export class ResultadosAprendizajePage {
 
   protected cancelarConfirmacion(): void {
     this.confirmacion.set(null);
+    this.refrescarEnSegundoPlano();
   }
 
   protected confirmar(): void {
@@ -381,6 +548,8 @@ export class ResultadosAprendizajePage {
       error: (error: unknown) => {
         this.procesandoConfirmacion.set(false);
         this.errorConfirmacion.set(mensajeDeError(error).mensaje);
+        // El rechazo suele deberse a datos que cambiaron: la tabla de fondo se pone al día.
+        this.refrescoSilencioso.update((n) => n + 1);
       },
     });
   }

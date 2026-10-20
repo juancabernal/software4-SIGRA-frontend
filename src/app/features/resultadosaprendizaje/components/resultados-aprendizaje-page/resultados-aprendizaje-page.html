@@ -153,6 +153,15 @@
             <p>Registra el primero para empezar a completar el mínimo de 5 RA activos.</p>
           </div>
         } @else {
+          @if (sinSemestreActivo()) {
+            <p class="nota-rendimiento" role="status">
+              No hay un semestre activo, por eso no se calcula el rendimiento.
+            </p>
+          } @else if (rendimientoConError()) {
+            <p class="nota-rendimiento" role="status">
+              No se pudo calcular el rendimiento. Puedes seguir gestionando los RA.
+            </p>
+          }
           <div class="tabla-contenedor">
             <table>
               <caption class="solo-lectores">
@@ -166,6 +175,7 @@
                   <th scope="col">Código</th>
                   <th scope="col">Descripción</th>
                   <th scope="col">Estado</th>
+                  <th scope="col">Rendimiento</th>
                   <th scope="col">Acciones</th>
                 </tr>
               </thead>
@@ -180,6 +190,24 @@
                         [variante]="presentacionRa[ra.estado].variante"
                         [icono]="presentacionRa[ra.estado].icono"
                       />
+                    </td>
+                    <td>
+                      @if (ra.estado === 'INACTIVO') {
+                        <span class="rendimiento-vacio" aria-label="Sin rendimiento: RA inactivo">—</span>
+                      } @else if (rendimientoCargando()) {
+                        <span class="rendimiento-vacio" role="status">Calculando…</span>
+                      } @else if (rendimientoPorRa().get(ra.id); as rendimiento) {
+                        @let p = presentarRendimiento(rendimiento);
+                        <span [attr.title]="p.detalle">
+                          <app-chip-estado
+                            [etiqueta]="p.etiqueta"
+                            [variante]="p.variante"
+                            [icono]="p.icono"
+                          />
+                        </span>
+                      } @else {
+                        <span class="rendimiento-vacio" aria-label="Rendimiento no disponible">—</span>
+                      }
                     </td>
                     <td>
                       <div class="acciones">

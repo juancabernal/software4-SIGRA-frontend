@@ -43,6 +43,19 @@ describe('ResultadoAprendizajeService', () => {
     expect(resultado).toEqual([RA]);
   });
 
+  it('consulta el rendimiento de la asignatura con GET', () => {
+    const rendimiento = { asignaturaId: ASIGNATURA_ID, semestreId: null, semestreCodigo: null, resultados: [] };
+    let resultado: unknown;
+    service.consultarRendimiento(ASIGNATURA_ID).subscribe((r) => (resultado = r));
+
+    const req = http.expectOne(
+      `${API}/asignaturas/${ASIGNATURA_ID}/resultados-aprendizaje/rendimiento`,
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush(rendimiento);
+    expect(resultado).toEqual(rendimiento);
+  });
+
   it('crea con POST a la asignatura enviando solo código y descripción', () => {
     const cuerpo = { codigo: 'RA2', descripcion: 'Diseña la arquitectura.' };
     service.crear(ASIGNATURA_ID, cuerpo).subscribe();
