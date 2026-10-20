@@ -1,0 +1,142 @@
+<div class="aviso-zona" role="status" aria-live="polite">
+  @if (aviso(); as a) {
+    <div class="aviso" [class.aviso--error]="a.tono === 'error'">
+      <app-icono [nombre]="a.tono === 'ok' ? 'check' : 'advertencia'" [tamano]="16" />
+      <span>{{ a.texto }}</span>
+      <button type="button" class="aviso__cerrar" aria-label="Cerrar aviso" (click)="cerrarAviso()">
+        <app-icono nombre="cerrar" [tamano]="14" />
+      </button>
+    </div>
+  }
+</div>
+
+@if (cargandoCatalogos()) {
+  <p class="estado-vista" role="status">Cargando profesores y materias…</p>
+} @else if (errorCatalogos(); as error) {
+  <div class="estado-vista estado-vista--error" role="alert">
+    <p>{{ error.mensaje }}</p>
+    <button type="button" class="btn" (click)="recargarCatalogos()">
+      <app-icono nombre="recargar" [tamano]="16" />
+      Reintentar
+    </button>
+  </div>
+} @else {
+  <div class="tarjeta">
+    <div class="paso">
+      <h2>1. Elige el o los profesores</h2>
+      @if (profesoresActivos().length === 0) {
+        <p class="estado-vista">No hay profesores activos.</p>
+      } @else {
+        <ul class="lista-seleccionable">
+          @for (p of profesoresActivos(); track p.id) {
+            <li>
+              <label>
+                <input
+                  type="checkbox"
+                  [checked]="profesorEstaSeleccionado(p.id)"
+                  (change)="alternarProfesor(p.id)"
+                />
+                <span>{{ p.nombreCompleto }}</span>
+                <span class="dato-secundario">{{ p.correoInstitucional }}</span>
+              </label>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    @if (hayProfesorElegido()) {
+      <div class="paso">
+        <h2>2. Elige la o las materias</h2>
+        @if (asignaturasActivas().length === 0) {
+          <p class="estado-vista">No hay materias activas.</p>
+        } @else {
+          <div class="buscador">
+            <app-icono nombre="buscar" [tamano]="16" />
+            <input
+              type="search"
+              placeholder="Buscar por nombre o código..."
+              aria-label="Buscar materias por nombre o código"
+              [value]="filtroMateria()"
+              (input)="alEscribirFiltroMateria($event)"
+            />
+          </div>
+
+          @if (cargandoYaAsignadas()) {
+            <p class="estado-vista" role="status">Cargando materias disponibles…</p>
+          } @else if (asignaturasDisponibles().length === 0) {
+            <p class="estado-vista">Este profesor ya tiene todas las materias activas asignadas.</p>
+          } @else if (asignaturasFiltradas().length === 0) {
+            <p class="estado-vista">Ninguna materia coincide con la búsqueda.</p>
+          } @else {
+            <ul class="lista-seleccionable">
+              @for (a of asignaturasFiltradas(); track a.id) {
+                <li>
+                  <label>
+                    <input
+                      type="checkbox"
+                      [checked]="asignaturaEstaSeleccionada(a.id)"
+                      (change)="alternarAsignatura(a.id)"
+                    />
+                    <span>{{ a.nombre }}</span>
+                    <span class="dato-secundario">{{ a.codigo }} · {{ a.programaNombre }}</span>
+                  </label>
+                </li>
+              }
+            </ul>
+          }
+        }
+      </div>
+
+      <div class="barra">
+        <p class="resumen-seleccion">
+          {{ profesoresSeleccionados().size }} profesor(es) × {{ asignaturasSeleccionadas().size }} materia(s)
+        </p>
+        <button
+          type="button"
+          class="btn btn--primario barra__registrar"
+          [attr.aria-disabled]="!haySeleccion() || asignando() ? 'true' : null"
+          (click)="asignar()"
+        >
+          {{ asignando() ? 'Asignando…' : 'Asignar seleccionados' }}
+        </button>
+      </div>
+    }
+
+    @if (resultado(); as r) {
+      <div class="resultado">
+        <h2>Resultado de la última asignación</h2>
+        @if (r.creadas.length > 0) {
+          <div class="resultado__grupo">
+            <p class="resultado__titulo resultado__titulo--ok">Creadas ({{ r.creadas.length }})</p>
+            <ul>
+              @for (c of r.creadas; track c.id) {
+                <li>{{ c.nombreProfesor }} → {{ c.nombreAsignatura }} ({{ c.codigoAsignatura }})</li>
+              }
+            </ul>
+          </div>
+        }
+        @if (r.omitidas.length > 0) {
+          <div class="resultado__grupo">
+            <p class="resultado__titulo">Omitidas ({{ r.omitidas.length }})</p>
+            <ul>
+              @for (o of r.omitidas; track o.profesorId + o.asignaturaId) {
+                <li>{{ o.motivo }}</li>
+              }
+            </ul>
+          </div>
+        }
+        @if (r.rechazadas.length > 0) {
+          <div class="resultado__grupo">
+            <p class="resultado__titulo resultado__titulo--error">Rechazadas ({{ r.rechazadas.length }})</p>
+            <ul>
+              @for (rc of r.rechazadas; track rc.profesorId + rc.asignaturaId) {
+                <li>{{ rc.motivo }}</li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
+    }
+  </div>
+}

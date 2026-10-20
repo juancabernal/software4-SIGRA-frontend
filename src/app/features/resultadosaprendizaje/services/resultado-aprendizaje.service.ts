@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
 import {
+  RendimientoAsignatura,
   ResultadoAprendizaje,
   ResultadoAprendizajeActualizarRequest,
   ResultadoAprendizajeCrearRequest,
@@ -18,6 +19,11 @@ export class ResultadoAprendizajeService {
   /** Todos los RA de la asignatura (activos e inactivos). */
   listarPorAsignatura(asignaturaId: string): Observable<ResultadoAprendizaje[]> {
     return this.http.get<ResultadoAprendizaje[]>(this.urlDeAsignatura(asignaturaId));
+  }
+
+  /** Rendimiento de los RA activos de la asignatura en el semestre activo (RF-14). */
+  consultarRendimiento(asignaturaId: string): Observable<RendimientoAsignatura> {
+    return this.http.get<RendimientoAsignatura>(`${this.urlDeAsignatura(asignaturaId)}/rendimiento`);
   }
 
   crear(

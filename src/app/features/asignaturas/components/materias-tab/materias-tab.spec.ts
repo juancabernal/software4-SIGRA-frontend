@@ -612,4 +612,27 @@ describe('MateriasTab', () => {
       expect(html.querySelector('.paginador__texto')?.textContent).toBe('Página 1 de 4');
     });
   });
+
+  it('un refresco de fondo no muestra "cargando" y conserva los datos y filtros previos', async () => {
+    await iniciar([BORRADOR_5]);
+    await cambiarSelect('filtro-programa', 'p1');
+    listado().flush([BORRADOR_5]);
+    await fixture.whenStable();
+
+    document.dispatchEvent(new Event('visibilitychange'));
+    await fixture.whenStable();
+
+    expect(html.querySelector('[role="status"].estado-vista')).toBeNull();
+    expect(filasDeDatos().length).toBe(1);
+
+    const req = listado();
+    expect(req.request.params.get('programaId')).toBe('p1');
+    expect(filasDeDatos().length).toBe(1);
+
+    req.flush([BORRADOR_5]);
+    await fixture.whenStable();
+
+    expect(filasDeDatos().length).toBe(1);
+    expect((html.querySelector('#filtro-programa') as HTMLSelectElement).value).toBe('p1');
+  });
 });

@@ -1,0 +1,428 @@
+// Mismos tokens (--sg-*) y medidas que el resto de pantallas del sistema (styles.scss).
+
+.pagina {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: clamp(1.25rem, 4vw, 1.5rem);
+}
+
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+
+h1 {
+  margin: 0;
+  color: var(--sg-navy);
+  font-size: clamp(1.375rem, 1.2rem + 0.8vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.cabecera__sub {
+  margin: 0.35rem 0 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.875rem;
+}
+
+.tarjeta {
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-card);
+  background: var(--sg-card);
+  box-shadow: var(--sg-shadow-card);
+  overflow: hidden;
+}
+
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--sg-divider);
+}
+
+.barra--acciones {
+  justify-content: flex-end;
+}
+
+.barra label {
+  color: var(--sg-ink-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.selector {
+  flex: 1 1 18rem;
+  max-width: 32rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
+  color: var(--sg-ink-body);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+.estado-inline {
+  flex: 1 1 18rem;
+  margin: 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.875rem;
+}
+
+.estado-inline--error {
+  color: var(--sg-error-fg);
+}
+
+// ── Avisos ──
+.aviso-zona:empty {
+  display: none;
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-ok-bg);
+  color: color-mix(in srgb, var(--sg-ok-fg) 55%, black);
+  font-size: 0.875rem;
+  font-weight: 500;
+
+  span {
+    flex: 1;
+  }
+}
+
+.aviso--error {
+  background: var(--sg-error-bg);
+  color: var(--sg-error-fg);
+}
+
+.aviso__cerrar {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: var(--sg-radius-micro);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+// ── Botones ──
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-card);
+  color: var(--sg-ink-body);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not([aria-disabled='true']) {
+    background: var(--sg-field);
+  }
+}
+
+.btn--primario {
+  border-color: var(--sg-navy);
+  background: var(--sg-navy);
+  color: #fff;
+
+  &:hover:not([aria-disabled='true']) {
+    background: var(--sg-navy-hover);
+  }
+}
+
+[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.resultado {
+  padding: 0;
+}
+
+// ── Secciones del resultado: Nivel de logro (RF-14/15) y Conclusión (RF-16) ──
+.seccion + .seccion {
+  border-top: 1px solid var(--sg-divider);
+}
+
+.seccion__titulo {
+  margin: 0;
+  padding: 1.25rem 1.25rem 0;
+  color: var(--sg-navy);
+  font-family: var(--sg-font-titulo);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.seccion__cuerpo {
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.estado-inline--fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+
+  p {
+    margin: 0;
+  }
+}
+
+.estado-vista {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 3rem 1.5rem;
+  color: var(--sg-ink-muted);
+  text-align: center;
+
+  p {
+    margin: 0;
+  }
+}
+
+.estado-vista__titulo {
+  color: var(--sg-navy);
+  font-family: var(--sg-font-titulo);
+  font-weight: 700;
+}
+
+.estado-vista--error {
+  color: var(--sg-error-fg);
+}
+
+// La alerta de desempeño insuficiente va prominente: fondo navy solido, no solo texto (RNF-21).
+.alerta-conclusion {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--sg-navy);
+  border-radius: var(--sg-radius-card);
+  background: var(--sg-navy);
+}
+
+.alerta-conclusion__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--sg-warning);
+}
+
+.alerta-conclusion__semestre {
+  margin-left: auto;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.8125rem;
+}
+
+.alerta-conclusion__mensaje {
+  margin: 0;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.alerta-conclusion__porcentaje {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.875rem;
+
+  strong {
+    color: #fff;
+  }
+}
+
+// ── Diagnóstico extendido (texto jerarquizado, no tarjetas ni gráficos) ──
+.alerta-conclusion__diagnostico {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.alerta-conclusion__diagnostico-principal {
+  margin: 0;
+  color: #fff;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+
+  strong {
+    color: #fff;
+  }
+}
+
+.alerta-conclusion__diagnostico-umbral {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8125rem;
+}
+
+.alerta-conclusion__diagnostico-desglose,
+.alerta-conclusion__diagnostico-comparacion {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.875rem;
+}
+
+.alerta-conclusion__diagnostico-recomendacion {
+  margin: 0.4rem 0 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.alerta-conclusion app-chip-estado {
+  display: inline-flex;
+  background: #fff;
+  border-radius: var(--sg-radius-control);
+}
+
+// ── Atendida / Satisfactorio / Sin datos suficientes (tono informativo, no de alerta) ──
+.estado-resultado {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--sg-border);
+  border-left: 4px solid var(--sg-neutral-fg);
+  border-radius: var(--sg-radius-card);
+  background: var(--sg-field);
+}
+
+.estado-resultado--satisfactorio {
+  border-left-color: var(--sg-ok-fg);
+}
+
+.estado-resultado__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.estado-resultado__icono {
+  color: var(--sg-neutral-fg);
+}
+
+.estado-resultado--satisfactorio .estado-resultado__icono {
+  color: var(--sg-ok-fg);
+}
+
+.estado-resultado__mensaje {
+  margin: 0;
+  color: var(--sg-ink-body);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.estado-resultado__detalle {
+  margin: 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+
+  strong {
+    color: var(--sg-ink-body);
+  }
+}
+
+.btn--sobre-navy {
+  border-color: #fff;
+  background: #fff;
+  color: var(--sg-navy);
+
+  &:hover:not([aria-disabled='true']) {
+    background: rgba(255, 255, 255, 0.85);
+  }
+}
+
+// ── Acciones de mejora ──
+.acciones-mejora {
+  padding: 1.25rem;
+  border-top: 1px solid var(--sg-divider);
+}
+
+.acciones-mejora__titulo {
+  margin: 0 0 0.9rem;
+  color: var(--sg-navy);
+  font-family: var(--sg-font-titulo);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.lista-acciones {
+  display: grid;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.accion-mejora {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
+}
+
+.accion-mejora__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.accion-mejora__nombre {
+  margin: 0;
+  color: var(--sg-ink-body);
+  font-weight: 700;
+}
+
+.accion-mejora__descripcion {
+  margin: 0;
+  color: var(--sg-ink-body);
+  font-size: 0.875rem;
+}
+
+.accion-mejora__fecha {
+  margin: 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.8125rem;
+}
+
+.accion-mejora__evaluacion {
+  margin: 0.2rem 0 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.8125rem;
+}

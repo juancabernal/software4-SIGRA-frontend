@@ -206,6 +206,81 @@ form {
   }
 }
 
+// Coincidencias de la búsqueda: el usuario elige, el sistema nunca preselecciona (D18).
+.resultados {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
+}
+
+.campo--filtro {
+  width: 100%;
+  max-width: 12rem;
+}
+
+.resultados__lista {
+  display: grid;
+  gap: 0.4rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  // Con muchas coincidencias la lista no empuja fuera de la vista los selectores de matrícula.
+  max-height: 15rem;
+  overflow-y: auto;
+}
+
+// Cada coincidencia es un botón: enfocable y accionable con teclado (RNF-21).
+.resultado {
+  display: grid;
+  gap: 0.15rem;
+  justify-items: start;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-card);
+  color: var(--sg-ink-body);
+  cursor: pointer;
+  transition:
+    background var(--sg-transition),
+    border-color var(--sg-transition);
+}
+
+.resultado:hover {
+  border-color: var(--sg-navy);
+  background: var(--sg-field);
+}
+
+.resultado:focus-visible {
+  outline: none;
+  border-color: var(--sg-navy);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sg-navy) 20%, transparent);
+}
+
+.resultado__nombre {
+  font-size: 0.9rem;
+  font-weight: 650;
+  color: var(--sg-ink);
+}
+
+.resultado__dato {
+  font-size: 0.8rem;
+  color: var(--sg-ink-muted);
+}
+
+.resultados__vacio {
+  margin: 0;
+  color: var(--sg-ink-body);
+  font-size: 0.85rem;
+}
+
 // Estudiante ya identificado: encontrado por documento o recién registrado.
 .estudiante-elegido {
   display: grid;

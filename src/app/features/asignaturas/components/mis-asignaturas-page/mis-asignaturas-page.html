@@ -23,12 +23,67 @@
     </div>
   } @else if (asignaturas().length === 0) {
     <div class="estado-vista">
-      <p class="estado-vista__titulo">No tienes asignaturas para mostrar</p>
-      <p>El backend no reportó asignaciones o matrículas activas para tu sesión.</p>
+      <p class="estado-vista__titulo">{{ tituloVacio() }}</p>
+      <p>{{ mensajeVacio() }}</p>
     </div>
   } @else {
+    <div class="barra">
+      <div class="buscador">
+        <app-icono nombre="buscar" [tamano]="16" />
+        <input
+          type="search"
+          [attr.placeholder]="'Buscar ' + etiquetaRecurso() + '...'"
+          [attr.aria-label]="'Buscar ' + etiquetaRecurso() + ' por código o nombre'"
+          [value]="texto()"
+          (input)="alEscribir($event)"
+        />
+      </div>
+
+      <label class="solo-lectores" for="filtro-programa">Programa académico</label>
+      <select
+        id="filtro-programa"
+        class="selector"
+        [value]="programaId()"
+        (change)="alCambiarPrograma($event)"
+      >
+        <option value="">Todos los programas</option>
+        @for (programa of programas(); track programa.id) {
+          <option [value]="programa.id">{{ programa.nombre }}</option>
+        }
+      </select>
+
+      @if (estadosDisponibles().length > 1) {
+        <label class="solo-lectores" for="filtro-estado">Estado</label>
+        <select
+          id="filtro-estado"
+          class="selector"
+          [value]="estadoFiltro()"
+          (change)="alCambiarEstado($event)"
+        >
+          <option value="">Cualquier estado</option>
+          @for (opcion of estadosDisponibles(); track opcion) {
+            <option [value]="opcion">{{ presentacionEstado[opcion].etiqueta }}</option>
+          }
+        </select>
+      }
+
+      @if (hayFiltros()) {
+        <button type="button" class="btn barra__limpiar" (click)="limpiarFiltros()">
+          <app-icono nombre="cerrar" [tamano]="14" />
+          Limpiar filtros
+        </button>
+      }
+    </div>
+
+    @if (asignaturasFiltradas().length === 0) {
+      <div class="estado-vista">
+        <p class="estado-vista__titulo">No hay resultados para esta búsqueda</p>
+        <p>Ninguna {{ esProfesor() ? 'asignatura' : 'materia' }} coincide con lo que escribiste o los filtros elegidos.</p>
+        <button type="button" class="btn" (click)="limpiarFiltros()">Limpiar búsqueda</button>
+      </div>
+    } @else {
     <div class="tarjetas" role="list" aria-label="Asignaturas autorizadas">
-      @for (asignatura of asignaturas(); track asignatura.id) {
+      @for (asignatura of asignaturasFiltradas(); track asignatura.id) {
         <article class="tarjeta" [class.tarjeta--seleccionada]="seleccionada()?.id === asignatura.id" role="listitem">
           <div class="tarjeta__cabecera">
             <div>
@@ -110,6 +165,7 @@
           </ul>
         }
       </section>
+    }
     }
   }
 </section>

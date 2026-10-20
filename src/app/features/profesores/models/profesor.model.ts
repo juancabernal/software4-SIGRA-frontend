@@ -3,6 +3,7 @@ export type EstadoRegistro = 'ACTIVO' | 'INACTIVO';
 /** ProfesorResponseDTO. */
 export interface Profesor {
   id: string;
+  tipoDocumentoId: string;
   tipoDocumentoNombre: string;
   numeroDocumento: string;
   nombreCompleto: string;

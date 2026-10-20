@@ -1,0 +1,42 @@
+<section class="pagina" aria-labelledby="titulo-asignacion">
+  <header class="cabecera">
+    <h1 id="titulo-asignacion">Asignación docente</h1>
+    <p class="cabecera__sub">Asigna materias activas a un profesor, o consulta y desasigna</p>
+  </header>
+
+  <div class="pestanas" role="tablist" aria-label="Secciones de asignación docente">
+    @for (pestana of pestanas; track pestana.id; let i = $index) {
+      <button
+        #pestana
+        type="button"
+        role="tab"
+        class="pestana"
+        [id]="'pestana-' + pestana.id"
+        [attr.aria-controls]="'panel-' + pestana.id"
+        [attr.aria-selected]="activa() === pestana.id"
+        [attr.tabindex]="activa() === pestana.id ? 0 : -1"
+        (click)="seleccionar(pestana.id)"
+        (keydown)="alTeclear($event, i)"
+      >
+        <app-icono [nombre]="pestana.icono" [tamano]="16" />
+        {{ pestana.etiqueta }}
+      </button>
+    }
+  </div>
+
+  <div
+    role="tabpanel"
+    class="panel"
+    [id]="'panel-' + activa()"
+    [attr.aria-labelledby]="'pestana-' + activa()"
+  >
+    @switch (activa()) {
+      @case ('asignar') {
+        <app-asignar-tab />
+      }
+      @case ('consultar') {
+        <app-consultar-tab />
+      }
+    }
+  </div>
+</section>

@@ -1,0 +1,80 @@
+<div class="aviso-zona" role="status" aria-live="polite">
+  @if (aviso(); as a) {
+    <div class="aviso" [class.aviso--error]="a.tono === 'error'">
+      <app-icono [nombre]="a.tono === 'ok' ? 'check' : 'advertencia'" [tamano]="16" />
+      <span>{{ a.texto }}</span>
+      <button type="button" class="aviso__cerrar" aria-label="Cerrar aviso" (click)="cerrarAviso()">
+        <app-icono nombre="cerrar" [tamano]="14" />
+      </button>
+    </div>
+  }
+</div>
+
+<div class="tarjeta">
+  @if (cargandoProfesores()) {
+    <p class="estado-vista" role="status">Cargando profesores…</p>
+  } @else if (errorProfesores(); as error) {
+    <div class="estado-vista estado-vista--error" role="alert">
+      <p>{{ error.mensaje }}</p>
+      <button type="button" class="btn" (click)="recargarProfesores()">
+        <app-icono nombre="recargar" [tamano]="16" />
+        Reintentar
+      </button>
+    </div>
+  } @else {
+    <div class="barra">
+      <label for="profesor-elegido">Profesor</label>
+      <select
+        id="profesor-elegido"
+        class="selector"
+        [value]="profesorElegido()"
+        (change)="alCambiarProfesor($event)"
+      >
+        <option value="">Elige un profesor…</option>
+        @for (p of profesoresActivos(); track p.id) {
+          <option [value]="p.id">{{ p.nombreCompleto }}</option>
+        }
+      </select>
+    </div>
+
+    @if (!profesorElegido()) {
+      <p class="estado-vista">Elige un profesor para ver sus materias asignadas.</p>
+    } @else if (cargandoAsignaciones()) {
+      <p class="estado-vista" role="status">Cargando…</p>
+    } @else if (asignaciones().length === 0) {
+      <p class="estado-vista">Este profesor no tiene materias asignadas.</p>
+    } @else {
+      <div class="tabla-contenedor">
+        <table>
+          <caption class="solo-lectores">Materias asignadas al profesor elegido</caption>
+          <thead>
+            <tr>
+              <th scope="col">Materia</th>
+              <th scope="col">Código</th>
+              <th scope="col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (a of asignaciones(); track a.asignacionId) {
+              <tr>
+                <th scope="row" class="nombre">{{ a.nombreAsignatura }}</th>
+                <td class="codigo">{{ a.codigoAsignatura }}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="btn btn--peligro btn--pequeno"
+                    [attr.aria-label]="'Desasignar ' + a.nombreAsignatura"
+                    [attr.aria-disabled]="desasignandoId() === a.asignacionId ? 'true' : null"
+                    (click)="desasignar(a.asignacionId)"
+                  >
+                    {{ desasignandoId() === a.asignacionId ? 'Desasignando…' : 'Desasignar' }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>

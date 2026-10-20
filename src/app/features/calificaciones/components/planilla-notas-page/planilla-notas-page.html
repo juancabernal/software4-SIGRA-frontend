@@ -1,0 +1,262 @@
+<section class="pagina" aria-labelledby="titulo-notas">
+  <header class="cabecera">
+    <div>
+      <h1 id="titulo-notas">Registro de notas y observaciones</h1>
+      <p class="cabecera__sub">Planilla de notas por evaluación</p>
+    </div>
+  </header>
+
+  <div class="aviso-zona" role="status" aria-live="polite">
+    @if (aviso(); as texto) {
+      <div class="aviso">
+        <app-icono nombre="check" [tamano]="16" />
+        <span>{{ texto }}</span>
+        <button type="button" class="aviso__cerrar" aria-label="Cerrar aviso" (click)="cerrarAviso()">
+          <app-icono nombre="cerrar" [tamano]="14" />
+        </button>
+      </div>
+    }
+  </div>
+
+  <div class="tarjeta">
+    @if (asignaturas().estado === 'cargando') {
+      <p class="estado-vista" role="status">Cargando materias…</p>
+    } @else if (errorCarga(asignaturas()); as error) {
+      <div class="estado-vista estado-vista--error" role="alert">
+        <p>{{ error.mensaje }}</p>
+        <button type="button" class="btn" (click)="cargarAsignaturas()">
+          <app-icono nombre="recargar" [tamano]="16" />
+          Reintentar
+        </button>
+      </div>
+    } @else if (listaAsignaturas().length === 0) {
+      <div class="estado-vista">
+        <p class="estado-vista__titulo">No hay materias disponibles</p>
+        <p>Cuando tengas materias asignadas podrás registrar sus notas aquí.</p>
+      </div>
+    } @else {
+      <div class="filtros">
+        <div class="filtro">
+          <label for="selector-materia">Materia</label>
+          <select id="selector-materia" class="selector" [value]="asignaturaId()" (change)="alCambiarAsignatura($event)">
+            <option value="">Selecciona una materia</option>
+            @for (a of listaAsignaturas(); track a.id) {
+              <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filtro">
+          <label for="selector-ra">Resultado de aprendizaje</label>
+          @if (estadoRa() === 'cargando') {
+            <p class="estado-inline" role="status">Cargando RA…</p>
+          } @else if (errorRa(); as error) {
+            <p class="estado-inline estado-inline--error" role="alert">{{ error.mensaje }}</p>
+          } @else {
+            <select
+              id="selector-ra"
+              class="selector"
+              [value]="resultadoAprendizajeId()"
+              [attr.disabled]="asignaturaId() === '' || resultadosActivos().length === 0 ? true : null"
+              (change)="alCambiarRa($event)"
+            >
+              <option value="">
+                {{
+                  asignaturaId() === ''
+                    ? 'Elige primero una materia'
+                    : resultadosActivos().length === 0
+                      ? 'Esta materia no tiene RA activos'
+                      : 'Selecciona un RA'
+                }}
+              </option>
+              @for (ra of resultadosActivos(); track ra.id) {
+                <option [value]="ra.id">{{ ra.codigo }}</option>
+              }
+            </select>
+          }
+        </div>
+
+        <div class="filtro">
+          <label for="selector-semestre">Semestre</label>
+          @if (semestres().estado === 'cargando') {
+            <p class="estado-inline" role="status">Cargando semestres…</p>
+          } @else if (errorCarga(semestres()); as error) {
+            <p class="estado-inline estado-inline--error" role="alert">{{ error.mensaje }}</p>
+          } @else {
+            <select id="selector-semestre" class="selector" [value]="semestreId()" (change)="alCambiarSemestre($event)">
+              <option value="">Selecciona un semestre</option>
+              @for (s of listaSemestres(); track s.id) {
+                <option [value]="s.id" [selected]="s.id === semestreId()">
+                  {{ s.codigo }}{{ s.estado === 'ACTIVO' ? ' (activo)' : '' }}
+                </option>
+              }
+            </select>
+          }
+        </div>
+
+        <div class="filtro">
+          <label for="selector-evaluacion">Evaluación</label>
+          @if (estadoEvaluaciones() === 'cargando') {
+            <p class="estado-inline" role="status">Cargando evaluaciones…</p>
+          } @else if (errorEvaluaciones(); as error) {
+            <p class="estado-inline estado-inline--error" role="alert">{{ error.mensaje }}</p>
+          } @else {
+            <select
+              id="selector-evaluacion"
+              class="selector"
+              [value]="evaluacionId()"
+              [attr.disabled]="estadoEvaluaciones() !== 'listo' || evaluaciones().length === 0 ? true : null"
+              (change)="alCambiarEvaluacion($event)"
+            >
+              <option value="">
+                {{
+                  estadoEvaluaciones() !== 'listo'
+                    ? 'Elige RA y semestre'
+                    : evaluaciones().length === 0
+                      ? 'Este RA no tiene evaluaciones en el semestre'
+                      : 'Selecciona una evaluación'
+                }}
+              </option>
+              @for (e of evaluaciones(); track e.id) {
+                <option [value]="e.id">
+                  {{ e.nombre }} · {{ formatearFecha(e.fechaTentativa) }} · {{ e.porcentaje }}%{{
+                    e.estado === 'INACTIVA' ? ' (inactiva)' : ''
+                  }}
+                </option>
+              }
+            </select>
+          }
+        </div>
+      </div>
+
+      @switch (estadoPlanilla()) {
+        @case ('inactivo') {
+          <div class="estado-vista">
+            <p class="estado-vista__titulo">Elige una evaluación</p>
+            <p>Selecciona materia, RA, semestre y evaluación para ver la planilla de notas.</p>
+          </div>
+        }
+        @case ('cargando') {
+          <p class="estado-vista" role="status">Cargando planilla…</p>
+        }
+        @case ('error') {
+          <div class="estado-vista estado-vista--error" role="alert">
+            <p>{{ errorPlanilla()?.mensaje }}</p>
+            <button type="button" class="btn" (click)="recargarPlanilla()">
+              <app-icono nombre="recargar" [tamano]="16" />
+              Reintentar
+            </button>
+          </div>
+        }
+        @case ('listo') {
+          @if (planilla(); as p) {
+            <div class="resumen">
+              <div>
+                <p class="resumen__titulo">{{ p.evaluacionNombre }}</p>
+                <p class="resumen__detalle">
+                  RA {{ p.resultadoAprendizajeCodigo }} · {{ p.asignaturaCodigo }} · Semestre {{ p.semestreCodigo }} ·
+                  Fecha tentativa {{ formatearFecha(p.fechaTentativa) }} · {{ p.porcentaje }}%
+                </p>
+              </div>
+              <div class="resumen__estado">
+                @if (p.estadoEvaluacion === 'INACTIVA') {
+                  <app-chip-estado etiqueta="Evaluación inactiva" variante="neutro" icono="candado" />
+                }
+                <span class="resumen__conteo">
+                  <strong>{{ p.totalCalificados }}</strong> de {{ p.totalEstudiantes }} calificados
+                </span>
+              </div>
+            </div>
+
+            @if (p.filas.length === 0) {
+              <div class="estado-vista">
+                <p class="estado-vista__titulo">No hay estudiantes matriculados</p>
+                <p>Matricula estudiantes en esta materia y semestre para registrar sus notas.</p>
+              </div>
+            } @else {
+              <div class="tabla-contenedor">
+                <table>
+                  <caption class="solo-lectores">
+                    Planilla de notas de {{ p.evaluacionNombre }}
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Documento</th>
+                      <th scope="col">Estudiante</th>
+                      <th scope="col" class="num">Nota</th>
+                      <th scope="col">Observación</th>
+                      <th scope="col">Registro</th>
+                      <th scope="col">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (f of p.filas; track f.matriculaId) {
+                      <tr [class.fila--retirada]="!f.matriculaActiva">
+                        <th scope="row" class="codigo">{{ f.numeroDocumento }}</th>
+                        <td class="nombre">
+                          {{ f.nombreCompleto }}
+                          @if (!f.matriculaActiva) {
+                            <span class="etiqueta-retirada">Desvinculado</span>
+                          }
+                        </td>
+                        <td class="num nota">
+                          @if (f.nota !== null) {
+                            {{ f.nota.toFixed(1) }}
+                          } @else {
+                            <span class="sin-nota">—</span>
+                          }
+                        </td>
+                        <td class="observacion" [attr.title]="f.observacion">{{ f.observacion ?? '' }}</td>
+                        <td class="registro">
+                          @if (f.fechaRegistro) {
+                            <span class="registro__fecha">{{ formatearFecha(f.fechaModificacion ?? f.fechaRegistro) }}</span>
+                            @if (f.fueraDeFecha) {
+                              <span
+                                class="fuera-de-fecha"
+                                title="Registrada o modificada después de la fecha tentativa"
+                              >
+                                <app-icono nombre="advertencia" [tamano]="16" />
+                                <span class="solo-lectores">Fuera de la fecha tentativa</span>
+                              </span>
+                            }
+                          }
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            class="btn btn--fila"
+                            [attr.aria-disabled]="puedeEditar(f) ? null : 'true'"
+                            [attr.title]="
+                              puedeEditar(f)
+                                ? null
+                                : !f.matriculaActiva
+                                  ? 'La matrícula está desvinculada: la nota se conserva pero no se edita'
+                                  : 'La evaluación está inactiva'
+                            "
+                            (click)="abrirDialogo(f)"
+                          >
+                            <app-icono [nombre]="f.calificacionId ? 'lapiz' : 'mas'" [tamano]="14" />
+                            {{ f.calificacionId ? 'Modificar' : 'Registrar' }}
+                            <span class="solo-lectores">nota de {{ f.nombreCompleto }}</span>
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          }
+        }
+      }
+    }
+  </div>
+</section>
+
+<app-calificacion-form-dialog
+  [abierto]="dialogoAbierto()"
+  [evaluacionId]="evaluacionId()"
+  [fila]="filaEnEdicion()"
+  (guardado)="alGuardar($event)"
+  (cancelar)="cerrarDialogo()"
+/>

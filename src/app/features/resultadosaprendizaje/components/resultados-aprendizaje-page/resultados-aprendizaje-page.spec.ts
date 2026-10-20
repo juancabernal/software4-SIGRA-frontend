@@ -3,13 +3,19 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../../../environments/environment';
-import { AsignaturaOpcion, ResultadoAprendizaje } from '../../models/resultado-aprendizaje.model';
+import {
+  AsignaturaOpcion,
+  RendimientoAsignatura,
+  RendimientoResultado,
+  ResultadoAprendizaje,
+} from '../../models/resultado-aprendizaje.model';
 import {
   MOTIVO_MAXIMO,
   MOTIVO_MINIMO,
   ResultadosAprendizajePage,
   indicadorRango,
   paraBuscar,
+  presentarRendimiento,
 } from './resultados-aprendizaje-page';
 
 const API = `${environment.apiUrl}/v1`;
@@ -44,6 +50,13 @@ function ra(n: number, estado: ResultadoAprendizaje['estado'] = 'ACTIVO'): Resul
   };
 }
 
+const SIN_SEMESTRE: RendimientoAsignatura = {
+  asignaturaId: 'x',
+  semestreId: null,
+  semestreCodigo: null,
+  resultados: [],
+};
+
 const activos = (n: number) => Array.from({ length: n }, (_, i) => ra(i + 1));
 
 describe('indicadorRango', () => {
@@ -57,6 +70,47 @@ describe('indicadorRango', () => {
     expect(indicadorRango(5).texto).toBe('Dentro del rango');
     expect(indicadorRango(6).variante).toBe('ok');
     expect(indicadorRango(7).texto).toBe('Máximo alcanzado');
+  });
+});
+
+function rend(parcial: Partial<RendimientoResultado>): RendimientoResultado {
+  return {
+    resultadoAprendizajeId: 'ra-1',
+    codigo: 'RA1',
+    estado: 'CON_NIVEL',
+    nivelLogro: 'ALTO',
+    promedioNota: 4.2,
+    porcentajeAsignado: 100,
+    porcentajeEvaluado: 60,
+    completo: false,
+    ...parcial,
+  };
+}
+
+describe('presentarRendimiento', () => {
+  it('SIN_EVALUAR y DATOS_INSUFICIENTES se nombran con texto', () => {
+    expect(presentarRendimiento(rend({ estado: 'SIN_EVALUAR', nivelLogro: null })).etiqueta).toBe(
+      'Sin evaluar',
+    );
+    expect(
+      presentarRendimiento(rend({ estado: 'DATOS_INSUFICIENTES', nivelLogro: null })).etiqueta,
+    ).toBe('Datos insuficientes');
+  });
+
+  it('con nivel parcial informa el porcentaje evaluado', () => {
+    const p = presentarRendimiento(rend({}));
+    expect(p.etiqueta).toBe('Alto · Parcial (60% evaluado)');
+    expect(p.variante).toBe('ok');
+  });
+
+  it('con nivel completo lo indica y cada nivel tiene su variante', () => {
+    expect(
+      presentarRendimiento(rend({ nivelLogro: 'MEDIO', porcentajeEvaluado: 100, completo: true }))
+        .etiqueta,
+    ).toBe('Medio · Completo');
+    expect(presentarRendimiento(rend({ nivelLogro: 'BAJO' })).variante).toBe('peligro');
+    expect(presentarRendimiento(rend({ nivelLogro: 'MEDIO' })).variante).toBe('advertencia');
+    expect(presentarRendimiento(rend({ nivelLogro: 'SOBRESALIENTE' })).variante).toBe('ok');
   });
 });
 
@@ -84,6 +138,10 @@ describe('ResultadosAprendizajePage', () => {
 
   afterEach(() => {
     html.remove();
+    // La página pide también el rendimiento de la materia; estas pruebas no lo ejercitan.
+    http
+      .match((req) => req.url.endsWith('/rendimiento'))
+      .forEach((req) => !req.cancelled && req.flush(SIN_SEMESTRE));
     http.verify();
   });
 
@@ -368,6 +426,10 @@ describe('ResultadosAprendizajePage', () => {
         'La asignatura está inactiva.',
       );
       expect(html.querySelector('.aviso')).toBeNull();
+      // El rechazo pone al día la tabla de fondo, sin «Cargando…».
+      expect(html.textContent).not.toContain('Cargando resultados de aprendizaje');
+      http.expectOne(urlRa(BORRADOR.id)).flush([ra(1, 'INACTIVO')]);
+      await fixture.whenStable();
     });
 
     it('al registrar un RA cierra el modal, recarga y avisa', async () => {
@@ -400,6 +462,122 @@ describe('ResultadosAprendizajePage', () => {
       expect(modal.hasAttribute('open')).toBe(false);
       expect(html.querySelector('.aviso')?.textContent).toContain('RA RA1 registrado.');
       expect(html.querySelectorAll('tbody tr').length).toBe(1);
+    });
+  });
+  describe('columna Rendimiento', () => {
+    it('muestra el rendimiento de cada RA activo y un guion en los inactivos', async () => {
+      await cargarAsignaturas([BORRADOR], [ACTIVA]);
+      const selector = html.querySelector('#selector-materia') as HTMLSelectElement;
+      selector.value = BORRADOR.id;
+      selector.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+      http.expectOne(urlRa(BORRADOR.id)).flush([ra(1), ra(2, 'INACTIVO')]);
+      http.expectOne(`${urlRa(BORRADOR.id)}/rendimiento`).flush({
+        asignaturaId: BORRADOR.id,
+        semestreId: 's1',
+        semestreCodigo: '2026-2',
+        resultados: [rend({ resultadoAprendizajeId: 'ra-1' })],
+      } satisfies RendimientoAsignatura);
+      await fixture.whenStable();
+
+      expect(html.querySelector('thead')?.textContent).toContain('Rendimiento');
+      expect(fila('RA1').textContent).toContain('Alto · Parcial (60% evaluado)');
+      expect(fila('RA2').textContent).toContain('—');
+    });
+
+    it('avisa cuando no hay semestre activo', async () => {
+      await cargarAsignaturas([BORRADOR], [ACTIVA]);
+      const selector = html.querySelector('#selector-materia') as HTMLSelectElement;
+      selector.value = BORRADOR.id;
+      selector.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+      http.expectOne(urlRa(BORRADOR.id)).flush([ra(1)]);
+      http.expectOne(`${urlRa(BORRADOR.id)}/rendimiento`).flush(SIN_SEMESTRE);
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('No hay un semestre activo');
+    });
+
+    it('si el cálculo falla, la tabla sigue disponible con un aviso', async () => {
+      await cargarAsignaturas([BORRADOR], [ACTIVA]);
+      const selector = html.querySelector('#selector-materia') as HTMLSelectElement;
+      selector.value = BORRADOR.id;
+      selector.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+      http.expectOne(urlRa(BORRADOR.id)).flush([ra(1)]);
+      http
+        .expectOne(`${urlRa(BORRADOR.id)}/rendimiento`)
+        .flush(null, { status: 500, statusText: 'Error' });
+      await fixture.whenStable();
+
+      expect(fila('RA1')).toBeTruthy();
+      expect(html.textContent).toContain('No se pudo calcular el rendimiento');
+    });
+  });
+  describe('refresco automático', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    /** Simula volver a la pestaña: el refresco automático dispara de inmediato. */
+    async function refrescar(): Promise<void> {
+      vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+      document.dispatchEvent(new Event('visibilitychange'));
+      await fixture.whenStable();
+    }
+
+    it('vuelve a consultar materias y RA en segundo plano y actualiza la tabla', async () => {
+      await iniciar(BORRADOR, [ra(1)]);
+
+      await refrescar();
+      expect(html.textContent).not.toContain('Cargando');
+      expect(fila('RA1')).toBeTruthy();
+
+      http.expectOne(`${URL_ASIGNATURAS}?estado=BORRADOR`).flush([BORRADOR]);
+      http.expectOne(`${URL_ASIGNATURAS}?estado=ACTIVA`).flush([ACTIVA]);
+      http.expectOne(urlRa(BORRADOR.id)).flush([ra(1, 'INACTIVO'), ra(2)]);
+      await fixture.whenStable();
+
+      expect(fila('RA1').classList.contains('fila--inactiva')).toBe(true);
+      expect(fila('RA2')).toBeTruthy();
+      expect(html.querySelector('.resumen__conteo')?.textContent).toContain('RA activos: 1 de 7');
+    });
+
+    it('no refresca mientras hay un formulario abierto', async () => {
+      await iniciar(BORRADOR, [ra(1)]);
+      boton(html, 'Registrar RA').click();
+      await fixture.whenStable();
+
+      await refrescar();
+      http.expectNone(`${URL_ASIGNATURAS}?estado=BORRADOR`);
+      http.expectNone(urlRa(BORRADOR.id));
+    });
+
+    it('si la materia elegida dejó de ser gestionable, avisa y limpia la selección', async () => {
+      await iniciar(BORRADOR, [ra(1)]);
+
+      await refrescar();
+      http.expectOne(`${URL_ASIGNATURAS}?estado=BORRADOR`).flush([]);
+      http.expectOne(`${URL_ASIGNATURAS}?estado=ACTIVA`).flush([ACTIVA]);
+      http.expectOne(urlRa(BORRADOR.id)).flush([ra(1)]);
+      await fixture.whenStable();
+
+      expect(html.querySelector('.aviso--error')?.textContent).toContain(
+        'La materia ISW4 ya no está en borrador ni activa',
+      );
+      expect((html.querySelector('#selector-materia') as HTMLSelectElement).value).toBe('');
+      expect(html.textContent).toContain('Elige una materia en el selector');
+    });
+
+    it('si el refresco falla, conserva lo que hay en pantalla', async () => {
+      await iniciar(BORRADOR, [ra(1)]);
+
+      await refrescar();
+      http.expectOne(`${URL_ASIGNATURAS}?estado=BORRADOR`).flush([BORRADOR]);
+      http.expectOne(`${URL_ASIGNATURAS}?estado=ACTIVA`).flush([ACTIVA]);
+      http.expectOne(urlRa(BORRADOR.id)).flush(null, { status: 500, statusText: 'Error' });
+      await fixture.whenStable();
+
+      expect(fila('RA1')).toBeTruthy();
+      expect(html.textContent).not.toContain('Ocurrió un error inesperado');
     });
   });
 });
