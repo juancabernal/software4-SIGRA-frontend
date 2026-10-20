@@ -334,6 +334,17 @@ tbody tr:hover {
   color: var(--sg-ink-muted);
 }
 
+.rendimiento-vacio {
+  color: var(--sg-ink-muted);
+}
+
+.nota-rendimiento {
+  margin: 0;
+  padding: 0.65rem 1.25rem;
+  color: var(--sg-ink-muted);
+  font-size: 0.8125rem;
+}
+
 .acciones {
   display: flex;
   flex-wrap: wrap;

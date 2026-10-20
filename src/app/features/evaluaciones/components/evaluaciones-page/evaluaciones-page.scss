@@ -41,6 +41,11 @@ h1 {
   }
 }
 
+.aviso--error {
+  background: var(--sg-error-bg);
+  color: var(--sg-error-fg);
+}
+
 .aviso__cerrar {
   display: inline-grid;
   place-items: center;

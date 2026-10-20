@@ -6,14 +6,27 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { Observable, catchError, forkJoin, map, of, startWith, switchMap } from 'rxjs';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import {
+  EMPTY,
+  Observable,
+  catchError,
+  forkJoin,
+  map,
+  of,
+  skip,
+  startWith,
+  switchMap,
+  tap,
+} from 'rxjs';
 
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
+import { refrescoAutomatico } from '../../../../core/util/refresco-automatico';
 import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
 import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
 import { ResultadoAprendizaje } from '../../../resultadosaprendizaje/models/resultado-aprendizaje.model';
+import { marcarRefrescoSilencioso } from '../../../resultadosaprendizaje/services/consulta-con-refresco';
 import { ResultadoAprendizajeService } from '../../../resultadosaprendizaje/services/resultado-aprendizaje.service';
 import {
   AsignaturaOpcion,
@@ -24,6 +37,7 @@ import {
   TAMANOS_PAGINA,
   enCentesimas,
   esSemestreEnCurso,
+  semestrePorDefecto,
   formatearFecha,
   formatearPorcentaje,
 } from '../../models/evaluacion.model';
@@ -76,10 +90,16 @@ interface Aviso {
 
 const DURACION_AVISO_MS = 6000;
 
-/** Envuelve una consulta en el ciclo cargando → listo | error. */
-function cargar<T>(fuente: Observable<T>): Observable<Carga<T>> {
-  return fuente.pipe(
-    map((valor): Carga<T> => ({ estado: 'listo', valor })),
+/**
+ * Envuelve una consulta en el ciclo cargando → listo | error. En modo silencioso (refresco en
+ * segundo plano) no emite «cargando» y, si falla, conserva lo que ya hay en pantalla.
+ */
+function cargar<T>(fuente: Observable<T>, silencioso = false): Observable<Carga<T>> {
+  const valores = fuente.pipe(map((valor): Carga<T> => ({ estado: 'listo', valor })));
+  if (silencioso) {
+    return valores.pipe(catchError(() => EMPTY));
+  }
+  return valores.pipe(
     catchError((error: unknown) => of<Carga<T>>({ estado: 'error', error: mensajeDeError(error) })),
     startWith<Carga<T>>({ estado: 'cargando' }),
   );
@@ -93,6 +113,9 @@ function cargar<T>(fuente: Observable<T>): Observable<Carga<T>> {
  * Solo se crean y modifican evaluaciones del semestre en curso; las de otros semestres son de
  * consulta. Los botones reflejan las reglas del backend para no ofrecer acciones que fallarían,
  * pero quien decide es el backend y su mensaje se muestra siempre.
+ *
+ * Los datos se refrescan solos en segundo plano (ver `refrescoAutomatico`) para no mostrar
+ * información vieja si otro usuario cambia algo.
  *
  * Las consultas encadenadas usan `switchMap`: si se cambia de materia, RA o semestre antes de que
  * llegue la respuesta, la anterior se descarta.
@@ -136,21 +159,40 @@ export class EvaluacionesPage {
     () => !this.semestre() || this.semestre()?.id !== this.semestreEnCurso()?.id,
   );
 
+  // ── Refresco automático ─────────────────────────────────────────────
+  /**
+   * Cada 15 s con la pestaña visible, y al volver a ella, igual que el resto de pantallas. Solo se
+   * aplica si no hay un formulario ni una confirmación abiertos.
+   */
+  private readonly refresco = refrescoAutomatico();
+  /** Refrescos aceptados: las consultas que dispara son silenciosas (sin «Cargando…»). */
+  private readonly refrescoSilencioso = signal(0);
+
   // ── RA activos de la materia ────────────────────────────────────────
   /** Se incrementa para volver a consultar los RA de la misma materia. */
   private readonly recargaRa = signal(0);
 
   private readonly cargaRa = toSignal(
-    toObservable(computed(() => ({ id: this.asignaturaId(), recarga: this.recargaRa() }))).pipe(
-      switchMap(({ id }) =>
-        id
-          ? cargar(
-              this.resultadosService
-                .listarPorAsignatura(id)
-                .pipe(map((lista) => lista.filter((ra) => ra.estado === 'ACTIVO'))),
-            )
-          : of<Carga<ResultadoAprendizaje[]>>({ estado: 'inactivo' }),
-      ),
+    toObservable(
+      computed(() => ({
+        id: this.asignaturaId(),
+        recarga: this.recargaRa(),
+        refresco: this.refrescoSilencioso(),
+      })),
+    ).pipe(
+      marcarRefrescoSilencioso(),
+      switchMap(({ id, silencioso }) => {
+        if (!id) {
+          return of<Carga<ResultadoAprendizaje[]>>({ estado: 'inactivo' });
+        }
+        const activos = this.resultadosService
+          .listarPorAsignatura(id)
+          .pipe(map((lista) => lista.filter((ra) => ra.estado === 'ACTIVO')));
+        return cargar(
+          silencioso ? activos.pipe(tap((lista) => this.verificarRaElegido(lista))) : activos,
+          silencioso,
+        );
+      }),
     ),
     { initialValue: { estado: 'inactivo' } as Carga<ResultadoAprendizaje[]> },
   );
@@ -177,11 +219,16 @@ export class EvaluacionesPage {
         raId: this.ra()?.id ?? '',
         semestreId: this.semestreId(),
         recarga: this.recarga(),
+        refresco: this.refrescoSilencioso(),
       })),
     ).pipe(
-      switchMap(({ raId, semestreId }) =>
+      marcarRefrescoSilencioso(),
+      switchMap(({ raId, semestreId, silencioso }) =>
         raId && semestreId
-          ? cargar(this.evaluacionService.listarPorResultadoAprendizaje(raId, semestreId))
+          ? cargar(
+              this.evaluacionService.listarPorResultadoAprendizaje(raId, semestreId),
+              silencioso,
+            )
           : of<Carga<EvaluacionesRaResumen>>({ estado: 'inactivo' }),
       ),
     ),
@@ -240,6 +287,66 @@ export class EvaluacionesPage {
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.temporizadorAviso));
     this.cargarCatalogos();
+
+    // El primer valor es el inicial (0): la carga inicial ya la hace cargarCatalogos().
+    toObservable(this.refresco)
+      .pipe(skip(1), takeUntilDestroyed())
+      .subscribe(() => this.refrescarEnSegundoPlano());
+  }
+
+  /**
+   * Vuelve a consultar materias, semestres, RA y evaluaciones sin mostrar «Cargando…» ni mover la
+   * página. No se hace con un formulario o una confirmación abiertos, para no cambiarle los datos
+   * a quien los está usando.
+   */
+  private refrescarEnSegundoPlano(): void {
+    if (this.formAbierto() || this.confirmacion() !== null) {
+      return;
+    }
+    this.refrescoSilencioso.update((n) => n + 1);
+    this.refrescarCatalogos();
+  }
+
+  /** Actualiza los selectores; si la materia elegida dejó de estar activa, se avisa y se limpia. */
+  private refrescarCatalogos(): void {
+    if (this.cargandoCatalogos() || this.errorCatalogos()) {
+      return;
+    }
+    forkJoin({
+      asignaturas: this.catalogos.listarAsignaturasActivas(),
+      semestres: this.catalogos.listarSemestres(),
+    }).subscribe({
+      next: ({ asignaturas, semestres }) => {
+        const elegida = this.asignaturas().find((a) => a.id === this.asignaturaId());
+        this.asignaturas.set(asignaturas);
+        this.semestres.set(semestres);
+        if (elegida && !asignaturas.some((a) => a.id === elegida.id)) {
+          this.asignaturaId.set('');
+          this.raId.set('');
+          this.mostrarAviso(
+            `La materia ${elegida.codigo} ya no está activa: se quitó de la selección.`,
+            'error',
+          );
+        }
+        if (!semestres.some((s) => s.id === this.semestreId())) {
+          this.semestreId.set(semestrePorDefecto(semestres)?.id ?? '');
+        }
+      },
+      // Un fallo en segundo plano no cambia la pantalla; el próximo refresco lo reintenta.
+      error: () => undefined,
+    });
+  }
+
+  /** Tras un refresco: si el RA elegido ya no está activo, se avisa y se limpia la selección. */
+  private verificarRaElegido(activos: ResultadoAprendizaje[]): void {
+    const elegido = this.ra();
+    if (elegido && !activos.some((r) => r.id === elegido.id)) {
+      this.raId.set('');
+      this.mostrarAviso(
+        `El RA ${elegido.codigo} ya no está activo: se quitó de la selección.`,
+        'error',
+      );
+    }
   }
 
   protected cargarCatalogos(): void {
@@ -252,9 +359,8 @@ export class EvaluacionesPage {
       next: ({ asignaturas, semestres }) => {
         this.asignaturas.set(asignaturas);
         this.semestres.set(semestres);
-        // Por defecto, el semestre en curso; sin él, el más reciente (solo consulta).
-        const porDefecto = semestres.find((s) => esSemestreEnCurso(s)) ?? semestres[0];
-        this.semestreId.set(porDefecto?.id ?? '');
+        // Por defecto, el semestre en curso (ver semestrePorDefecto).
+        this.semestreId.set(semestrePorDefecto(semestres)?.id ?? '');
         this.cargandoCatalogos.set(false);
       },
       error: (error: unknown) => {
@@ -322,6 +428,8 @@ export class EvaluacionesPage {
 
   protected cerrarFormulario(): void {
     this.formAbierto.set(false);
+    // Si el backend rechazó el guardado, los datos pudieron cambiar: se ponen al día.
+    this.refrescarEnSegundoPlano();
   }
 
   protected alGuardar({ evaluacion, modo }: ResultadoFormularioEvaluacion): void {
@@ -349,6 +457,7 @@ export class EvaluacionesPage {
 
   protected cancelarConfirmacion(): void {
     this.confirmacion.set(null);
+    this.refrescarEnSegundoPlano();
   }
 
   protected confirmar(): void {
@@ -377,6 +486,8 @@ export class EvaluacionesPage {
       error: (error: unknown) => {
         this.procesandoConfirmacion.set(false);
         this.errorConfirmacion.set(mensajeDeError(error).mensaje);
+        // El rechazo suele deberse a datos que cambiaron: la tabla de fondo se pone al día.
+        this.refrescoSilencioso.update((n) => n + 1);
       },
     });
   }
@@ -391,9 +502,9 @@ export class EvaluacionesPage {
     this.confirmacion.set(confirmacion);
   }
 
-  private mostrarAviso(texto: string): void {
+  private mostrarAviso(texto: string, tono: Aviso['tono'] = 'ok'): void {
     clearTimeout(this.temporizadorAviso);
-    this.aviso.set({ texto, tono: 'ok' });
+    this.aviso.set({ texto, tono });
     this.temporizadorAviso = setTimeout(() => this.aviso.set(null), DURACION_AVISO_MS);
   }
 }

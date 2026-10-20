@@ -149,6 +149,9 @@ describe('EvaluacionesPage', () => {
     await cargarCatalogos();
 
     expect(selector('selector-semestre').value).toBe('s-actual');
+    // La opción en pantalla es la del semestre en curso, no la primera de la lista.
+    const marcada = Array.from(selector('selector-semestre').options).find((o) => o.selected);
+    expect(marcada?.textContent?.trim()).toBe('2026-2 · en curso');
     const opciones = Array.from(selector('selector-semestre').options).map((o) =>
       o.textContent?.trim(),
     );
@@ -294,5 +297,98 @@ describe('EvaluacionesPage', () => {
     expect(dialogo.querySelector('[role="alert"]')?.textContent).toContain(
       'El resultado de aprendizaje está inactivo.',
     );
+    // El rechazo pone al día la vista de fondo, sin «Cargando…».
+    expect(html.textContent).not.toContain('Cargando evaluaciones');
+    http.expectOne(`${API}/asignaturas/m1/resultados-aprendizaje`).flush([ra('RA1')]);
+    http
+      .expectOne(urlEvaluaciones('s-actual'))
+      .flush(resumen([evaluacion(1, { estado: 'INACTIVA' })], 0));
+    await fixture.whenStable();
+  });
+  describe('refresco automático', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    /** Simula volver a la pestaña: el refresco automático dispara de inmediato. */
+    async function refrescar(): Promise<void> {
+      vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+      document.dispatchEvent(new Event('visibilitychange'));
+      await fixture.whenStable();
+    }
+
+    function responderCatalogos(materias: AsignaturaOpcion[] = [MATERIA]): void {
+      http.expectOne(`${API}/asignaturas?estado=ACTIVA`).flush(materias);
+      http.expectOne(`${API}/semestres`).flush([EN_CURSO, PASADO]);
+    }
+
+    it('actualiza evaluaciones y porcentaje en segundo plano, sin «Cargando…»', async () => {
+      await iniciar(resumen([evaluacion(1, { porcentaje: 30 })], 30));
+
+      await refrescar();
+      expect(html.textContent).not.toContain('Cargando');
+      responderCatalogos();
+      http.expectOne(`${API}/asignaturas/m1/resultados-aprendizaje`).flush([ra('RA1')]);
+      http
+        .expectOne(urlEvaluaciones('s-actual'))
+        .flush(resumen([evaluacion(1, { porcentaje: 30 }), evaluacion(2, { porcentaje: 50 })], 80));
+      await fixture.whenStable();
+
+      expect(html.querySelectorAll('tbody tr').length).toBe(2);
+      expect(html.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('80');
+    });
+
+    it('conserva la página y el tamaño elegidos', async () => {
+      const siete = Array.from({ length: 7 }, (_, i) => evaluacion(i + 1));
+      await iniciar(resumen(siete, 70));
+      boton(html, 'Siguiente ›').click();
+      await fixture.whenStable();
+
+      await refrescar();
+      responderCatalogos();
+      http.expectOne(`${API}/asignaturas/m1/resultados-aprendizaje`).flush([ra('RA1')]);
+      http.expectOne(urlEvaluaciones('s-actual')).flush(resumen(siete, 70));
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('Página 2 de 2');
+    });
+
+    it('no refresca mientras hay un formulario abierto', async () => {
+      await iniciar(resumen([], 0));
+      boton(html, 'Registrar evaluación').click();
+      await fixture.whenStable();
+
+      await refrescar();
+      http.expectNone(`${API}/asignaturas?estado=ACTIVA`);
+      http.expectNone(urlEvaluaciones('s-actual'));
+    });
+
+    it('si el RA elegido dejó de estar activo, avisa y limpia la selección', async () => {
+      await iniciar(resumen([evaluacion(1)], 10));
+
+      await refrescar();
+      responderCatalogos();
+      http.expectOne(`${API}/asignaturas/m1/resultados-aprendizaje`).flush([ra('RA1', 'INACTIVO')]);
+      // La consulta de evaluaciones que salió con el refresco se descarta al quitar el RA.
+      http.match(urlEvaluaciones('s-actual'));
+      await fixture.whenStable();
+
+      expect(html.querySelector('.aviso--error')?.textContent).toContain(
+        'El RA RA1 ya no está activo',
+      );
+      expect(selector('selector-ra').value).toBe('');
+    });
+
+    it('si la materia elegida dejó de estar activa, avisa y limpia la selección', async () => {
+      await iniciar(resumen([evaluacion(1)], 10));
+
+      await refrescar();
+      responderCatalogos([]);
+      http.match(`${API}/asignaturas/m1/resultados-aprendizaje`);
+      http.match(urlEvaluaciones('s-actual'));
+      await fixture.whenStable();
+
+      expect(html.querySelector('.aviso--error')?.textContent).toContain(
+        'La materia ISW4 ya no está activa',
+      );
+    });
   });
 });

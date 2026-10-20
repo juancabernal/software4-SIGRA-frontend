@@ -74,3 +74,31 @@ export function normalizarDescripcion(descripcion: string): string {
 /** Rango de RA activos por asignatura. */
 export const MIN_RA_ACTIVOS = 5;
 export const MAX_RA_ACTIVOS = 7;
+
+/** EstadoRendimiento del backend (RF-14 / RF-15). */
+export type EstadoRendimiento = 'SIN_EVALUAR' | 'DATOS_INSUFICIENTES' | 'CON_NIVEL';
+
+/** NivelLogro del backend (módulo estadísticas). */
+export type NivelLogro = 'BAJO' | 'MEDIO' | 'ALTO' | 'SOBRESALIENTE';
+
+/** RendimientoResultadoAprendizajeResponseDTO. `nivelLogro` y `promedioNota` solo vienen con CON_NIVEL. */
+export interface RendimientoResultado {
+  resultadoAprendizajeId: string;
+  codigo: string;
+  estado: EstadoRendimiento;
+  nivelLogro: NivelLogro | null;
+  promedioNota: number | null;
+  porcentajeAsignado: number;
+  porcentajeEvaluado: number;
+  completo: boolean;
+}
+
+/**
+ * RendimientoAsignaturaResponseDTO. Sin semestre activo, `semestreId` es null y `resultados` va vacío.
+ */
+export interface RendimientoAsignatura {
+  asignaturaId: string;
+  semestreId: string | null;
+  semestreCodigo: string | null;
+  resultados: RendimientoResultado[];
+}
