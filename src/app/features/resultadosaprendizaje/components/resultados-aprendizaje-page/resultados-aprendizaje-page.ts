@@ -208,9 +208,8 @@ export class ResultadosAprendizajePage {
     () => this.asignaturas().find((a) => a.id === this.asignaturaId()) ?? null,
   );
 
-  // ── Filtros del selector ────────────────────────────────────────────
+  // ── Filtro del selector de materias ─────────────────────────────────
   protected readonly programaFiltro = signal('');
-  protected readonly textoFiltro = signal('');
 
   /** Programas que tienen materias gestionables, sin repetir y ordenados por nombre. */
   protected readonly programas = computed<ProgramaFiltro[]>(() => {
@@ -223,29 +222,16 @@ export class ResultadosAprendizajePage {
     );
   });
 
-  protected readonly hayFiltros = computed(
-    () => this.programaFiltro() !== '' || paraBuscar(this.textoFiltro()) !== '',
-  );
-
   /**
-   * Materias que cumplen los filtros. La materia elegida se conserva aunque no los cumpla, para
-   * que filtrar no cambie de materia sin que el usuario lo pida.
+   * Materias del programa elegido. La materia elegida se conserva aunque sea de otro programa,
+   * para que filtrar no cambie de materia sin que el usuario lo pida.
    */
   protected readonly asignaturasFiltradas = computed(() => {
     const programa = this.programaFiltro();
-    const texto = paraBuscar(this.textoFiltro());
     return this.asignaturas().filter(
-      (a) =>
-        a.id === this.asignaturaId() ||
-        ((!programa || a.programaId === programa) &&
-          (!texto || paraBuscar(`${a.codigo} ${a.nombre}`).includes(texto))),
+      (a) => a.id === this.asignaturaId() || !programa || a.programaId === programa,
     );
   });
-
-  /** Materias que cumplen los filtros, sin contar la elegida. */
-  protected readonly coincidencias = computed(
-    () => this.asignaturasFiltradas().filter((a) => a.id !== this.asignaturaId()).length,
-  );
 
   // ── RA de la materia elegida ────────────────────────────────────────
   /** Se incrementa para volver a consultar los RA de la misma materia. */
@@ -385,6 +371,19 @@ export class ResultadosAprendizajePage {
     return carga.estado === 'listo' ? carga.lista : [];
   });
 
+  // ── Búsqueda dentro de los RA de la materia ─────────────────────────
+  protected readonly busquedaRa = signal('');
+  protected readonly hayBusqueda = computed(() => paraBuscar(this.busquedaRa()) !== '');
+  /** RA de la materia que contienen el texto en su código o descripción (sin tildes ni mayúsculas). */
+  protected readonly resultadosFiltrados = computed(() => {
+    const texto = paraBuscar(this.busquedaRa());
+    return texto
+      ? this.resultados().filter((ra) =>
+          paraBuscar(`${ra.codigo} ${ra.descripcion}`).includes(texto),
+        )
+      : this.resultados();
+  });
+
   /** Se cuenta sobre la lista de RA y no con `cantidadRa`, para que refleje cada cambio. */
   protected readonly activos = computed(
     () => this.resultados().filter((ra) => ra.estado === 'ACTIVO').length,
@@ -394,16 +393,16 @@ export class ResultadosAprendizajePage {
   // ── Paginación de la tabla ──────────────────────────────────────────
   private readonly pagina = signal(1);
   protected readonly totalPaginas = computed(() =>
-    Math.max(1, Math.ceil(this.resultados().length / RA_POR_PAGINA)),
+    Math.max(1, Math.ceil(this.resultadosFiltrados().length / RA_POR_PAGINA)),
   );
   /** Si la lista se acorta (p. ej. tras recargar), la página se ajusta a la última que exista. */
   protected readonly paginaActual = computed(() => Math.min(this.pagina(), this.totalPaginas()));
   protected readonly resultadosPagina = computed(() => {
     const inicio = (this.paginaActual() - 1) * RA_POR_PAGINA;
-    return this.resultados().slice(inicio, inicio + RA_POR_PAGINA);
+    return this.resultadosFiltrados().slice(inicio, inicio + RA_POR_PAGINA);
   });
   protected readonly rangoPagina = computed(() => {
-    const total = this.resultados().length;
+    const total = this.resultadosFiltrados().length;
     const desde = (this.paginaActual() - 1) * RA_POR_PAGINA + 1;
     const hasta = Math.min(desde + RA_POR_PAGINA - 1, total);
     return `Mostrando ${desde}–${hasta} de ${total} RA`;
@@ -490,6 +489,7 @@ export class ResultadosAprendizajePage {
 
   protected alCambiarAsignatura(evento: Event): void {
     this.asignaturaId.set((evento.target as HTMLSelectElement).value);
+    this.busquedaRa.set('');
     this.pagina.set(1);
   }
 
@@ -497,13 +497,14 @@ export class ResultadosAprendizajePage {
     this.programaFiltro.set((evento.target as HTMLSelectElement).value);
   }
 
-  protected alEscribir(evento: Event): void {
-    this.textoFiltro.set((evento.target as HTMLInputElement).value);
+  protected alBuscarRa(evento: Event): void {
+    this.busquedaRa.set((evento.target as HTMLInputElement).value);
+    this.pagina.set(1);
   }
 
-  protected limpiarFiltros(): void {
-    this.programaFiltro.set('');
-    this.textoFiltro.set('');
+  protected limpiarBusqueda(): void {
+    this.busquedaRa.set('');
+    this.pagina.set(1);
   }
 
   protected paginaAnterior(): void {
