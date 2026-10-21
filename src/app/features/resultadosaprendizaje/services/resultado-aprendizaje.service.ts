@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -21,9 +21,15 @@ export class ResultadoAprendizajeService {
     return this.http.get<ResultadoAprendizaje[]>(this.urlDeAsignatura(asignaturaId));
   }
 
-  /** Rendimiento de los RA activos de la asignatura en el semestre activo (RF-14). */
-  consultarRendimiento(asignaturaId: string): Observable<RendimientoAsignatura> {
-    return this.http.get<RendimientoAsignatura>(`${this.urlDeAsignatura(asignaturaId)}/rendimiento`);
+  /**
+   * Rendimiento de los RA activos de la asignatura (RF-14). Sin `semestreId` es el del semestre
+   * activo; con él, el de ese semestre (p. ej. uno pasado, de solo consulta).
+   */
+  consultarRendimiento(asignaturaId: string, semestreId?: string): Observable<RendimientoAsignatura> {
+    const params = semestreId ? new HttpParams().set('semestreId', semestreId) : undefined;
+    return this.http.get<RendimientoAsignatura>(`${this.urlDeAsignatura(asignaturaId)}/rendimiento`, {
+      params,
+    });
   }
 
   crear(

@@ -90,6 +90,10 @@ export interface RendimientoResultado {
   promedioNota: number | null;
   porcentajeAsignado: number;
   porcentajeEvaluado: number;
+  /** Evaluaciones ACTIVAS del RA en el semestre. */
+  evaluacionesActivas: number;
+  /** Mínimo de evaluaciones activas para que haya nivel (RF-15: 3 calificaciones por estudiante). */
+  minimoEvaluaciones: number;
   completo: boolean;
 }
 

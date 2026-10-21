@@ -338,6 +338,24 @@ tbody tr:hover {
   color: var(--sg-ink-muted);
 }
 
+.rendimiento-detalle {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--sg-ink-muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.barra-semestre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.65rem 1.25rem 0;
+  font-size: 0.8125rem;
+  color: var(--sg-ink-muted);
+}
+
 .nota-rendimiento {
   margin: 0;
   padding: 0.65rem 1.25rem;

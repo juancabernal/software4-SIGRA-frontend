@@ -139,6 +139,39 @@
         </button>
       </div>
 
+      @if (mostrarRendimiento()) {
+        <section class="seccion seccion--rendimiento" aria-labelledby="titulo-rendimiento">
+          <h2 id="titulo-rendimiento" class="seccion__titulo">Rendimiento del RA</h2>
+          <div class="seccion__cuerpo">
+            @if (rendimientoCargando()) {
+              <p class="estado-inline" role="status">Calculando el rendimiento…</p>
+            } @else if (rendimientoConError()) {
+              <p class="estado-inline" role="status">
+                No se pudo calcular el rendimiento del RA. Puedes seguir consultándolo.
+              </p>
+            } @else if (filasRendimiento().length === 0) {
+              <p class="estado-inline">No hay rendimiento disponible para este RA.</p>
+            } @else {
+              <ul class="lista-rendimiento">
+                @for (fila of filasRendimiento(); track fila.id) {
+                  <li class="rendimiento-ra">
+                    <span class="rendimiento-ra__codigo tabular">{{ fila.codigo }}</span>
+                    <span class="rendimiento-ra__estado">
+                      <app-chip-estado
+                        [etiqueta]="fila.presentacion.etiqueta"
+                        [variante]="fila.presentacion.variante"
+                        [icono]="fila.presentacion.icono"
+                      />
+                      <span class="rendimiento-ra__detalle">{{ fila.presentacion.detalle }}</span>
+                    </span>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+      }
+
       @if (consultaEstado() === 'inactivo' && cargaEstadisticas().estado === 'inactivo') {
         <div class="estado-vista">
           <p>Elige materia, RA y semestre, y presiona «Consultar».</p>

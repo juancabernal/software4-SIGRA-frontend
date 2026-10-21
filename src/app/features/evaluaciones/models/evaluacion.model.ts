@@ -3,6 +3,7 @@
  * (co.edu.uco.sigra.evaluaciones.dto). Rutas: /api/v1/resultados-aprendizaje/{raId}/evaluaciones
  * y /api/v1/evaluaciones/{id}.
  */
+import { InjectionToken } from '@angular/core';
 
 /** EstadoEvaluacion del backend. */
 export type EstadoEvaluacion = 'ACTIVA' | 'INACTIVA';
@@ -87,6 +88,24 @@ export function hoyIso(): string {
   const mes = String(hoy.getMonth() + 1).padStart(2, '0');
   const dia = String(hoy.getDate()).padStart(2, '0');
   return `${hoy.getFullYear()}-${mes}-${dia}`;
+}
+
+/**
+ * Fecha de hoy (AAAA-MM-DD) que usa el formulario para exigir fechas tentativas posteriores a hoy.
+ * Se inyecta para que las pruebas puedan fijarla.
+ */
+export const HOY_ISO = new InjectionToken<() => string>('HOY_ISO', {
+  providedIn: 'root',
+  factory: () => hoyIso,
+});
+
+/** El día siguiente a una fecha AAAA-MM-DD (calendario local). */
+export function diaSiguienteIso(iso: string): string {
+  const [anio, mes, dia] = iso.split('-').map(Number);
+  const siguiente = new Date(anio, mes - 1, dia + 1);
+  const m = String(siguiente.getMonth() + 1).padStart(2, '0');
+  const d = String(siguiente.getDate()).padStart(2, '0');
+  return `${siguiente.getFullYear()}-${m}-${d}`;
 }
 
 /** Semestre en curso: el que contiene la fecha de hoy (el backend lo calcula igual, por fechas). */

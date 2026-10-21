@@ -7,7 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { catchError, combineLatest, map, of, skip, startWith, switchMap } from 'rxjs';
+import { EMPTY, catchError, combineLatest, map, of, skip, startWith, switchMap } from 'rxjs';
 
 import { refrescoAutomatico } from '../../../../core/util/refresco-automatico';
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
@@ -19,10 +19,13 @@ import { AccionMejoraFormDialog } from '../../../mejoras/components/accion-mejor
 import { ConversionAccionMejoraDialog } from '../../../mejoras/components/conversion-accion-mejora-dialog/conversion-accion-mejora-dialog';
 import { AccionMejora } from '../../../mejoras/models/accion-mejora.model';
 import { AccionMejoraService } from '../../../mejoras/services/accion-mejora.service';
+import { presentarRendimiento } from '../../../resultadosaprendizaje/components/resultados-aprendizaje-page/resultados-aprendizaje-page';
 import {
+  RendimientoAsignatura,
   ResultadoAprendizaje,
   EstadoResultadoAprendizaje,
 } from '../../../resultadosaprendizaje/models/resultado-aprendizaje.model';
+import { marcarRefrescoSilencioso } from '../../../resultadosaprendizaje/services/consulta-con-refresco';
 import { ResultadoAprendizajeService } from '../../../resultadosaprendizaje/services/resultado-aprendizaje.service';
 import { Semestre } from '../../../semestres/models/semestre.model';
 import { SemestreService } from '../../../semestres/services/semestre.service';
@@ -49,6 +52,12 @@ type CargaEstadisticas =
   | { estado: 'cargando' }
   | { estado: 'listo'; estadisticas: EstadisticasResultadoAprendizaje }
   | { estado: 'error'; error: MensajeError };
+
+type CargaRendimiento =
+  | { estado: 'inactivo' }
+  | { estado: 'cargando' }
+  | { estado: 'listo'; datos: RendimientoAsignatura }
+  | { estado: 'error' };
 
 type CargaAccionesMejora =
   | { estado: 'inactivo' }
@@ -148,6 +157,65 @@ export class EstadisticasPage {
   protected readonly semestres = signal<Semestre[]>([]);
   protected readonly semestreId = signal('');
 
+  // ── Rendimiento del RA elegido en el semestre elegido ────
+  private readonly recargaRendimiento = signal(0);
+  private readonly refrescoSilencioso = signal(0);
+
+  private readonly disparoRendimiento = computed(() => ({
+    id: this.asignaturaId(),
+    raId: this.resultadoAprendizajeId(),
+    semestreId: this.semestreId(),
+    recarga: this.recargaRendimiento(),
+    refresco: this.refrescoSilencioso(),
+  }));
+
+  /**
+   * Con materia, RA y semestre elegidos se muestra el rendimiento de ese RA, sin pedir «Consultar»:
+   * el profesor lo necesita para decidir si atenderlo con una acción de mejora. El backend calcula
+   * los RA de la materia; aquí solo se muestra el elegido. Un fallo no afecta al resto de la pantalla.
+   */
+  private readonly cargaRendimiento = toSignal(
+    toObservable(this.disparoRendimiento).pipe(
+      marcarRefrescoSilencioso(),
+      switchMap(({ id, raId, semestreId, silencioso }) => {
+        if (!id || !raId || !semestreId) {
+          return of<CargaRendimiento>({ estado: 'inactivo' });
+        }
+        const consulta = this.resultadosService
+          .consultarRendimiento(id, semestreId)
+          .pipe(map((datos): CargaRendimiento => ({ estado: 'listo', datos })));
+        return silencioso
+          ? consulta.pipe(catchError(() => EMPTY))
+          : consulta.pipe(
+              catchError(() => of<CargaRendimiento>({ estado: 'error' })),
+              startWith<CargaRendimiento>({ estado: 'cargando' }),
+            );
+      }),
+    ),
+    { initialValue: { estado: 'inactivo' } as CargaRendimiento },
+  );
+
+  protected readonly mostrarRendimiento = computed(
+    () => this.puedeConsultar(),
+  );
+  protected readonly rendimientoCargando = computed(
+    () => this.cargaRendimiento().estado === 'cargando',
+  );
+  protected readonly rendimientoConError = computed(
+    () => this.cargaRendimiento().estado === 'error',
+  );
+  protected readonly filasRendimiento = computed(() => {
+    const carga = this.cargaRendimiento();
+    const elegido = this.resultadoAprendizajeId();
+    return (carga.estado === 'listo' ? carga.datos.resultados : [])
+      .filter((r) => r.resultadoAprendizajeId === elegido)
+      .map((r) => ({
+      id: r.resultadoAprendizajeId,
+      codigo: r.codigo,
+      presentacion: presentarRendimiento(r),
+    }));
+  });
+
   // ── Consulta de la conclusión ────────────────────────────────────────
   protected readonly consulta = signal<CargaConclusion>({ estado: 'inactivo' });
   protected readonly puedeConsultar = computed(
@@ -223,6 +291,7 @@ export class EstadisticasPage {
         if (this.dialogoAbierto() || this.dialogoConversionAbierto()) {
           return;
         }
+        this.refrescoSilencioso.update((n) => n + 1);
         this.refrescarEstadisticasEnSegundoPlano();
         this.refrescarConclusionEnSegundoPlano();
         this.refrescarAccionesEnSegundoPlano();
@@ -371,6 +440,7 @@ export class EstadisticasPage {
     }
     this.consultarEstadisticas();
     this.consultarConclusion();
+    this.recargaRendimiento.update((n) => n + 1);
   }
 
   protected consultarEstadisticas(): void {
@@ -401,6 +471,7 @@ export class EstadisticasPage {
         this.recalculando.set(false);
         this.cargaEstadisticas.set({ estado: 'listo', estadisticas: respuesta.estadisticas });
         this.consultarConclusion();
+        this.recargaRendimiento.update((n) => n + 1);
         this.mostrarAviso(
           respuesta.conclusion?.generada
             ? 'Nivel de logro recalculado. Se generó una conclusión de desempeño insuficiente.'
