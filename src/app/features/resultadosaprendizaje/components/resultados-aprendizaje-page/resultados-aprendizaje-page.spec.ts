@@ -82,6 +82,8 @@ function rend(parcial: Partial<RendimientoResultado>): RendimientoResultado {
     promedioNota: 4.2,
     porcentajeAsignado: 100,
     porcentajeEvaluado: 60,
+    evaluacionesActivas: 3,
+    minimoEvaluaciones: 3,
     completo: false,
     ...parcial,
   };
@@ -95,6 +97,14 @@ describe('presentarRendimiento', () => {
     expect(
       presentarRendimiento(rend({ estado: 'DATOS_INSUFICIENTES', nivelLogro: null })).etiqueta,
     ).toBe('Datos insuficientes');
+  });
+
+  it('el detalle visible muestra los porcentajes y avisa si faltan evaluaciones', () => {
+    expect(presentarRendimiento(rend({})).detalle).toBe('Asignado 100% · Evaluado 60%');
+    const pocas = presentarRendimiento(
+      rend({ estado: 'DATOS_INSUFICIENTES', nivelLogro: null, evaluacionesActivas: 2 }),
+    );
+    expect(pocas.detalle).toContain('Se requieren al menos 3 evaluaciones activas (hay 2).');
   });
 
   it('con nivel parcial informa el porcentaje evaluado', () => {
@@ -142,6 +152,10 @@ describe('ResultadosAprendizajePage', () => {
     http
       .match((req) => req.url.endsWith('/rendimiento'))
       .forEach((req) => !req.cancelled && req.flush(SIN_SEMESTRE));
+    // La lista de semestres se pide al elegir la primera materia; aquí no se ejercita salvo donde se indica.
+    http
+      .match((req) => req.url.endsWith('/semestres'))
+      .forEach((req) => !req.cancelled && req.flush([]));
     http.verify();
   });
 
@@ -483,6 +497,42 @@ describe('ResultadosAprendizajePage', () => {
       expect(html.querySelector('thead')?.textContent).toContain('Rendimiento');
       expect(fila('RA1').textContent).toContain('Alto · Parcial (60% evaluado)');
       expect(fila('RA2').textContent).toContain('—');
+    });
+
+    it('permite consultar el rendimiento de un semestre pasado, de solo consulta', async () => {
+      await cargarAsignaturas([BORRADOR], [ACTIVA]);
+      const selector = html.querySelector('#selector-materia') as HTMLSelectElement;
+      selector.value = BORRADOR.id;
+      selector.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+      http.expectOne(urlRa(BORRADOR.id)).flush([ra(1)]);
+      http.expectOne(`${urlRa(BORRADOR.id)}/rendimiento`).flush(SIN_SEMESTRE);
+      http
+        .expectOne((r) => r.url.endsWith('/semestres'))
+        .flush([
+          { id: 'sem-act', codigo: '2026-2', fechaInicio: '2026-08-01', fechaFin: '2026-12-01', estado: 'ACTIVO' },
+          { id: 'sem-1', codigo: '2026-1', fechaInicio: '2026-02-01', fechaFin: '2026-06-01', estado: 'INACTIVO' },
+        ]);
+      await fixture.whenStable();
+
+      const selectorSemestre = html.querySelector('#selector-semestre-rendimiento') as HTMLSelectElement;
+      // El semestre activo es la opción por defecto y no se repite; solo se ofrecen los demás.
+      expect(Array.from(selectorSemestre.options).map((o) => o.textContent?.trim())).toEqual([
+        'Semestre activo',
+        '2026-1',
+      ]);
+      selectorSemestre.value = 'sem-1';
+      selectorSemestre.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+
+      const req = http.expectOne(
+        (r) => r.url.endsWith('/rendimiento') && r.params.get('semestreId') === 'sem-1',
+      );
+      req.flush({ ...SIN_SEMESTRE, semestreId: 'sem-1', semestreCodigo: '2026-1' });
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('Semestre 2026-1: solo consulta');
+      expect(html.textContent).not.toContain('No hay un semestre activo');
     });
 
     it('avisa cuando no hay semestre activo', async () => {
