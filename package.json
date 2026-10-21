@@ -32,8 +32,8 @@
     "tslib": "^2.3.0"
   },
   "devDependencies": {
-    "@angular/build": "^22.0.1",
-    "@angular/cli": "^22.0.1",
+    "@angular/build": "^22.2.3",
+    "@angular/cli": "^22.2.3",
     "@angular/compiler-cli": "^22.0.0",
     "@playwright/test": "^1.64.0",
     "@tailwindcss/postcss": "^4.3.3",
@@ -46,5 +46,8 @@
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vitest": "^4.0.8"
-  }
+  },
+     "overrides": {
+       "vite": "8.3.4"
+     }
 }

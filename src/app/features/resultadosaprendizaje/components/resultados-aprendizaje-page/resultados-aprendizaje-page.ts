@@ -7,13 +7,14 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { EMPTY, catchError, map, of, skip, startWith, switchMap } from 'rxjs';
+import { EMPTY, catchError, filter, map, of, skip, startWith, switchMap, take } from 'rxjs';
 
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
 import { refrescoAutomatico } from '../../../../core/util/refresco-automatico';
 import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
 import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
+import { SemestreService } from '../../../semestres/services/semestre.service';
 import {
   AsignaturaOpcion,
   EstadoAsignaturaOpcion,
@@ -78,7 +79,7 @@ export interface PresentacionRendimiento {
   etiqueta: string;
   variante: VarianteChip;
   icono: string;
-  /** Detalle para el tooltip nativo: porcentajes asignado y evaluado. */
+  /** Texto visible bajo la etiqueta: porcentajes y, si falta, cuántas evaluaciones se necesitan. */
   detalle: string;
 }
 
@@ -95,7 +96,11 @@ export function formatearPorcentaje(valor: number): string {
 }
 
 export function presentarRendimiento(r: RendimientoResultado): PresentacionRendimiento {
-  const detalle = `Asignado: ${formatearPorcentaje(r.porcentajeAsignado)} · Evaluado: ${formatearPorcentaje(r.porcentajeEvaluado)}`;
+  const faltanEvaluaciones = r.evaluacionesActivas < r.minimoEvaluaciones;
+  const porcentajes = `Asignado ${formatearPorcentaje(r.porcentajeAsignado)} · Evaluado ${formatearPorcentaje(r.porcentajeEvaluado)}`;
+  const detalle = faltanEvaluaciones
+    ? `${porcentajes}. Se requieren al menos ${r.minimoEvaluaciones} evaluaciones activas (hay ${r.evaluacionesActivas}).`
+    : porcentajes;
   switch (r.estado) {
     case 'SIN_EVALUAR':
       return { etiqueta: 'Sin evaluar', variante: 'neutro', icono: 'reloj', detalle };
@@ -183,6 +188,7 @@ type CargaResultados =
 export class ResultadosAprendizajePage {
   private readonly asignaturasService = inject(AsignaturaOpcionesService);
   private readonly resultadosService = inject(ResultadoAprendizajeService);
+  private readonly semestreService = inject(SemestreService);
 
   protected readonly presentacionAsignatura = PRESENTACION_ASIGNATURA;
   protected readonly presentacionRa = PRESENTACION_RA;
@@ -260,6 +266,41 @@ export class ResultadosAprendizajePage {
     refresco: this.refrescoSilencioso(),
   }));
 
+  // ── Semestre del rendimiento ────────────────────────────────────────
+  /** '' = semestre activo (por defecto); otro valor = id de un semestre para consultar su rendimiento. */
+  protected readonly semestreRendimientoId = signal('');
+  protected readonly consultandoOtroSemestre = computed(() => this.semestreRendimientoId() !== '');
+
+  /**
+   * Semestres que no son el activo, del más reciente al más antiguo. Se piden una sola vez, cuando
+   * se elige la primera materia; si falla, el selector no aparece y se sigue viendo el semestre activo.
+   */
+  protected readonly otrosSemestres = toSignal(
+    toObservable(computed(() => this.asignaturaId() !== '')).pipe(
+      filter(Boolean),
+      take(1),
+      switchMap(() =>
+        this.semestreService.listar().pipe(
+          map((lista) => lista.filter((s) => s.estado !== 'ACTIVO')),
+          catchError(() => of([])),
+        ),
+      ),
+    ),
+    { initialValue: [] },
+  );
+
+  protected readonly semestreRendimiento = computed(
+    () => this.otrosSemestres().find((s) => s.id === this.semestreRendimientoId()) ?? null,
+  );
+
+  /** Lo que dispara la consulta del rendimiento: la materia y el semestre elegidos. */
+  private readonly disparoRendimiento = computed(() => ({
+    id: this.asignaturaId(),
+    semestreId: this.semestreRendimientoId(),
+    recarga: this.recarga(),
+    refresco: this.refrescoSilencioso(),
+  }));
+
   private readonly carga = toSignal(
     toObservable(this.disparoMateria).pipe(
       marcarRefrescoSilencioso(),
@@ -289,14 +330,14 @@ export class ResultadosAprendizajePage {
    * fallo del cálculo no impida gestionar los RA: en ese caso la columna muestra un aviso.
    */
   private readonly cargaRendimiento = toSignal(
-    toObservable(this.disparoMateria).pipe(
+    toObservable(this.disparoRendimiento).pipe(
       marcarRefrescoSilencioso(),
-      switchMap(({ id, silencioso }) => {
+      switchMap(({ id, semestreId, silencioso }) => {
         if (!id) {
           return of<CargaRendimiento>({ estado: 'inactivo' });
         }
         const consulta = this.resultadosService
-          .consultarRendimiento(id)
+          .consultarRendimiento(id, semestreId || undefined)
           .pipe(map((datos): CargaRendimiento => ({ estado: 'listo', datos })));
         return silencioso
           ? consulta.pipe(catchError(() => EMPTY))
@@ -329,6 +370,10 @@ export class ResultadosAprendizajePage {
     const carga = this.cargaRendimiento();
     return carga.estado === 'listo' && carga.datos.semestreId === null;
   });
+
+  protected alCambiarSemestreRendimiento(evento: Event): void {
+    this.semestreRendimientoId.set((evento.target as HTMLSelectElement).value);
+  }
 
   protected readonly cargandoResultados = computed(() => this.carga().estado === 'cargando');
   protected readonly errorResultados = computed(() => {

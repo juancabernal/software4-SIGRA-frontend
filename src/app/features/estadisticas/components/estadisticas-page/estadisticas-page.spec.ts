@@ -5,7 +5,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { environment } from '../../../../../environments/environment';
 import { AccionMejora } from '../../../mejoras/models/accion-mejora.model';
 import { Asignatura } from '../../../asignaturas/models/asignatura.model';
-import { ResultadoAprendizaje } from '../../../resultadosaprendizaje/models/resultado-aprendizaje.model';
+import {
+  RendimientoAsignatura,
+  ResultadoAprendizaje,
+} from '../../../resultadosaprendizaje/models/resultado-aprendizaje.model';
 import { Semestre } from '../../../semestres/models/semestre.model';
 import { Conclusion, ConclusionEstado } from '../../models/conclusion.model';
 import { EstadisticasResultadoAprendizaje, RangoNivelLogro } from '../../models/nivel-logro.model';
@@ -21,6 +24,13 @@ const urlEstadoConclusion = (raId: string, semestreId: string) =>
 const URL_CATALOGO_NIVELES = `${API}/niveles-logro`;
 const urlEstadisticas = (raId: string, semestreId: string) =>
   `${API}/resultados-aprendizaje/${raId}/semestres/${semestreId}/estadisticas`;
+
+const RENDIMIENTO_VACIO: RendimientoAsignatura = {
+  asignaturaId: 'asig-1',
+  semestreId: null,
+  semestreCodigo: null,
+  resultados: [],
+};
 
 const MATERIA: Asignatura = {
   id: 'a1',
@@ -147,6 +157,10 @@ describe('EstadisticasPage', () => {
   afterEach(() => {
     fixture.destroy();
     html.remove();
+    // Al elegir materia y semestre la página pide el rendimiento de los RA; solo lo ejercita su prueba propia.
+    http
+      .match((req) => req.url.endsWith('/rendimiento'))
+      .forEach((req) => !req.cancelled && req.flush(RENDIMIENTO_VACIO));
     http.verify();
   });
 
@@ -229,6 +243,69 @@ describe('EstadisticasPage', () => {
         .map((o) => o.textContent?.trim());
       expect(codigos).toEqual(['RA1', 'RA3']);
       expect(codigos).not.toContain('RA2');
+    });
+  });
+
+  describe('rendimiento de los RA', () => {
+    it('al elegir materia, RA y semestre muestra solo el rendimiento de ese RA, sin pulsar «Consultar»', async () => {
+      await iniciar([MATERIA], [SEMESTRE_ACTIVO]);
+      const selector = html.querySelector('#selector-materia') as HTMLSelectElement;
+      selector.value = MATERIA.id;
+      selector.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+      http.expectOne(urlRa(MATERIA.id)).flush([ra(1), ra(2)]);
+      await fixture.whenStable();
+      // Solo con la materia no se calcula ni se lista nada: se espera al RA.
+      http.expectNone((r) => r.url.endsWith('/rendimiento'));
+      elegirRa('ra-1');
+      await fixture.whenStable();
+      http.expectOne((r) => r.url === URL_ACCIONES_MEJORA).flush([]);
+      http
+        .expectOne(
+          (r) =>
+            r.url === `${urlRa(MATERIA.id)}/rendimiento` &&
+            r.params.get('semestreId') === SEMESTRE_ACTIVO.id,
+        )
+        .flush({
+          asignaturaId: MATERIA.id,
+          semestreId: SEMESTRE_ACTIVO.id,
+          semestreCodigo: SEMESTRE_ACTIVO.codigo,
+          resultados: [
+            {
+              resultadoAprendizajeId: 'ra-1',
+              codigo: 'RA1',
+              estado: 'CON_NIVEL',
+              nivelLogro: 'BAJO',
+              promedioNota: 2.5,
+              porcentajeAsignado: 100,
+              porcentajeEvaluado: 100,
+              evaluacionesActivas: 3,
+              minimoEvaluaciones: 3,
+              completo: true,
+            },
+            {
+              resultadoAprendizajeId: 'ra-2',
+              codigo: 'RA2',
+              estado: 'SIN_EVALUAR',
+              nivelLogro: null,
+              promedioNota: null,
+              porcentajeAsignado: 60,
+              porcentajeEvaluado: 0,
+              evaluacionesActivas: 2,
+              minimoEvaluaciones: 3,
+              completo: false,
+            },
+          ],
+        });
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const texto = html.querySelector('#titulo-rendimiento')?.closest('section')?.textContent ?? '';
+      expect(texto).toContain('RA1');
+      expect(texto).toContain('Bajo · Completo');
+      // El RA2 no está elegido: no se muestra.
+      expect(texto).not.toContain('RA2');
+      expect(texto).not.toContain('Sin evaluar');
     });
   });
 
@@ -404,7 +481,7 @@ describe('EstadisticasPage', () => {
       const titulos = Array.from(html.querySelectorAll('.seccion__titulo')).map((h) =>
         h.textContent?.trim(),
       );
-      expect(titulos).toEqual(['Nivel de logro', 'Conclusión']);
+      expect(titulos).toEqual(['Rendimiento del RA', 'Nivel de logro', 'Conclusión']);
       const filas = html.querySelectorAll('.distribucion__fila');
       expect(
         Array.from(filas).map((f) => f.querySelector('app-badge-nivel-logro')?.textContent?.trim()),
