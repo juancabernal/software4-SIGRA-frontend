@@ -163,6 +163,74 @@ h1 {
   padding: 0;
 }
 
+// ── Rendimiento de todos los RA de la materia ──
+.seccion--rendimiento {
+  border-top: 1px solid var(--sg-divider);
+}
+
+.lista-rendimiento {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rendimiento-ra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+}
+
+.rendimiento-ra__codigo {
+  min-width: 5rem;
+  color: var(--sg-navy);
+  font-weight: 700;
+}
+
+.rendimiento-ra__estado {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.rendimiento-ra__detalle {
+  color: var(--sg-ink-muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+// ── Secciones del resultado: Nivel de logro (RF-14/15) y Conclusión (RF-16) ──
+.seccion + .seccion {
+  border-top: 1px solid var(--sg-divider);
+}
+
+.seccion__titulo {
+  margin: 0;
+  padding: 1.25rem 1.25rem 0;
+  color: var(--sg-navy);
+  font-family: var(--sg-font-titulo);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.seccion__cuerpo {
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.estado-inline--fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+
+  p {
+    margin: 0;
+  }
+}
+
 .estado-vista {
   display: grid;
   justify-items: center;
@@ -230,10 +298,99 @@ h1 {
   }
 }
 
+// ── Diagnóstico extendido (texto jerarquizado, no tarjetas ni gráficos) ──
+.alerta-conclusion__diagnostico {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.alerta-conclusion__diagnostico-principal {
+  margin: 0;
+  color: #fff;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+
+  strong {
+    color: #fff;
+  }
+}
+
+.alerta-conclusion__diagnostico-umbral {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8125rem;
+}
+
+.alerta-conclusion__diagnostico-desglose,
+.alerta-conclusion__diagnostico-comparacion {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.875rem;
+}
+
+.alerta-conclusion__diagnostico-recomendacion {
+  margin: 0.4rem 0 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
 .alerta-conclusion app-chip-estado {
   display: inline-flex;
   background: #fff;
   border-radius: var(--sg-radius-control);
+}
+
+// ── Atendida / Satisfactorio / Sin datos suficientes (tono informativo, no de alerta) ──
+.estado-resultado {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--sg-border);
+  border-left: 4px solid var(--sg-neutral-fg);
+  border-radius: var(--sg-radius-card);
+  background: var(--sg-field);
+}
+
+.estado-resultado--satisfactorio {
+  border-left-color: var(--sg-ok-fg);
+}
+
+.estado-resultado__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.estado-resultado__icono {
+  color: var(--sg-neutral-fg);
+}
+
+.estado-resultado--satisfactorio .estado-resultado__icono {
+  color: var(--sg-ok-fg);
+}
+
+.estado-resultado__mensaje {
+  margin: 0;
+  color: var(--sg-ink-body);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.estado-resultado__detalle {
+  margin: 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+
+  strong {
+    color: var(--sg-ink-body);
+  }
 }
 
 .btn--sobre-navy {

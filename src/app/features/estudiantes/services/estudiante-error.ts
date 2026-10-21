@@ -39,3 +39,17 @@ export function mensajeDeError(error: unknown): MensajeError {
     : [];
   return { mensaje, detalles };
 }
+
+/**
+ * Registra en la consola el cuerpo técnico completo del error (status, campo que falló,
+ * mensaje crudo del validador) sin acortar nada. El usuario nunca ve esto en pantalla — solo
+ * `mensajeDeError` (RNF-17) — pero un administrador que abra DevTools sí lo tiene disponible para
+ * diagnosticar. No reemplaza a `mensajeDeError`: se usa junto a él, no en su lugar.
+ */
+export function registrarErrorTecnico(contexto: string, error: unknown): void {
+  if (error instanceof HttpErrorResponse) {
+    console.error(`[${contexto}] ${error.status} ${error.statusText}`, error.error);
+    return;
+  }
+  console.error(`[${contexto}]`, error);
+}

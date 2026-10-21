@@ -27,10 +27,12 @@ import { Icono } from '../../../../shared/ui/icono/icono';
 import {
   DESCRIPCION_MAX,
   Evaluacion,
+  HOY_ISO,
   NOMBRE_MAX,
   PATRON_TEXTO_PROHIBIDO,
   PORCENTAJE_MAX,
   SemestreOpcion,
+  diaSiguienteIso,
   enCentesimas,
   formatearFecha,
   formatearPorcentaje,
@@ -108,9 +110,18 @@ export class EvaluacionFormDialog {
     return Math.min(libre, enCentesimas(PORCENTAJE_MAX)) / 100;
   });
 
+  private readonly hoy = inject(HOY_ISO);
+
+  /** Primera fecha elegible: la tentativa debe ser posterior a hoy y caer dentro del semestre. */
+  protected readonly fechaMinima = computed(() => {
+    const manana = diaSiguienteIso(this.hoy());
+    const inicio = this.semestre().fechaInicio;
+    return manana > inicio ? manana : inicio;
+  });
+
   protected readonly rangoFechas = computed(() => {
     const s = this.semestre();
-    return `Entre el ${formatearFecha(s.fechaInicio)} y el ${formatearFecha(s.fechaFin)} (semestre ${s.codigo})`;
+    return `Entre el ${formatearFecha(s.fechaInicio)} y el ${formatearFecha(s.fechaFin)} (semestre ${s.codigo}), posterior a hoy`;
   });
   protected readonly textoMaximo = computed(() => formatearPorcentaje(this.porcentajeMaximo()));
 
@@ -123,7 +134,12 @@ export class EvaluacionFormDialog {
       return { required: true };
     }
     const s = this.semestre();
-    return fecha < s.fechaInicio || fecha > s.fechaFin ? { fueraSemestre: true } : null;
+    if (fecha < s.fechaInicio || fecha > s.fechaFin) {
+      return { fueraSemestre: true };
+    }
+    // Debe ser posterior a hoy; al editar, una fecha que no cambió no se vuelve a exigir (igual que el backend).
+    const sinCambio = fecha === this.evaluacion()?.fechaTentativa;
+    return !sinCambio && fecha <= this.hoy() ? { noPosterior: true } : null;
   };
 
   private readonly validarPorcentaje = (control: AbstractControl): ValidationErrors | null => {

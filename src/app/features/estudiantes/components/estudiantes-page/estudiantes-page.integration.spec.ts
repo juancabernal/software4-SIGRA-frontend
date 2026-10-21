@@ -5,7 +5,7 @@ import { provideRouter } from '@angular/router';
 
 import { environment } from '../../../../../environments/environment';
 import { Estudiante, EstudianteRequest } from '../../models/estudiante.model';
-import { TIPOS_DOCUMENTO } from '../../models/tipos-documento';
+import { ConfettiService } from '../../../../shared/ui/confetti/confetti.service';
 import { EstudiantesPage } from './estudiantes-page';
 
 /**
@@ -16,6 +16,13 @@ import { EstudiantesPage } from './estudiantes-page';
  */
 
 const URL = `${environment.apiUrl}/v1/estudiantes`;
+const URL_TIPOS_DOCUMENTO = `${environment.apiUrl}/v1/tipos-documento`;
+
+/** El diálogo pide su catálogo al servidor al abrirse. */
+const TIPOS_DOCUMENTO = [
+  { id: 'td1', nombre: 'Cédula de Ciudadanía' },
+  { id: 'td2', nombre: 'Tarjeta de Identidad' },
+];
 
 function estudiante(parcial: Partial<Estudiante>): Estudiante {
   return {
@@ -41,6 +48,7 @@ describe('EstudiantesPage (integración con EstudianteFormDialog)', () => {
   let fixture: ComponentFixture<EstudiantesPage>;
   let http: HttpTestingController;
   let html: HTMLElement;
+  let confettiSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -48,6 +56,10 @@ describe('EstudiantesPage (integración con EstudianteFormDialog)', () => {
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     });
     http = TestBed.inject(HttpTestingController);
+    // La animación real toca el DOM fuera de la zona de Angular: se espía en lugar de dejarla correr.
+    confettiSpy = vi
+      .spyOn(TestBed.inject(ConfettiService), 'celebrar')
+      .mockImplementation(() => {});
     fixture = TestBed.createComponent(EstudiantesPage);
     html = fixture.nativeElement as HTMLElement;
     document.body.appendChild(html);
@@ -91,6 +103,9 @@ describe('EstudiantesPage (integración con EstudianteFormDialog)', () => {
     boton(html, 'Registrar estudiante').click();
     await fixture.whenStable();
 
+    http.expectOne((r) => r.url === URL_TIPOS_DOCUMENTO).flush(TIPOS_DOCUMENTO);
+    await fixture.whenStable();
+
     const dialogo = html.querySelector('app-estudiante-form-dialog dialog') as HTMLDialogElement;
     expect(dialogo).toBeTruthy();
 
@@ -118,6 +133,7 @@ describe('EstudiantesPage (integración con EstudianteFormDialog)', () => {
     expect(html.querySelector('.aviso-zona')?.textContent).toContain(
       `Estudiante registrado: ${LUIS.nombreCompleto}.`,
     );
+    expect(confettiSpy).toHaveBeenCalledTimes(1);
 
     listado().flush([ANA, LUIS]);
     await fixture.whenStable();
@@ -130,6 +146,8 @@ describe('EstudiantesPage (integración con EstudianteFormDialog)', () => {
     await iniciar([ANA]);
 
     boton(fila(ANA.nombreCompleto), 'Modificar').click();
+    await fixture.whenStable();
+    http.expectOne((r) => r.url === URL_TIPOS_DOCUMENTO).flush(TIPOS_DOCUMENTO);
     await fixture.whenStable();
 
     const dialogo = html.querySelector('app-estudiante-form-dialog dialog') as HTMLDialogElement;
@@ -158,6 +176,8 @@ describe('EstudiantesPage (integración con EstudianteFormDialog)', () => {
     expect(html.querySelector('.aviso-zona')?.textContent).toContain(
       `Estudiante modificado: ${nombreActualizado}.`,
     );
+    // Modificar una ficha existente no es un hito nuevo: no se festeja (solo el alta).
+    expect(confettiSpy).not.toHaveBeenCalled();
 
     listado().flush([modificado]);
     await fixture.whenStable();

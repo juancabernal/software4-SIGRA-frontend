@@ -2,7 +2,9 @@
   <header class="cabecera">
     <div>
       <h1 id="titulo-estadisticas">Estadísticas y ciclo de mejora</h1>
-      <p class="cabecera__sub">Consulta si un RA tiene una conclusión de desempeño insuficiente</p>
+      <p class="cabecera__sub">
+        Nivel de logro, conclusión y acciones de mejora de un resultado de aprendizaje por semestre
+      </p>
     </div>
   </header>
 
@@ -11,7 +13,12 @@
       <div class="aviso" [class.aviso--error]="a.tono === 'error'">
         <app-icono [nombre]="a.tono === 'ok' ? 'check' : 'advertencia'" [tamano]="16" />
         <span>{{ a.texto }}</span>
-        <button type="button" class="aviso__cerrar" aria-label="Cerrar aviso" (click)="cerrarAviso()">
+        <button
+          type="button"
+          class="aviso__cerrar"
+          aria-label="Cerrar aviso"
+          (click)="cerrarAviso()"
+        >
           <app-icono nombre="cerrar" [tamano]="14" />
         </button>
       </div>
@@ -63,7 +70,9 @@
             id="selector-ra"
             class="selector"
             [value]="resultadoAprendizajeId()"
-            [attr.disabled]="asignaturaId() === '' || resultadosActivos().length === 0 ? true : null"
+            [attr.disabled]="
+              asignaturaId() === '' || resultadosActivos().length === 0 ? true : null
+            "
             (change)="alCambiarRa($event)"
           >
             <option value="">
@@ -110,61 +119,244 @@
       <div class="barra barra--acciones">
         <button
           type="button"
+          class="btn"
+          title="Vuelve a calcular el nivel de logro con las calificaciones actuales"
+          [attr.aria-disabled]="puedeConsultar() && !recalculando() ? null : 'true'"
+          [attr.aria-busy]="recalculando() ? 'true' : null"
+          (click)="recalcular()"
+        >
+          <app-icono nombre="recargar" [tamano]="16" />
+          {{ recalculando() ? 'Recalculando…' : 'Recalcular' }}
+        </button>
+        <button
+          type="button"
           class="btn btn--primario"
           [attr.aria-disabled]="puedeConsultar() ? null : 'true'"
           (click)="consultar()"
         >
           <app-icono nombre="buscar" [tamano]="16" />
-          Consultar conclusión
+          Consultar
         </button>
       </div>
 
-      <div class="resultado">
-        @switch (consultaEstado()) {
-          @case ('inactivo') {
-            <div class="estado-vista">
-              <p>Elige materia, RA y semestre, y presiona «Consultar conclusión».</p>
-            </div>
-          }
-          @case ('cargando') {
-            <p class="estado-vista" role="status">Consultando…</p>
-          }
-          @case ('error') {
-            <div class="estado-vista estado-vista--error" role="alert">
-              <p>{{ consultaError()?.mensaje }}</p>
-              <button type="button" class="btn" (click)="consultar()">
-                <app-icono nombre="recargar" [tamano]="16" />
-                Reintentar
-              </button>
-            </div>
-          }
-          @case ('listo') {
-            @if (consultaConclusion(); as conclusion) {
-              <div class="alerta-conclusion" role="alert">
-                <div class="alerta-conclusion__cabecera">
-                  <app-icono nombre="advertencia" [tamano]="20" />
-                  <app-chip-estado etiqueta="Vigente" variante="advertencia" icono="advertencia" />
-                  <span class="alerta-conclusion__semestre">Semestre {{ conclusion.semestreCodigo }}</span>
-                </div>
-                <p class="alerta-conclusion__mensaje">{{ conclusion.mensaje }}</p>
-                <p class="alerta-conclusion__porcentaje tabular">
-                  Desempeño insuficiente: <strong>{{ conclusion.porcentajeInsuficiente }}%</strong>
-                </p>
-                <button type="button" class="btn btn--primario btn--sobre-navy" (click)="crearAccionDeMejora()">
-                  <app-icono nombre="mas" [tamano]="16" />
-                  Crear acción de mejora
-                </button>
-              </div>
+      @if (mostrarRendimiento()) {
+        <section class="seccion seccion--rendimiento" aria-labelledby="titulo-rendimiento">
+          <h2 id="titulo-rendimiento" class="seccion__titulo">Rendimiento del RA</h2>
+          <div class="seccion__cuerpo">
+            @if (rendimientoCargando()) {
+              <p class="estado-inline" role="status">Calculando el rendimiento…</p>
+            } @else if (rendimientoConError()) {
+              <p class="estado-inline" role="status">
+                No se pudo calcular el rendimiento del RA. Puedes seguir consultándolo.
+              </p>
+            } @else if (filasRendimiento().length === 0) {
+              <p class="estado-inline">No hay rendimiento disponible para este RA.</p>
             } @else {
-              <div class="estado-vista">
-                <app-icono nombre="check" [tamano]="20" />
-                <p class="estado-vista__titulo">Sin conclusión vigente</p>
-                <p>No hay una conclusión de desempeño insuficiente para este RA en este semestre.</p>
-              </div>
+              <ul class="lista-rendimiento">
+                @for (fila of filasRendimiento(); track fila.id) {
+                  <li class="rendimiento-ra">
+                    <span class="rendimiento-ra__codigo tabular">{{ fila.codigo }}</span>
+                    <span class="rendimiento-ra__estado">
+                      <app-chip-estado
+                        [etiqueta]="fila.presentacion.etiqueta"
+                        [variante]="fila.presentacion.variante"
+                        [icono]="fila.presentacion.icono"
+                      />
+                      <span class="rendimiento-ra__detalle">{{ fila.presentacion.detalle }}</span>
+                    </span>
+                  </li>
+                }
+              </ul>
             }
-          }
-        }
-      </div>
+          </div>
+        </section>
+      }
+
+      @if (consultaEstado() === 'inactivo' && cargaEstadisticas().estado === 'inactivo') {
+        <div class="estado-vista">
+          <p>Elige materia, RA y semestre, y presiona «Consultar».</p>
+        </div>
+      } @else {
+        <!-- RF-14 / RF-15: nivel de logro -->
+        <section class="seccion" aria-labelledby="titulo-nivel-logro">
+          <h2 id="titulo-nivel-logro" class="seccion__titulo">Nivel de logro</h2>
+          <div class="seccion__cuerpo">
+            @switch (cargaEstadisticas().estado) {
+              @case ('cargando') {
+                <p class="estado-inline" role="status">Consultando nivel de logro…</p>
+              }
+              @case ('error') {
+                <div class="estado-inline estado-inline--error estado-inline--fila" role="alert">
+                  <p>{{ errorEstadisticas()?.mensaje }}</p>
+                  <button type="button" class="btn" (click)="consultarEstadisticas()">
+                    <app-icono nombre="recargar" [tamano]="16" />
+                    Reintentar
+                  </button>
+                </div>
+              }
+              @case ('listo') {
+                @if (estadisticas(); as e) {
+                  <app-nivel-logro-resumen
+                    [estadisticas]="e"
+                    [rangos]="rangos()"
+                    [recalculando]="recalculando()"
+                    (recalcular)="recalcular()"
+                  />
+                }
+              }
+            }
+          </div>
+        </section>
+
+        <!-- RF-16: conclusión -->
+        <section class="seccion" aria-labelledby="titulo-conclusion">
+          <h2 id="titulo-conclusion" class="seccion__titulo">Conclusión</h2>
+          <div class="resultado">
+            @switch (consultaEstado()) {
+              @case ('cargando') {
+                <p class="estado-vista" role="status">Consultando…</p>
+              }
+              @case ('error') {
+                <div class="estado-vista estado-vista--error" role="alert">
+                  <p>{{ consultaError()?.mensaje }}</p>
+                  <button type="button" class="btn" (click)="consultarConclusion()">
+                    <app-icono nombre="recargar" [tamano]="16" />
+                    Reintentar
+                  </button>
+                </div>
+              }
+              @case ('listo') {
+                @if (consultaResultado(); as resultado) {
+                  @switch (resultado.estado) {
+                    @case ('VIGENTE') {
+                      @if (resultado.conclusion; as conclusion) {
+                        <div class="alerta-conclusion" role="alert">
+                          <div class="alerta-conclusion__cabecera">
+                            <app-icono nombre="advertencia" [tamano]="20" />
+                            <app-chip-estado
+                              etiqueta="Vigente"
+                              variante="advertencia"
+                              icono="advertencia"
+                            />
+                            <span class="alerta-conclusion__semestre"
+                              >Semestre {{ conclusion.semestreCodigo }}</span
+                            >
+                          </div>
+                          <p class="alerta-conclusion__mensaje">{{ conclusion.mensaje }}</p>
+                          @if (conclusion.totalEvaluados != null) {
+                            <div class="alerta-conclusion__diagnostico">
+                              <p class="alerta-conclusion__diagnostico-principal tabular">
+                                <strong>{{ debajoDelNivel(conclusion) }}</strong> de
+                                <strong>{{ conclusion.totalEvaluados }}</strong> estudiantes
+                                evaluados (<strong>{{ conclusion.porcentajeInsuficiente }}%</strong
+                                >) quedaron por debajo del nivel esperado.
+                              </p>
+                              <p class="alerta-conclusion__diagnostico-umbral tabular">
+                                El umbral que dispara la alerta es del
+                                {{ conclusion.umbralPorcentaje }}%.
+                              </p>
+                              <p class="alerta-conclusion__diagnostico-desglose">
+                                {{ conclusion.enNivelBajo ?? 0 }} en nivel Bajo y
+                                {{ conclusion.enNivelMedio ?? 0 }}
+                                en nivel Medio.
+                              </p>
+                              <p class="alerta-conclusion__diagnostico-comparacion">
+                                {{ comparacionSemestreAnterior(conclusion) }}
+                              </p>
+                              @if (conclusion.recomendacion) {
+                                <p class="alerta-conclusion__diagnostico-recomendacion">
+                                  {{ conclusion.recomendacion }}
+                                </p>
+                              }
+                            </div>
+                          } @else {
+                            <p class="alerta-conclusion__porcentaje tabular">
+                              Desempeño insuficiente:
+                              <strong>{{ conclusion.porcentajeInsuficiente }}%</strong>
+                            </p>
+                          }
+                          <button
+                            type="button"
+                            class="btn btn--primario btn--sobre-navy"
+                            (click)="crearAccionDeMejora()"
+                          >
+                            <app-icono nombre="mas" [tamano]="16" />
+                            Crear acción de mejora
+                          </button>
+                        </div>
+                      }
+                    }
+                    @case ('ATENDIDA') {
+                      <div class="estado-resultado estado-resultado--atendida">
+                        <div class="estado-resultado__cabecera">
+                          <app-icono class="estado-resultado__icono" nombre="check" [tamano]="20" />
+                          <app-chip-estado etiqueta="Atendida" variante="neutro" icono="check" />
+                        </div>
+                        <p class="estado-resultado__mensaje">
+                          Este resultado de aprendizaje superó el umbral de desempeño insuficiente,
+                          pero ya tiene una acción de mejora registrada.
+                        </p>
+                        @if (resultado.porcentajeInsuficiente != null) {
+                          <p class="estado-resultado__detalle tabular">
+                            El <strong>{{ resultado.porcentajeInsuficiente }}%</strong> de los
+                            estudiantes evaluados quedó por debajo del nivel esperado; ya se
+                            registró una acción de mejora para atenderlo.
+                          </p>
+                        }
+                      </div>
+                    }
+                    @case ('SATISFACTORIO') {
+                      <div class="estado-resultado estado-resultado--satisfactorio">
+                        <div class="estado-resultado__cabecera">
+                          <app-icono
+                            class="estado-resultado__icono"
+                            nombre="usuario-ok"
+                            [tamano]="20"
+                          />
+                          <app-chip-estado
+                            etiqueta="Satisfactorio"
+                            variante="ok"
+                            icono="usuario-ok"
+                          />
+                        </div>
+                        <p class="estado-resultado__mensaje">
+                          El desempeño de este resultado de aprendizaje está dentro de lo esperado.
+                        </p>
+                        <p class="estado-resultado__detalle tabular">
+                          Se evaluaron <strong>{{ resultado.totalEvaluados }}</strong> estudiantes y
+                          solo el <strong>{{ resultado.porcentajeInsuficiente }}%</strong> quedó por
+                          debajo del nivel esperado.
+                        </p>
+                      </div>
+                    }
+                    @case ('SIN_DATOS_SUFICIENTES') {
+                      <div class="estado-resultado estado-resultado--sin-datos">
+                        <div class="estado-resultado__cabecera">
+                          <app-icono class="estado-resultado__icono" nombre="reloj" [tamano]="20" />
+                          <app-chip-estado
+                            etiqueta="Sin datos suficientes"
+                            variante="neutro"
+                            icono="reloj"
+                          />
+                        </div>
+                        <p class="estado-resultado__mensaje">
+                          Todavía no hay suficientes calificaciones para analizar este resultado de
+                          aprendizaje.
+                        </p>
+                        <p class="estado-resultado__detalle tabular">
+                          Hay <strong>{{ resultado.totalEvaluados }}</strong> estudiantes evaluados;
+                          se necesitan al menos 3 para generar un análisis. Esto no es un error ni
+                          un problema del RA, solo falta evaluar más estudiantes.
+                        </p>
+                      </div>
+                    }
+                  }
+                }
+              }
+            }
+          </div>
+        </section>
+      }
 
       @if (puedeConsultar()) {
         <div class="acciones-mejora">
@@ -192,7 +384,11 @@
                         @if (accion.convertida) {
                           <app-chip-estado etiqueta="Convertida" variante="ok" icono="check" />
                         } @else {
-                          <app-chip-estado etiqueta="No convertida" variante="neutro" icono="reloj" />
+                          <app-chip-estado
+                            etiqueta="No convertida"
+                            variante="neutro"
+                            icono="reloj"
+                          />
                         }
                       </div>
                       <p class="accion-mejora__descripcion">{{ accion.descripcion }}</p>

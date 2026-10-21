@@ -61,7 +61,7 @@
           type="date"
           formControlName="fechaTentativa"
           aria-required="true"
-          [min]="semestre().fechaInicio"
+          [min]="fechaMinima()"
           [max]="semestre().fechaFin"
           [attr.aria-invalid]="mostrarError('fechaTentativa')"
           aria-describedby="evaluacion-fecha-ayuda evaluacion-fecha-error"
@@ -71,6 +71,8 @@
           <p class="error-campo" id="evaluacion-fecha-error">
             @if (form.controls.fechaTentativa.hasError('required')) {
               Selecciona la fecha tentativa.
+            } @else if (form.controls.fechaTentativa.hasError('noPosterior')) {
+              La fecha debe ser posterior a hoy.
             } @else {
               La fecha debe estar dentro del semestre {{ semestre().codigo }}.
             }

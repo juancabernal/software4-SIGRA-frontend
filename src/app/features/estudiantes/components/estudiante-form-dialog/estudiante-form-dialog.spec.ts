@@ -4,10 +4,16 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../../../environments/environment';
 import { Estudiante, EstudianteRequest } from '../../models/estudiante.model';
-import { TIPOS_DOCUMENTO } from '../../models/tipos-documento';
 import { EstudianteFormDialog } from './estudiante-form-dialog';
 
 const URL = `${environment.apiUrl}/v1/estudiantes`;
+const URL_TIPOS_DOCUMENTO = `${environment.apiUrl}/v1/tipos-documento`;
+
+/** El selector se llena con lo que sirve el backend, no con un catálogo fijo del front. */
+const TIPOS_DOCUMENTO = [
+  { id: 'td1', nombre: 'Cédula de Ciudadanía' },
+  { id: 'td2', nombre: 'Tarjeta de Identidad' },
+];
 
 const ESTUDIANTE: Estudiante = {
   id: '00000000-0000-4000-c000-000000000010',
@@ -51,12 +57,21 @@ describe('EstudianteFormDialog', () => {
     await fixture.whenStable();
   }
 
+  /** El catálogo del selector llega del servidor al abrir el diálogo. */
+  function servirTiposDocumento(tipos = TIPOS_DOCUMENTO): void {
+    http.expectOne((r) => r.url === URL_TIPOS_DOCUMENTO).flush(tipos);
+  }
+
   async function abrirCrear(): Promise<void> {
+    await fixture.whenStable();
+    servirTiposDocumento();
     await fixture.whenStable();
   }
 
   async function abrirEditar(estudiante: Estudiante = ESTUDIANTE): Promise<void> {
     fixture.componentRef.setInput('estudiante', estudiante);
+    await fixture.whenStable();
+    servirTiposDocumento();
     await fixture.whenStable();
   }
 
@@ -88,6 +103,38 @@ describe('EstudianteFormDialog', () => {
     escribir('estudiante-numero-documento', '12345a');
     await fixture.whenStable();
     expect(html.textContent).toContain('Usa solo dígitos, entre 6 y 10 caracteres.');
+  });
+
+  it('rechaza un nombre con dígitos', async () => {
+    await llenarValido();
+    escribir('estudiante-nombre', 'Ana2 Gómez');
+    await fixture.whenStable();
+    expect(html.textContent).toContain(
+      'Usa solo letras y un único espacio entre cada palabra, sin números ni símbolos.',
+    );
+  });
+
+  it('rechaza un nombre con espacios dobles', async () => {
+    await llenarValido();
+    escribir('estudiante-nombre', 'Ana  Gómez');
+    await fixture.whenStable();
+    expect(html.textContent).toContain(
+      'Usa solo letras y un único espacio entre cada palabra, sin números ni símbolos.',
+    );
+  });
+
+  it('rechaza un nombre de menos de 3 caracteres', async () => {
+    await llenarValido();
+    escribir('estudiante-nombre', 'Jo');
+    await fixture.whenStable();
+    expect(html.textContent).toContain('El nombre completo debe tener entre 3 y 150 caracteres.');
+  });
+
+  it('acepta un nombre con tildes, Ñ y varias palabras', async () => {
+    await llenarValido();
+    escribir('estudiante-nombre', 'José María Ñústes');
+    await fixture.whenStable();
+    expect(html.querySelector('.error-campo')).toBeNull();
   });
 
   it('rechaza un correo de un dominio ajeno', async () => {
@@ -153,13 +200,43 @@ describe('EstudianteFormDialog', () => {
     );
   });
 
-  it('avisa y no envía cuando el tipo de documento no resuelve a ningún id (D3)', async () => {
+  it('avisa y no envía cuando el tipo de documento no está en el catálogo del servidor (D3)', async () => {
     await abrirEditar({ ...ESTUDIANTE, tipoDocumentoNombre: 'Pasaporte' });
 
-    expect(html.textContent).toContain('no se pudo resolver');
+    expect(html.textContent).toContain('no figura en el catálogo del servidor');
     expect((html.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBe(true);
     await enviar();
     http.expectNone(URL);
+  });
+
+  it('el selector ofrece los tipos que sirve el servidor, no una lista fija', async () => {
+    await abrirCrear();
+
+    const opciones = Array.from(campo<HTMLSelectElement>('estudiante-tipo-documento').options)
+      .filter((o) => o.value)
+      .map((o) => ({ id: o.value, nombre: o.textContent?.trim() }));
+
+    expect(opciones).toEqual([
+      { id: 'td1', nombre: 'Cédula de Ciudadanía' },
+      { id: 'td2', nombre: 'Tarjeta de Identidad' },
+    ]);
+  });
+
+  it('resuelve el tipo por su nombre aunque difieran las tildes', async () => {
+    await abrirEditar({ ...ESTUDIANTE, tipoDocumentoNombre: 'Cedula de Ciudadania' });
+
+    expect(html.textContent).not.toContain('no figura en el catálogo');
+    expect(campo<HTMLSelectElement>('estudiante-tipo-documento').value).toBe('td1');
+  });
+
+  it('si el catálogo no carga lo dice en lugar de ofrecer un selector vacío', async () => {
+    await fixture.whenStable();
+    http
+      .expectOne((r) => r.url === URL_TIPOS_DOCUMENTO)
+      .flush(null, { status: 0, statusText: 'Unknown Error' });
+    await fixture.whenStable();
+
+    expect(html.textContent).toContain('No se pudieron cargar los tipos de documento');
   });
 
   it('el nombre completo vacío muestra su error y no permite enviar', async () => {

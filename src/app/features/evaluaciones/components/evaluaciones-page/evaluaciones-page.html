@@ -9,8 +9,8 @@
 
   <div class="aviso-zona" role="status" aria-live="polite">
     @if (aviso(); as a) {
-      <div class="aviso">
-        <app-icono nombre="check" [tamano]="16" />
+      <div class="aviso" [class.aviso--error]="a.tono === 'error'">
+        <app-icono [nombre]="a.tono === 'ok' ? 'check' : 'advertencia'" [tamano]="16" />
         <span>{{ a.texto }}</span>
         <button
           type="button"
@@ -51,7 +51,9 @@
           >
             <option value="">Selecciona una materia</option>
             @for (a of asignaturas(); track a.id) {
-              <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
+              <option [value]="a.id" [selected]="a.id === asignaturaId()">
+                {{ a.codigo }} · {{ a.nombre }}
+              </option>
             }
           </select>
         </div>
@@ -76,7 +78,9 @@
               }
             </option>
             @for (r of resultados(); track r.id) {
-              <option [value]="r.id">{{ r.codigo }} · {{ r.descripcion }}</option>
+              <option [value]="r.id" [selected]="r.id === raId()">
+                {{ r.codigo }} · {{ r.descripcion }}
+              </option>
             }
           </select>
         </div>
@@ -89,7 +93,9 @@
             (change)="alCambiarSemestre($event)"
           >
             @for (s of semestres(); track s.id) {
-              <option [value]="s.id">{{ etiquetaSemestre(s) }}</option>
+              <option [value]="s.id" [selected]="s.id === semestreId()">
+                {{ etiquetaSemestre(s) }}
+              </option>
             }
           </select>
         </div>

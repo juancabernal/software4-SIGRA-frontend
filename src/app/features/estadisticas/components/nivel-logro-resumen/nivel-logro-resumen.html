@@ -1,0 +1,122 @@
+@let e = estadisticas();
+
+@if (situacion() === 'sin-calcular') {
+  <div class="vacio">
+    <p class="vacio__titulo">Aún no se ha calculado el nivel de logro</p>
+    <p>
+      Se calcula automáticamente al registrar calificaciones. Si ya hay notas de
+      {{ e.codigoResultadoAprendizaje }} en {{ e.codigoSemestre }}, puedes calcularlo ahora.
+    </p>
+    <button
+      type="button"
+      class="btn"
+      [attr.aria-disabled]="recalculando() ? 'true' : null"
+      (click)="pedirRecalculo()"
+    >
+      <app-icono nombre="recargar" [tamano]="16" />
+      {{ recalculando() ? 'Calculando…' : 'Calcular ahora' }}
+    </button>
+  </div>
+} @else {
+  <dl class="resumen tabular">
+    <div class="resumen__item resumen__item--promedio">
+      <dt>Promedio del RA</dt>
+      @if (e.promedioNota != null) {
+        <dd>{{ formatearNota(e.promedioNota) }}<small> / 5,0</small></dd>
+        @if (e.promedioPorcentaje != null) {
+          <span class="resumen__nota"
+            >{{ formatearPorcentaje(e.promedioPorcentaje) }} de logro</span
+          >
+        }
+      } @else {
+        <dd>—</dd>
+        <span class="resumen__nota">Sin estudiantes evaluados</span>
+      }
+    </div>
+    <div class="resumen__item">
+      <dt>Estudiantes</dt>
+      <dd>{{ e.totalEstudiantes }}</dd>
+      <span class="resumen__nota">Matriculados o con notas</span>
+    </div>
+    <div class="resumen__item">
+      <dt>Evaluados</dt>
+      <dd>{{ e.evaluados }}</dd>
+      <span class="resumen__nota">3 o más calificaciones</span>
+    </div>
+    <div class="resumen__item">
+      <dt>Sin datos suficientes</dt>
+      <dd>{{ e.sinDatosSuficientes }}</dd>
+      <span class="resumen__nota">1 o 2 calificaciones</span>
+    </div>
+    <div class="resumen__item">
+      <dt>Sin evaluar</dt>
+      <dd>{{ e.sinEvaluar }}</dd>
+      <span class="resumen__nota">Ninguna calificación</span>
+    </div>
+  </dl>
+
+  @switch (situacion()) {
+    @case ('sin-estudiantes') {
+      <div class="situacion">
+        <app-badge-nivel-logro nivel="SIN_EVALUAR" />
+        <p>Este RA no tiene estudiantes matriculados ni calificaciones en el semestre.</p>
+      </div>
+    }
+    @case ('sin-evaluar') {
+      <div class="situacion">
+        <app-badge-nivel-logro nivel="SIN_EVALUAR" />
+        <p>Ningún estudiante tiene calificaciones en este RA todavía.</p>
+      </div>
+    }
+    @case ('sin-datos') {
+      <div class="situacion">
+        <app-badge-nivel-logro nivel="SIN_DATOS" />
+        <p>
+          Sin datos suficientes para calcular: ningún estudiante tiene todavía las 3 calificaciones
+          mínimas en este RA.
+        </p>
+      </div>
+    }
+    @default {
+      <ul class="distribucion" aria-label="Distribución por nivel de logro">
+        @for (d of distribucion(); track d.nivel) {
+          <li class="distribucion__fila">
+            <div class="distribucion__nivel">
+              <app-badge-nivel-logro [nivel]="d.nivel" />
+              @if (rangoDe(d.nivel); as rango) {
+                <span class="distribucion__rango tabular" [title]="describirRango(rango)">
+                  {{ intervaloRango(rango) }}
+                </span>
+              }
+            </div>
+            <div
+              class="distribucion__pista"
+              role="img"
+              [attr.aria-label]="d.cantidad + ' estudiantes, ' + formatearPorcentaje(d.porcentaje)"
+            >
+              <span
+                [class]="'distribucion__barra distribucion__barra--' + d.nivel.toLowerCase()"
+                [style.width.%]="anchoBarra(d.porcentaje)"
+              ></span>
+            </div>
+            <p class="distribucion__cifras tabular">
+              <strong>{{ formatearPorcentaje(d.porcentaje) }}</strong>
+              <span>{{ d.cantidad }} {{ d.cantidad === 1 ? 'estudiante' : 'estudiantes' }}</span>
+            </p>
+          </li>
+        }
+      </ul>
+      <p class="nota tabular">
+        Porcentajes sobre los {{ e.evaluados }} estudiantes evaluados. El nivel de cada estudiante
+        es el promedio ponderado de sus calificaciones en el RA.
+      </p>
+    }
+  }
+
+  @if (e.fechaCalculo) {
+    <p class="pie tabular">
+      <app-icono nombre="reloj" [tamano]="14" />
+      Último cálculo: {{ formatearFechaCalculo(e.fechaCalculo) }}
+    </p>
+  }
+}

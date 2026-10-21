@@ -6,6 +6,7 @@ import { provideRouter } from '@angular/router';
 import { environment } from '../../../../../environments/environment';
 import { Estudiante } from '../../models/estudiante.model';
 import { AsignaturaDeEstudiante } from '../../models/matricula.model';
+import { ConfettiService } from '../../../../shared/ui/confetti/confetti.service';
 import { MatriculadosPage } from '../matriculados-page/matriculados-page';
 import { EstudianteDetallePage } from './estudiante-detalle-page';
 
@@ -44,6 +45,7 @@ describe('EstudianteDetallePage (integración con MatriculaFormDialog)', () => {
   let fixture: ComponentFixture<EstudianteDetallePage>;
   let http: HttpTestingController;
   let html: HTMLElement;
+  let confettiSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -51,6 +53,9 @@ describe('EstudianteDetallePage (integración con MatriculaFormDialog)', () => {
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     });
     http = TestBed.inject(HttpTestingController);
+    confettiSpy = vi
+      .spyOn(TestBed.inject(ConfettiService), 'celebrar')
+      .mockImplementation(() => {});
     fixture = TestBed.createComponent(EstudianteDetallePage);
     html = fixture.nativeElement as HTMLElement;
     document.body.appendChild(html);
@@ -122,6 +127,7 @@ describe('EstudianteDetallePage (integración con MatriculaFormDialog)', () => {
 
     expect(html.querySelector('app-matricula-form-dialog')).toBeNull();
     expect(html.querySelector('.aviso-zona')?.textContent).toContain('Estudiante matriculado.');
+    expect(confettiSpy).toHaveBeenCalledTimes(1);
 
     const nueva: AsignaturaDeEstudiante = {
       matriculaId: 'm2',

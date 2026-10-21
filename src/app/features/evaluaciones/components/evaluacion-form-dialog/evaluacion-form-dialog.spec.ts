@@ -3,11 +3,14 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../../../environments/environment';
-import { Evaluacion, SemestreOpcion } from '../../models/evaluacion.model';
+import { Evaluacion, HOY_ISO, SemestreOpcion } from '../../models/evaluacion.model';
 import { EvaluacionFormDialog, ResultadoFormularioEvaluacion } from './evaluacion-form-dialog';
 
 const API = `${environment.apiUrl}/v1`;
 const URL_CREAR = `${API}/resultados-aprendizaje/ra-1/evaluaciones`;
+
+/** Hoy fijo de las pruebas: las fechas de abajo son relativas a él. */
+const HOY = '2026-09-01';
 
 const SEMESTRE: SemestreOpcion = {
   id: 's1',
@@ -38,7 +41,11 @@ describe('EvaluacionFormDialog', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [EvaluacionFormDialog],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: HOY_ISO, useValue: () => HOY },
+      ],
     });
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(EvaluacionFormDialog);
@@ -107,10 +114,21 @@ describe('EvaluacionFormDialog', () => {
       await abrir();
 
       const fecha = campo<HTMLInputElement>('evaluacion-fecha');
-      expect(fecha.min).toBe('2026-07-20');
+      expect(fecha.min).toBe('2026-09-02');
       expect(fecha.max).toBe('2026-12-10');
       await escribir('evaluacion-fecha', '2026-12-20');
       expect(html.textContent).toContain('La fecha debe estar dentro del semestre 2026-2.');
+    });
+
+    it('rechaza la fecha de hoy y las pasadas: debe ser posterior a hoy', async () => {
+      await abrir();
+
+      await escribir('evaluacion-fecha', HOY);
+      expect(html.textContent).toContain('La fecha debe ser posterior a hoy.');
+      await escribir('evaluacion-fecha', '2026-08-15');
+      expect(html.textContent).toContain('La fecha debe ser posterior a hoy.');
+      await escribir('evaluacion-fecha', '2026-09-02');
+      expect(html.textContent).not.toContain('La fecha debe ser posterior a hoy.');
     });
 
     it('valida el porcentaje: mayor que 0, 2 decimales y sin pasar lo disponible', async () => {

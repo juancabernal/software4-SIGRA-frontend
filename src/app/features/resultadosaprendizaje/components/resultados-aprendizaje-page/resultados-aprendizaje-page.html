@@ -43,62 +43,40 @@
         </p>
       </div>
     } @else {
-      <div class="barra">
-        <div class="buscador">
-          <app-icono nombre="buscar" [tamano]="16" />
-          <input
-            type="search"
-            placeholder="Buscar materia..."
-            aria-label="Buscar materias por código o nombre"
-            [value]="textoFiltro()"
-            (input)="alEscribir($event)"
-          />
+      <div class="barra barra--selectores">
+        <div class="filtro">
+          <label for="filtro-programa">Programa</label>
+          <select
+            id="filtro-programa"
+            class="selector"
+            [value]="programaFiltro()"
+            (change)="alCambiarPrograma($event)"
+          >
+            <option value="">Todos los programas</option>
+            @for (programa of programas(); track programa.id) {
+              <option [value]="programa.id" [selected]="programa.id === programaFiltro()">
+                {{ programa.nombre }}
+              </option>
+            }
+          </select>
         </div>
 
-        <label class="solo-lectores" for="filtro-programa">Programa</label>
-        <select
-          id="filtro-programa"
-          class="selector selector--programa"
-          [value]="programaFiltro()"
-          (change)="alCambiarPrograma($event)"
-        >
-          <option value="">Todos los programas</option>
-          @for (programa of programas(); track programa.id) {
-            <option [value]="programa.id">{{ programa.nombre }}</option>
-          }
-        </select>
-      </div>
-
-      <div class="barra">
-        <label for="selector-materia">Materia</label>
-        <select
-          id="selector-materia"
-          class="selector"
-          [value]="asignaturaId()"
-          (change)="alCambiarAsignatura($event)"
-          aria-describedby="materias-coincidencias"
-        >
-          <option value="">Selecciona una materia</option>
-          @for (a of asignaturasFiltradas(); track a.id) {
-            <option [value]="a.id">
-              {{ a.codigo }} · {{ a.nombre }} ({{ presentacionAsignatura[a.estado].etiqueta }})
-            </option>
-          }
-        </select>
-        @if (hayFiltros()) {
-          <p class="coincidencias" id="materias-coincidencias" role="status">
-            @if (coincidencias() === 0) {
-              Ninguna materia coincide con la búsqueda.
-            } @else {
-              {{ coincidencias() }} materia{{ coincidencias() === 1 ? '' : 's' }} coincide{{
-                coincidencias() === 1 ? '' : 'n'
-              }}.
+        <div class="filtro filtro--materia">
+          <label for="selector-materia">Materia</label>
+          <select
+            id="selector-materia"
+            class="selector"
+            [value]="asignaturaId()"
+            (change)="alCambiarAsignatura($event)"
+          >
+            <option value="">Selecciona una materia</option>
+            @for (a of asignaturasFiltradas(); track a.id) {
+              <option [value]="a.id" [selected]="a.id === asignaturaId()">
+                {{ a.codigo }} · {{ a.nombre }} ({{ presentacionAsignatura[a.estado].etiqueta }})
+              </option>
             }
-            <button type="button" class="btn-ghost" (click)="limpiarFiltros()">
-              Limpiar filtros
-            </button>
-          </p>
-        }
+          </select>
+        </div>
       </div>
 
       @if (asignatura(); as a) {
@@ -153,130 +131,213 @@
             <p>Registra el primero para empezar a completar el mínimo de 5 RA activos.</p>
           </div>
         } @else {
-          <div class="tabla-contenedor">
-            <table>
-              <caption class="solo-lectores">
-                Resultados de aprendizaje de
-                {{
-                  a.nombre
-                }}
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Código</th>
-                  <th scope="col">Descripción</th>
-                  <th scope="col">Estado</th>
-                  <th scope="col">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (ra of resultadosPagina(); track ra.id) {
-                  <tr [class.fila--inactiva]="ra.estado === 'INACTIVO'">
-                    <th scope="row" class="codigo tabular">{{ ra.codigo }}</th>
-                    <td class="descripcion">{{ ra.descripcion }}</td>
-                    <td>
-                      <app-chip-estado
-                        [etiqueta]="presentacionRa[ra.estado].etiqueta"
-                        [variante]="presentacionRa[ra.estado].variante"
-                        [icono]="presentacionRa[ra.estado].icono"
-                      />
-                    </td>
-                    <td>
-                      <div class="acciones">
-                        @if (ra.estado === 'ACTIVO') {
-                          <button
-                            type="button"
-                            class="btn-ghost"
-                            [attr.aria-label]="'Modificar descripción de ' + ra.codigo"
-                            (click)="abrirEdicion(ra)"
+          @if (otrosSemestres().length > 0) {
+            <div class="barra-semestre">
+              <label for="selector-semestre-rendimiento">Rendimiento del semestre</label>
+              <select
+                id="selector-semestre-rendimiento"
+                class="selector"
+                [value]="semestreRendimientoId()"
+                (change)="alCambiarSemestreRendimiento($event)"
+              >
+                <option value="">Semestre activo</option>
+                @for (s of otrosSemestres(); track s.id) {
+                  <option [value]="s.id">{{ s.codigo }}</option>
+                }
+              </select>
+            </div>
+          }
+          @if (consultandoOtroSemestre()) {
+            <p class="nota-rendimiento" role="status">
+              Semestre {{ semestreRendimiento()?.codigo }}: solo consulta. Muestra el último
+              rendimiento calculado de ese semestre; los RA y las evaluaciones se gestionan en el
+              semestre activo.
+            </p>
+          } @else if (sinSemestreActivo()) {
+            <p class="nota-rendimiento" role="status">
+              No hay un semestre activo, por eso no se calcula el rendimiento.
+            </p>
+          } @else if (rendimientoConError()) {
+            <p class="nota-rendimiento" role="status">
+              No se pudo calcular el rendimiento. Puedes seguir gestionando los RA.
+            </p>
+          }
+          <div class="barra barra--busqueda">
+            <div class="buscador">
+              <app-icono nombre="buscar" [tamano]="16" />
+              <input
+                type="search"
+                placeholder="Buscar RA por código o descripción..."
+                aria-label="Buscar resultados de aprendizaje de la materia por código o descripción"
+                [value]="busquedaRa()"
+                (input)="alBuscarRa($event)"
+              />
+            </div>
+            @if (hayBusqueda()) {
+              <p class="coincidencias" role="status">
+                {{ resultadosFiltrados().length }} de {{ resultados().length }} RA coinciden.
+                <button type="button" class="btn-ghost" (click)="limpiarBusqueda()">
+                  Limpiar búsqueda
+                </button>
+              </p>
+            }
+          </div>
+
+          @if (resultadosFiltrados().length === 0) {
+            <div class="estado-vista">
+              <p class="estado-vista__titulo">Ningún RA coincide con la búsqueda</p>
+              <button type="button" class="btn" (click)="limpiarBusqueda()">
+                Limpiar búsqueda
+              </button>
+            </div>
+          } @else {
+            <div class="tabla-contenedor">
+              <table>
+                <caption class="solo-lectores">
+                  Resultados de aprendizaje de
+                  {{
+                    a.nombre
+                  }}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Código</th>
+                    <th scope="col">Descripción</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Rendimiento</th>
+                    <th scope="col">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ra of resultadosPagina(); track ra.id) {
+                    <tr [class.fila--inactiva]="ra.estado === 'INACTIVO'">
+                      <th scope="row" class="codigo tabular">{{ ra.codigo }}</th>
+                      <td class="descripcion">{{ ra.descripcion }}</td>
+                      <td>
+                        <app-chip-estado
+                          [etiqueta]="presentacionRa[ra.estado].etiqueta"
+                          [variante]="presentacionRa[ra.estado].variante"
+                          [icono]="presentacionRa[ra.estado].icono"
+                        />
+                      </td>
+                      <td>
+                        @if (ra.estado === 'INACTIVO') {
+                          <span class="rendimiento-vacio" aria-label="Sin rendimiento: RA inactivo"
+                            >—</span
                           >
-                            <app-icono nombre="lapiz" [tamano]="16" />
-                            <span>Modificar</span>
-                          </button>
-                          <span class="con-tooltip">
-                            <button
-                              type="button"
-                              class="btn-ghost btn-ghost--peligro"
-                              [attr.aria-label]="'Inactivar ' + ra.codigo"
-                              [attr.aria-disabled]="puedeInactivar() ? null : 'true'"
-                              [attr.aria-describedby]="
-                                puedeInactivar() ? null : 'tooltip-inactivar-' + ra.id
-                              "
-                              (click)="pedirInactivar(ra)"
-                            >
-                              <app-icono nombre="prohibido" [tamano]="16" />
-                              <span>Inactivar</span>
-                            </button>
-                            @if (!puedeInactivar()) {
-                              <span
-                                class="tooltip"
-                                role="tooltip"
-                                [id]="'tooltip-inactivar-' + ra.id"
-                              >
-                                {{ motivoMinimo }}
-                              </span>
-                            }
-                          </span>
+                        } @else if (rendimientoCargando()) {
+                          <span class="rendimiento-vacio" role="status">Calculando…</span>
+                        } @else if (rendimientoPorRa().get(ra.id); as rendimiento) {
+                          @let p = presentarRendimiento(rendimiento);
+                          <app-chip-estado
+                            [etiqueta]="p.etiqueta"
+                            [variante]="p.variante"
+                            [icono]="p.icono"
+                          />
+                          <span class="rendimiento-detalle">{{ p.detalle }}</span>
                         } @else {
-                          <span class="con-tooltip">
+                          <span class="rendimiento-vacio" aria-label="Rendimiento no disponible"
+                            >—</span
+                          >
+                        }
+                      </td>
+                      <td>
+                        <div class="acciones">
+                          @if (ra.estado === 'ACTIVO') {
                             <button
                               type="button"
                               class="btn-ghost"
-                              [attr.aria-label]="'Reactivar ' + ra.codigo"
-                              [attr.aria-disabled]="puedeAgregarActivo() ? null : 'true'"
-                              [attr.aria-describedby]="
-                                puedeAgregarActivo() ? null : 'tooltip-reactivar-' + ra.id
-                              "
-                              (click)="pedirReactivar(ra)"
+                              [attr.aria-label]="'Modificar descripción de ' + ra.codigo"
+                              (click)="abrirEdicion(ra)"
                             >
-                              <app-icono nombre="recargar" [tamano]="16" />
-                              <span>Reactivar</span>
+                              <app-icono nombre="lapiz" [tamano]="16" />
+                              <span>Modificar</span>
                             </button>
-                            @if (!puedeAgregarActivo()) {
-                              <span
-                                class="tooltip"
-                                role="tooltip"
-                                [id]="'tooltip-reactivar-' + ra.id"
+                            <span class="con-tooltip">
+                              <button
+                                type="button"
+                                class="btn-ghost btn-ghost--peligro"
+                                [attr.aria-label]="'Inactivar ' + ra.codigo"
+                                [attr.aria-disabled]="puedeInactivar() ? null : 'true'"
+                                [attr.aria-describedby]="
+                                  puedeInactivar() ? null : 'tooltip-inactivar-' + ra.id
+                                "
+                                (click)="pedirInactivar(ra)"
                               >
-                                {{ motivoMaximo }}
-                              </span>
-                            }
-                          </span>
-                        }
-                      </div>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+                                <app-icono nombre="prohibido" [tamano]="16" />
+                                <span>Inactivar</span>
+                              </button>
+                              @if (!puedeInactivar()) {
+                                <span
+                                  class="tooltip"
+                                  role="tooltip"
+                                  [id]="'tooltip-inactivar-' + ra.id"
+                                >
+                                  {{ motivoMinimo }}
+                                </span>
+                              }
+                            </span>
+                          } @else {
+                            <span class="con-tooltip">
+                              <button
+                                type="button"
+                                class="btn-ghost"
+                                [attr.aria-label]="'Reactivar ' + ra.codigo"
+                                [attr.aria-disabled]="puedeAgregarActivo() ? null : 'true'"
+                                [attr.aria-describedby]="
+                                  puedeAgregarActivo() ? null : 'tooltip-reactivar-' + ra.id
+                                "
+                                (click)="pedirReactivar(ra)"
+                              >
+                                <app-icono nombre="recargar" [tamano]="16" />
+                                <span>Reactivar</span>
+                              </button>
+                              @if (!puedeAgregarActivo()) {
+                                <span
+                                  class="tooltip"
+                                  role="tooltip"
+                                  [id]="'tooltip-reactivar-' + ra.id"
+                                >
+                                  {{ motivoMaximo }}
+                                </span>
+                              }
+                            </span>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
 
-          <nav class="paginacion" aria-label="Paginación de resultados de aprendizaje">
-            <span class="paginacion__rango tabular">{{ rangoPagina() }}</span>
-            @if (totalPaginas() > 1) {
-              <div class="paginacion__controles">
-                <button
-                  type="button"
-                  class="btn btn--pequeno"
-                  [attr.aria-disabled]="paginaActual() === 1 ? 'true' : null"
-                  (click)="paginaAnterior()"
-                >
-                  Anterior
-                </button>
-                <span class="tabular" aria-live="polite">
-                  Página {{ paginaActual() }} de {{ totalPaginas() }}
-                </span>
-                <button
-                  type="button"
-                  class="btn btn--pequeno"
-                  [attr.aria-disabled]="paginaActual() === totalPaginas() ? 'true' : null"
-                  (click)="paginaSiguiente()"
-                >
-                  Siguiente
-                </button>
-              </div>
-            }
-          </nav>
+            <nav class="paginacion" aria-label="Paginación de resultados de aprendizaje">
+              <span class="paginacion__rango tabular">{{ rangoPagina() }}</span>
+              @if (totalPaginas() > 1) {
+                <div class="paginacion__controles">
+                  <button
+                    type="button"
+                    class="btn btn--pequeno"
+                    [attr.aria-disabled]="paginaActual() === 1 ? 'true' : null"
+                    (click)="paginaAnterior()"
+                  >
+                    Anterior
+                  </button>
+                  <span class="tabular" aria-live="polite">
+                    Página {{ paginaActual() }} de {{ totalPaginas() }}
+                  </span>
+                  <button
+                    type="button"
+                    class="btn btn--pequeno"
+                    [attr.aria-disabled]="paginaActual() === totalPaginas() ? 'true' : null"
+                    (click)="paginaSiguiente()"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              }
+            </nav>
+          }
         }
 
         <app-resultado-aprendizaje-form-dialog

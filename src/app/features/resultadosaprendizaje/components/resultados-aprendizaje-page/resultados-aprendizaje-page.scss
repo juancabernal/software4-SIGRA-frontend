@@ -103,8 +103,31 @@ h1 {
   }
 }
 
-.selector--programa {
-  flex: 0 1 16rem;
+.barra--selectores {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(16rem, 2fr);
+  align-items: end;
+}
+
+.filtro {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+
+  .selector {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+@media (max-width: 40rem) {
+  .barra--selectores {
+    grid-template-columns: 1fr;
+  }
+}
+
+.barra--busqueda {
+  background: var(--sg-field);
 }
 
 .coincidencias {
@@ -332,6 +355,35 @@ tbody tr:hover {
 .fila--inactiva .codigo,
 .fila--inactiva .descripcion {
   color: var(--sg-ink-muted);
+}
+
+.rendimiento-vacio {
+  color: var(--sg-ink-muted);
+}
+
+.rendimiento-detalle {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--sg-ink-muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.barra-semestre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.65rem 1.25rem 0;
+  font-size: 0.8125rem;
+  color: var(--sg-ink-muted);
+}
+
+.nota-rendimiento {
+  margin: 0;
+  padding: 0.65rem 1.25rem;
+  color: var(--sg-ink-muted);
+  font-size: 0.8125rem;
 }
 
 .acciones {

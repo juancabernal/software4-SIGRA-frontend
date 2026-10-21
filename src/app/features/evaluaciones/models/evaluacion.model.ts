@@ -3,6 +3,7 @@
  * (co.edu.uco.sigra.evaluaciones.dto). Rutas: /api/v1/resultados-aprendizaje/{raId}/evaluaciones
  * y /api/v1/evaluaciones/{id}.
  */
+import { InjectionToken } from '@angular/core';
 
 /** EstadoEvaluacion del backend. */
 export type EstadoEvaluacion = 'ACTIVA' | 'INACTIVA';
@@ -89,9 +90,50 @@ export function hoyIso(): string {
   return `${hoy.getFullYear()}-${mes}-${dia}`;
 }
 
+/**
+ * Fecha de hoy (AAAA-MM-DD) que usa el formulario para exigir fechas tentativas posteriores a hoy.
+ * Se inyecta para que las pruebas puedan fijarla.
+ */
+export const HOY_ISO = new InjectionToken<() => string>('HOY_ISO', {
+  providedIn: 'root',
+  factory: () => hoyIso,
+});
+
+/** El día siguiente a una fecha AAAA-MM-DD (calendario local). */
+export function diaSiguienteIso(iso: string): string {
+  const [anio, mes, dia] = iso.split('-').map(Number);
+  const siguiente = new Date(anio, mes - 1, dia + 1);
+  const m = String(siguiente.getMonth() + 1).padStart(2, '0');
+  const d = String(siguiente.getDate()).padStart(2, '0');
+  return `${siguiente.getFullYear()}-${m}-${d}`;
+}
+
 /** Semestre en curso: el que contiene la fecha de hoy (el backend lo calcula igual, por fechas). */
 export function esSemestreEnCurso(semestre: SemestreOpcion, hoy = hoyIso()): boolean {
   return semestre.fechaInicio <= hoy && hoy <= semestre.fechaFin;
+}
+
+/**
+ * Semestre que se muestra por defecto: el que está en curso. Si hoy no hay ninguno (por ejemplo,
+ * entre dos semestres), el último que ya empezó; y si ninguno ha empezado, el próximo en empezar.
+ * Así nunca se elige por defecto un semestre lejano en el futuro.
+ */
+export function semestrePorDefecto(
+  semestres: readonly SemestreOpcion[],
+  hoy = hoyIso(),
+): SemestreOpcion | null {
+  const enCurso = semestres.find((s) => esSemestreEnCurso(s, hoy));
+  if (enCurso) {
+    return enCurso;
+  }
+  const yaEmpezados = semestres
+    .filter((s) => s.fechaInicio <= hoy)
+    .sort((a, b) => b.fechaInicio.localeCompare(a.fechaInicio));
+  if (yaEmpezados.length) {
+    return yaEmpezados[0];
+  }
+  const futuros = [...semestres].sort((a, b) => a.fechaInicio.localeCompare(b.fechaInicio));
+  return futuros[0] ?? null;
 }
 
 const formatoFecha = new Intl.DateTimeFormat('es-CO', {

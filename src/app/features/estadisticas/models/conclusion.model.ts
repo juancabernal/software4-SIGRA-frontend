@@ -19,6 +19,14 @@ export interface Conclusion {
   fechaGeneracion: string;
   porcentajeInsuficiente: number;
   estado: EstadoConclusion;
+  /** Diagnóstico extendido; nulo en conclusiones generadas antes de agregar estos campos. */
+  totalEvaluados?: number | null;
+  enNivelBajo?: number | null;
+  enNivelMedio?: number | null;
+  umbralPorcentaje?: number | null;
+  porcentajeSemestreAnterior?: number | null;
+  semestreAnteriorCodigo?: string | null;
+  recomendacion?: string | null;
 }
 
 /** Filtros de GET /conclusiones; todos opcionales y combinados con AND en el backend. */
@@ -27,4 +35,19 @@ export interface FiltrosConclusion {
   semestreId?: string;
   asignaturaId?: string;
   estado?: EstadoConclusion;
+}
+
+/**
+ * Las cuatro respuestas de RF-16 para un (RA, semestre): igual a `EstadoConclusion` cuando ya hay
+ * una conclusión registrada, más SATISFACTORIO (desempeño dentro de lo esperado) y
+ * SIN_DATOS_SUFICIENTES (aún no hay suficientes calificaciones).
+ */
+export type EstadoConsultaConclusion = EstadoConclusion | 'SIN_DATOS_SUFICIENTES' | 'SATISFACTORIO';
+
+/** ConclusionEstadoResponseDTO: resultado de solo lectura de GET .../conclusiones/estado. */
+export interface ConclusionEstado {
+  estado: EstadoConsultaConclusion;
+  conclusion: Conclusion | null;
+  totalEvaluados: number | null;
+  porcentajeInsuficiente: number | null;
 }

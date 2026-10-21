@@ -11,6 +11,7 @@ import { RouterLink } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, map, of, switchMap, tap } from 'rxjs';
 
 import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
+import { ConfettiService } from '../../../../shared/ui/confetti/confetti.service';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
 import { Estudiante, PRESENTACION_ESTADO_ESTUDIANTE } from '../../models/estudiante.model';
@@ -44,6 +45,7 @@ const DURACION_AVISO_MS = 6000;
 export class EstudiantesPage {
   private readonly service = inject(EstudianteService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly confetti = inject(ConfettiService);
   private temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
 
   protected readonly presentacion = PRESENTACION_ESTADO_ESTUDIANTE;
@@ -145,6 +147,10 @@ export class EstudiantesPage {
         : `Estudiante registrado: ${estudiante.nombreCompleto}.`,
       tono: 'ok',
     });
+    // Solo el alta se festeja: modificar una ficha ya existente no es un hito nuevo.
+    if (!eraModificar) {
+      this.confetti.celebrar();
+    }
     this.recargar();
   }
 

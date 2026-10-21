@@ -14,6 +14,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 
 import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
+import { ConfettiService } from '../../../../shared/ui/confetti/confetti.service';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
 import { Estudiante, PRESENTACION_ESTADO_ESTUDIANTE } from '../../models/estudiante.model';
@@ -50,6 +51,7 @@ export class EstudianteDetallePage {
   private readonly service = inject(EstudianteService);
   private readonly matriculaService = inject(MatriculaService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly confetti = inject(ConfettiService);
   private temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
 
   /** Enlazado por el router a `:id` (`withComponentInputBinding`). */
@@ -137,6 +139,7 @@ export class EstudianteDetallePage {
   protected alMatricular(texto: string): void {
     this.matriculaAbierta.set(false);
     this.mostrarAviso({ texto, tono: 'ok' });
+    this.confetti.celebrar();
     this.cargarHistorial(this.id());
   }
 
