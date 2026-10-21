@@ -481,7 +481,7 @@ describe('EstadisticasPage', () => {
       const titulos = Array.from(html.querySelectorAll('.seccion__titulo')).map((h) =>
         h.textContent?.trim(),
       );
-      expect(titulos).toEqual(['Nivel de logro', 'Conclusión']);
+      expect(titulos).toEqual(['Rendimiento del RA', 'Nivel de logro', 'Conclusión']);
       const filas = html.querySelectorAll('.distribucion__fila');
       expect(
         Array.from(filas).map((f) => f.querySelector('app-badge-nivel-logro')?.textContent?.trim()),
