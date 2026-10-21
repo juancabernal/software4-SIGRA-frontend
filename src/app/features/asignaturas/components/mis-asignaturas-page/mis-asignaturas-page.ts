@@ -40,6 +40,7 @@ const PRESENTACION_ESTADO: Readonly<Record<EstadoAsignatura, PresentacionEstado>
 };
 
 /** Quita tildes y normaliza mayúsculas para comparar texto sin distinguir acentos. */
+/** ... */
 function normalizar(texto: string): string {
   return texto
     .normalize('NFD')
