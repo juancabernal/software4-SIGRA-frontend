@@ -190,6 +190,15 @@ export const routes: Routes = [
       },
       {
         ...administrador,
+        path: 'admin/auditoria',
+        loadComponent: () =>
+          import('./features/auditoria/components/historial-auditoria-page/historial-auditoria-page').then(
+            (m) => m.HistorialAuditoriaPage,
+          ),
+        title: 'Historial de auditoría · SIGRA',
+      },
+      {
+        ...administrador,
         path: 'admin/reportes',
         loadComponent: pendiente,
         title: 'Reportes · SIGRA',

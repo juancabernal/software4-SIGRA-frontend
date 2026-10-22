@@ -46,6 +46,7 @@ export const PERFILES: Readonly<Record<Rol, PerfilRol>> = {
       { ruta: '/admin/asignacion', etiqueta: 'Asignación docente', icono: 'usuario-ok' },
       { ruta: '/admin/estudiantes', etiqueta: 'Estudiantes', icono: 'personas' },
       { ruta: '/admin/matricula', etiqueta: 'Matrícula', icono: 'birrete' },
+      { ruta: '/admin/auditoria', etiqueta: 'Historial de auditoría', icono: 'reloj' },
       { ruta: '/admin/reportes', etiqueta: 'Reportes', icono: 'torta' },
     ],
   },

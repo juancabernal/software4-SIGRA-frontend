@@ -255,25 +255,12 @@ describe('ResultadosAprendizajePage', () => {
       await fixture.whenStable();
 
       expect(opcionesMaterias()).toEqual(['MAT1 · Matemáticas I (Activa)']);
-      expect(html.textContent).toContain('1 materia coincide.');
     });
 
-    it('busca por código o nombre sin importar tildes y permite limpiar', async () => {
+    it('no hay buscador de materias: la materia se elige en su desplegable', async () => {
       await cargarAsignaturas([BORRADOR], [ACTIVA]);
 
-      const buscador = html.querySelector('input[type="search"]') as HTMLInputElement;
-      buscador.value = 'matematicas';
-      buscador.dispatchEvent(new Event('input'));
-      await fixture.whenStable();
-      expect(opcionesMaterias()).toEqual(['MAT1 · Matemáticas I (Activa)']);
-
-      buscador.value = 'nada';
-      buscador.dispatchEvent(new Event('input'));
-      await fixture.whenStable();
-      expect(html.textContent).toContain('Ninguna materia coincide con la búsqueda.');
-
-      boton(html, 'Limpiar filtros').click();
-      await fixture.whenStable();
+      expect(html.querySelector('input[type="search"]')).toBeNull();
       expect(opcionesMaterias().length).toBe(2);
     });
 
@@ -290,6 +277,60 @@ describe('ResultadosAprendizajePage', () => {
         'MAT1 · Matemáticas I (Activa)',
       ]);
       expect(html.querySelectorAll('tbody tr').length).toBe(1);
+    });
+  });
+
+  describe('búsqueda de RA', () => {
+    const buscar = async (texto: string) => {
+      const buscador = html.querySelector('input[type="search"]') as HTMLInputElement;
+      buscador.value = texto;
+      buscador.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+    };
+
+    const conDescripcion = (n: number, descripcion: string) => ({ ...ra(n), descripcion });
+
+    it('aparece al elegir una materia y filtra por código o descripción sin tildes', async () => {
+      await iniciar(BORRADOR, [
+        conDescripcion(1, 'Analiza requisitos'),
+        conDescripcion(2, 'Diseña la arquitectura'),
+        conDescripcion(3, 'Implementa pruebas'),
+      ]);
+
+      await buscar('disena');
+      expect(html.querySelectorAll('tbody tr').length).toBe(1);
+      expect(fila('RA2')).toBeTruthy();
+      expect(html.textContent).toContain('1 de 3 RA coinciden.');
+
+      await buscar('ra3');
+      expect(fila('RA3')).toBeTruthy();
+      expect(html.querySelectorAll('tbody tr').length).toBe(1);
+    });
+
+    it('el conteo de RA activos no cambia con la búsqueda', async () => {
+      await iniciar(BORRADOR, activos(5));
+
+      await buscar('RA1');
+      expect(html.querySelector('.resumen__conteo')?.textContent).toContain('RA activos: 5 de 7');
+    });
+
+    it('sin coincidencias lo indica y permite limpiar', async () => {
+      await iniciar(BORRADOR, activos(2));
+
+      await buscar('nada');
+      expect(html.textContent).toContain('Ningún RA coincide con la búsqueda');
+      boton(html.querySelector('.estado-vista') as HTMLElement, 'Limpiar búsqueda').click();
+      await fixture.whenStable();
+      expect(html.querySelectorAll('tbody tr').length).toBe(2);
+    });
+
+    it('se limpia al cambiar de materia', async () => {
+      await iniciar(BORRADOR, activos(2));
+      await buscar('RA1');
+
+      await elegir(ACTIVA, activos(3));
+      expect((html.querySelector('input[type="search"]') as HTMLInputElement).value).toBe('');
+      expect(html.querySelectorAll('tbody tr').length).toBe(3);
     });
   });
 
@@ -510,12 +551,26 @@ describe('ResultadosAprendizajePage', () => {
       http
         .expectOne((r) => r.url.endsWith('/semestres'))
         .flush([
-          { id: 'sem-act', codigo: '2026-2', fechaInicio: '2026-08-01', fechaFin: '2026-12-01', estado: 'ACTIVO' },
-          { id: 'sem-1', codigo: '2026-1', fechaInicio: '2026-02-01', fechaFin: '2026-06-01', estado: 'INACTIVO' },
+          {
+            id: 'sem-act',
+            codigo: '2026-2',
+            fechaInicio: '2026-08-01',
+            fechaFin: '2026-12-01',
+            estado: 'ACTIVO',
+          },
+          {
+            id: 'sem-1',
+            codigo: '2026-1',
+            fechaInicio: '2026-02-01',
+            fechaFin: '2026-06-01',
+            estado: 'INACTIVO',
+          },
         ]);
       await fixture.whenStable();
 
-      const selectorSemestre = html.querySelector('#selector-semestre-rendimiento') as HTMLSelectElement;
+      const selectorSemestre = html.querySelector(
+        '#selector-semestre-rendimiento',
+      ) as HTMLSelectElement;
       // El semestre activo es la opción por defecto y no se repite; solo se ofrecen los demás.
       expect(Array.from(selectorSemestre.options).map((o) => o.textContent?.trim())).toEqual([
         'Semestre activo',

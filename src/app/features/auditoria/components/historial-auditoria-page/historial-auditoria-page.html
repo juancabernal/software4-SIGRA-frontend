@@ -1,0 +1,122 @@
+<section class="pagina" aria-labelledby="titulo-auditoria">
+  <header class="cabecera">
+    <div>
+      <h1 id="titulo-auditoria">Historial de auditoría</h1>
+      <p class="cabecera__sub">
+        Eventos del sistema, del más reciente al más antiguo · solo lectura: no se pueden modificar ni borrar
+      </p>
+    </div>
+  </header>
+
+  <div class="tarjeta">
+    <form class="filtros" (submit)="$event.preventDefault(); aplicarFiltros()">
+      <div class="filtro">
+        <label for="filtro-desde">Desde</label>
+        <input id="filtro-desde" type="date" class="selector" [value]="desdeEditado()" (change)="alCambiarDesde($event)" />
+      </div>
+      <div class="filtro">
+        <label for="filtro-hasta">Hasta</label>
+        <input id="filtro-hasta" type="date" class="selector" [value]="hastaEditado()" (change)="alCambiarHasta($event)" />
+      </div>
+      <div class="filtro">
+        <label for="filtro-tipo">Tipo de entidad</label>
+        <select id="filtro-tipo" class="selector" [value]="tipoEditado()" (change)="alCambiarTipo($event)">
+          <option value="">Todas</option>
+          @for (tipo of tiposEntidad; track tipo) {
+            <option [value]="tipo">{{ etiquetaEntidad[tipo] }}</option>
+          }
+        </select>
+      </div>
+      <div class="filtro filtro--acciones">
+        <button type="submit" class="btn btn--primario">
+          <app-icono nombre="buscar" [tamano]="16" />
+          Aplicar
+        </button>
+        <button type="button" class="btn" (click)="limpiarFiltros()">Limpiar</button>
+      </div>
+      @if (errorFiltro(); as mensaje) {
+        <p class="error-filtro" role="alert">{{ mensaje }}</p>
+      }
+    </form>
+
+    @switch (estado()) {
+      @case ('cargando') {
+        <p class="estado-vista" role="status">Cargando historial…</p>
+      }
+      @case ('error') {
+        <div class="estado-vista estado-vista--error" role="alert">
+          <p>{{ error()?.mensaje }}</p>
+          <button type="button" class="btn" (click)="reintentar()">
+            <app-icono nombre="recargar" [tamano]="16" />
+            Reintentar
+          </button>
+        </div>
+      }
+      @case ('listo') {
+        @if (registros().length === 0) {
+          <div class="estado-vista">
+            <p class="estado-vista__titulo">{{ hayFiltros() ? 'Sin resultados' : 'Aún no hay eventos' }}</p>
+            <p>
+              {{
+                hayFiltros()
+                  ? 'Ningún evento cumple los filtros. Prueba con otro rango de fechas o tipo de entidad.'
+                  : 'Los inicios de sesión, cambios de estado y cambios de notas aparecerán aquí.'
+              }}
+            </p>
+          </div>
+        } @else {
+          <p class="conteo" role="status"><strong>{{ total() }}</strong> eventos</p>
+          <div class="tabla-contenedor">
+            <table>
+              <caption class="solo-lectores">Historial de auditoría</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Fecha y hora</th>
+                  <th scope="col">Acción</th>
+                  <th scope="col">Entidad</th>
+                  <th scope="col">Usuario</th>
+                  <th scope="col">Detalle</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (r of registros(); track r.id) {
+                  <tr>
+                    <th scope="row" class="fecha">{{ formatearFechaHora(r.fechaHora) }}</th>
+                    <td>
+                      <span class="accion" [class.accion--alerta]="r.accion === 'LOGIN_FALLIDO' || r.accion === 'CALIFICACION_FUERA_DE_FECHA'">
+                        @if (r.accion === 'LOGIN_FALLIDO' || r.accion === 'CALIFICACION_FUERA_DE_FECHA') {
+                          <app-icono nombre="advertencia" [tamano]="14" />
+                        }
+                        {{ etiquetaAccion[r.accion] }}
+                      </span>
+                    </td>
+                    <td>
+                      {{ etiquetaEntidad[r.tipoEntidad] }}
+                      <span class="id" [attr.title]="r.idEntidad">{{ abreviar(r.idEntidad) }}</span>
+                    </td>
+                    <td>
+                      {{ r.rolUsuario ?? 'Sin sesión' }}
+                      @if (r.usuarioId) {
+                        <span class="id" [attr.title]="r.usuarioId">{{ abreviar(r.usuarioId) }}</span>
+                      }
+                    </td>
+                    <td class="detalle">{{ r.detalle }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="pie">
+            <app-paginador
+              [total]="total()"
+              [pagina]="pagina()"
+              [tamanoPagina]="tamano()"
+              (cambioPagina)="alCambiarPagina($event)"
+              (cambioTamano)="alCambiarTamano($event)"
+            />
+          </div>
+        }
+      }
+    }
+  </div>
+</section>
