@@ -1,0 +1,213 @@
+// Mismos tokens (--sg-*) y medidas que el resto de pantallas del sistema (styles.scss).
+
+.pagina {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: clamp(1.25rem, 4vw, 1.5rem);
+}
+
+h1 {
+  margin: 0;
+  color: var(--sg-navy);
+  font-size: clamp(1.375rem, 1.2rem + 0.8vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.cabecera__sub {
+  margin: 0.35rem 0 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.875rem;
+}
+
+.tarjeta {
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-card);
+  background: var(--sg-card);
+  box-shadow: var(--sg-shadow-card);
+  overflow: hidden;
+}
+
+// ── Filtros ──
+.filtros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  align-items: end;
+  gap: 0.9rem 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--sg-divider);
+}
+
+.filtro {
+  display: grid;
+  gap: 0.35rem;
+
+  label {
+    color: var(--sg-ink-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+}
+
+.filtro--acciones {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.selector {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
+  color: var(--sg-ink-body);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.error-filtro {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--sg-error-fg);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.conteo {
+  margin: 0;
+  padding: 0.75rem 1.25rem 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.875rem;
+
+  strong {
+    color: var(--sg-navy);
+  }
+}
+
+// ── Tabla ──
+.tabla-contenedor {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+thead th {
+  padding: 0.65rem 1.25rem;
+  background: var(--sg-field);
+  color: var(--sg-ink-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+tbody th,
+tbody td {
+  padding: 0.7rem 1.25rem;
+  border-top: 1px solid var(--sg-divider);
+  color: var(--sg-ink-body);
+  text-align: left;
+  vertical-align: top;
+}
+
+tbody tr:hover {
+  background: var(--sg-row-hover);
+}
+
+.fecha {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.accion {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+// El ícono acompaña al texto: el color nunca va solo (RNF-21).
+.accion--alerta {
+  color: var(--sg-warning-fg);
+}
+
+.id {
+  display: block;
+  color: var(--sg-ink-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.detalle {
+  min-width: 16rem;
+}
+
+.pie {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--sg-divider);
+}
+
+// ── Botones ──
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-card);
+  color: var(--sg-ink-body);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--sg-field);
+  }
+}
+
+.btn--primario {
+  border-color: var(--sg-navy);
+  background: var(--sg-navy);
+  color: var(--sg-card);
+
+  &:hover {
+    background: var(--sg-navy);
+    opacity: 0.9;
+  }
+}
+
+// ── Estados ──
+.estado-vista {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 3rem 1.5rem;
+  color: var(--sg-ink-muted);
+  text-align: center;
+
+  p {
+    margin: 0;
+  }
+}
+
+.estado-vista__titulo {
+  color: var(--sg-navy);
+  font-weight: 700;
+}
+
+.estado-vista--error {
+  color: var(--sg-error-fg);
+}
