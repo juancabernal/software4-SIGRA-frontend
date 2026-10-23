@@ -608,6 +608,35 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
       const campo = html.querySelector('#matricula-nuevo-documento') as HTMLInputElement;
       expect(campo.value).toBe('9876543210');
     });
+
+    it('si falla el catálogo de tipos de documento, avisa y «Reintentar» lo repite', async () => {
+      await abrirConCatalogos();
+      escribir('#matricula-buscar-criterio', '9876543210');
+      boton('Buscar').click();
+      await fixture.whenStable();
+      busquedaDe('9876543210').flush([]);
+      await fixture.whenStable();
+
+      boton('Registrarlo y matricularlo').click();
+      await fixture.whenStable();
+      http
+        .expectOne((r) => r.url === URL_TIPOS_DOCUMENTO)
+        .flush('error', { status: 500, statusText: 'Error interno' });
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('No se pudieron cargar los tipos de documento.');
+
+      boton('Reintentar').click();
+      await fixture.whenStable();
+      http.expectOne((r) => r.url === URL_TIPOS_DOCUMENTO).flush(TIPOS);
+      await fixture.whenStable();
+
+      expect(html.textContent).not.toContain('No se pudieron cargar los tipos de documento.');
+      const opciones = Array.from(
+        (html.querySelector('#matricula-nuevo-tipo') as HTMLSelectElement).options,
+      ).map((o) => o.textContent?.trim());
+      expect(opciones).toContain(TIPOS[0].nombre);
+    });
   });
 
   describe('registrar y matricular en un paso (RF-09a, D14)', () => {

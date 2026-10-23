@@ -248,6 +248,11 @@ export class MatriculaFormDialog implements OnInit {
     this.cargarCatalogos();
   }
 
+  /** El combo de tipos de documento no tiene su propio `errorCatalogos`: reintenta igual que él. */
+  protected reintentarTiposDocumento(): void {
+    this.cargarTiposDocumento();
+  }
+
   // ── Identificar al estudiante ─────────────────────────────────────
 
   /**
