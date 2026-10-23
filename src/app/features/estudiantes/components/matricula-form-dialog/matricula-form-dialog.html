@@ -192,7 +192,14 @@
                 <option [value]="t.id">{{ t.nombre }}</option>
               }
             </select>
-            @if (mostrarErrorNuevo('tipoDocumentoId')) {
+            @if (!cargandoTiposDocumento() && !tiposDocumento().length) {
+              <p class="error-campo" id="matricula-nuevo-tipo-error">
+                No se pudieron cargar los tipos de documento.
+                <button type="button" class="btn btn--pequeno" (click)="reintentarTiposDocumento()">
+                  Reintentar
+                </button>
+              </p>
+            } @else if (mostrarErrorNuevo('tipoDocumentoId')) {
               <p class="error-campo" id="matricula-nuevo-tipo-error">
                 Selecciona un tipo de documento.
               </p>
