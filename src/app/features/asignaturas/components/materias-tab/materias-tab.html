@@ -276,3 +276,15 @@
   (confirmar)="confirmarInactivar()"
   (cancelar)="cancelarInactivar()"
 />
+
+<app-dialogo-confirmacion
+  [abierto]="conflictoInactivar() !== null"
+  [titulo]="tituloConflicto()"
+  [descripcion]="conflictoInactivar()?.mensaje ?? ''"
+  etiquetaConfirmar="Inactivar"
+  tono="peligro"
+  [procesando]="confirmandoConflicto()"
+  [error]="errorConflicto()"
+  (confirmar)="confirmarConflicto()"
+  (cancelar)="cancelarConflicto()"
+/>

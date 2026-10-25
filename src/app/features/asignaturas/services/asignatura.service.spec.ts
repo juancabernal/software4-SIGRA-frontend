@@ -121,10 +121,21 @@ describe('AsignaturaService', () => {
     expect(resultado?.estado).toBe('ACTIVA');
   });
 
-  it('inactiva con PATCH /v1/asignaturas/{id}/inactivar', () => {
+  it('inactiva con PATCH /v1/asignaturas/{id}/inactivar sin parámetro de consulta', () => {
     service.inactivar(ASIGNATURA.id).subscribe();
 
     const req = http.expectOne(`${URL}/${ASIGNATURA.id}/inactivar`);
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.params.keys()).toEqual([]);
+    req.flush({ ...ASIGNATURA, estado: 'INACTIVA', cantidadRa: 0 });
+  });
+
+  it('inactiva confirmando con PATCH /v1/asignaturas/{id}/inactivar?confirmar=true', () => {
+    service.inactivar(ASIGNATURA.id, true).subscribe();
+
+    const req = http.expectOne(
+      (r) => r.urlWithParams === `${URL}/${ASIGNATURA.id}/inactivar?confirmar=true`,
+    );
     expect(req.request.method).toBe('PATCH');
     req.flush({ ...ASIGNATURA, estado: 'INACTIVA', cantidadRa: 0 });
   });
