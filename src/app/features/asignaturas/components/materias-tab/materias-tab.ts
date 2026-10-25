@@ -8,6 +8,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, debounceTime, distinctUntilChanged, map, of, skip, switchMap, tap } from 'rxjs';
 
@@ -234,6 +235,14 @@ export class MateriasTab {
   protected readonly inactivando = signal(false);
   protected readonly errorInactivar = signal<string | null>(null);
 
+  // ── Confirmación reforzada (RF-03d): el backend respondió 409 porque la asignatura tiene
+  // evaluaciones abiertas del semestre en curso. El mensaje sale del cuerpo de esa respuesta.
+  protected readonly conflictoInactivar = signal<{ asignatura: Asignatura; mensaje: string } | null>(
+    null,
+  );
+  protected readonly confirmandoConflicto = signal(false);
+  protected readonly errorConflicto = signal<string | null>(null);
+
   protected readonly formularioAbierto = signal(false);
   /** Materia en edición; null cuando el formulario registra una nueva. */
   protected readonly enEdicion = signal<Asignatura | null>(null);
@@ -241,6 +250,11 @@ export class MateriasTab {
   protected readonly tituloInactivar = computed(() => {
     const asignatura = this.aInactivar();
     return asignatura ? `¿Inactivar «${asignatura.nombre}»?` : '';
+  });
+
+  protected readonly tituloConflicto = computed(() => {
+    const conflicto = this.conflictoInactivar();
+    return conflicto ? `¿Inactivar «${conflicto.asignatura.nombre}»?` : '';
   });
 
   constructor() {
@@ -288,7 +302,11 @@ export class MateriasTab {
     toObservable(this.refresco)
       .pipe(skip(1), takeUntilDestroyed())
       .subscribe(() => {
-        if (this.formularioAbierto() || this.aInactivar() !== null) {
+        if (
+          this.formularioAbierto() ||
+          this.aInactivar() !== null ||
+          this.conflictoInactivar() !== null
+        ) {
           return;
         }
         this.refrescarEnSegundoPlano();
@@ -474,7 +492,43 @@ export class MateriasTab {
         },
         error: (error: unknown) => {
           this.inactivando.set(false);
+          if (error instanceof HttpErrorResponse && error.status === 409) {
+            this.aInactivar.set(null);
+            this.conflictoInactivar.set({ asignatura, mensaje: mensajeDeError(error).mensaje });
+            return;
+          }
           this.errorInactivar.set(mensajeDeError(error).mensaje);
+          this.recargar();
+        },
+      });
+  }
+
+  // ── Confirmación reforzada tras un 409 (RF-03d) ────────────────────
+  protected cancelarConflicto(): void {
+    this.conflictoInactivar.set(null);
+    this.errorConflicto.set(null);
+  }
+
+  protected confirmarConflicto(): void {
+    const conflicto = this.conflictoInactivar();
+    if (!conflicto || this.confirmandoConflicto()) {
+      return;
+    }
+    this.confirmandoConflicto.set(true);
+    this.errorConflicto.set(null);
+    this.service
+      .inactivar(conflicto.asignatura.id, true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (actualizada) => {
+          this.confirmandoConflicto.set(false);
+          this.conflictoInactivar.set(null);
+          this.reemplazar(actualizada);
+          this.mostrarAviso({ texto: `Materia inactivada: ${actualizada.nombre}.`, tono: 'ok' });
+        },
+        error: (error: unknown) => {
+          this.confirmandoConflicto.set(false);
+          this.errorConflicto.set(mensajeDeError(error).mensaje);
           this.recargar();
         },
       });
