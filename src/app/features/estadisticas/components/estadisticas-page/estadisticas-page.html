@@ -392,11 +392,12 @@
                         }
                       </div>
                       <p class="accion-mejora__descripcion">{{ accion.descripcion }}</p>
-                      <p class="accion-mejora__fecha">Propuesta el {{ accion.fechaPropuesta }}</p>
+                      <p class="accion-mejora__fecha">
+                        Propuesta el {{ formatearFecha(accion.fechaPropuesta) }}
+                      </p>
                       @if (accion.convertida) {
-                        <!-- TODO: cuando exista el módulo de evaluaciones, mostrar el nombre o un enlace a la evaluación en vez de su id -->
                         <p class="accion-mejora__evaluacion">
-                          Evaluación generada: {{ accion.evaluacionGeneradaId }}
+                          Ya se generó la evaluación a partir de esta acción.
                         </p>
                       } @else {
                         <button type="button" class="btn" (click)="abrirConversion(accion)">
