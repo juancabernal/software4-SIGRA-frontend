@@ -622,13 +622,14 @@ describe('EstadisticasPage', () => {
       expect(item.textContent).toContain('No convertida');
     });
 
-    it('una acción ya convertida no ofrece «Convertir en evaluación» y muestra el id de la evaluación', async () => {
+    it('una acción ya convertida no ofrece «Convertir en evaluación» ni muestra el id de la evaluación', async () => {
       await iniciarConSeleccion([ra(1)], [CONVERTIDA]);
 
       const item = html.querySelector('.accion-mejora') as HTMLElement;
       expect(boton(item, 'Convertir en evaluación')).toBeUndefined();
       expect(item.textContent).toContain('Convertida');
-      expect(item.textContent).toContain('ev1');
+      expect(item.textContent).toContain('Ya se generó la evaluación a partir de esta acción.');
+      expect(item.textContent).not.toContain('ev1');
     });
 
     async function abrirConversion(): Promise<void> {
@@ -673,7 +674,7 @@ describe('EstadisticasPage', () => {
       expect(html.textContent).toContain('Acción de mejora convertida en evaluación.');
       const item = html.querySelector('.accion-mejora') as HTMLElement;
       expect(item.textContent).toContain('Convertida');
-      expect(item.textContent).toContain('ev1');
+      expect(item.textContent).toContain('Ya se generó la evaluación a partir de esta acción.');
     });
 
     it('si la conversión responde 400 (supera el 100%) muestra el error y la pantalla sigue usable', async () => {
