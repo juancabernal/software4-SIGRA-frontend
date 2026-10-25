@@ -9,6 +9,7 @@ import {
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { EMPTY, catchError, combineLatest, map, of, skip, startWith, switchMap } from 'rxjs';
 
+import { formatearFechaHora } from '../../../../core/util/formato-fecha';
 import { refrescoAutomatico } from '../../../../core/util/refresco-automatico';
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
@@ -565,6 +566,10 @@ export class EstadisticasPage {
   /** Cantidad de estudiantes en nivel Bajo o Medio (por debajo del nivel esperado). */
   protected debajoDelNivel(conclusion: Conclusion): number {
     return (conclusion.enNivelBajo ?? 0) + (conclusion.enNivelMedio ?? 0);
+  }
+
+  protected formatearFecha(fecha: string | null | undefined): string {
+    return formatearFechaHora(fecha);
   }
 
   /** Redacta la comparación con el semestre anterior, o indica que es la primera conclusión del RA. */
