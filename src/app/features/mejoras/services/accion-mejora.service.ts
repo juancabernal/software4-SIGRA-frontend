@@ -50,4 +50,9 @@ export class AccionMejoraService {
   convertir(id: string, datos: ConversionAccionMejora): Observable<AccionMejora> {
     return this.http.post<AccionMejora>(`${this.baseUrl}/${id}/conversion`, datos);
   }
+
+  /** Edita nombre y descripción de una acción no convertida. El backend responde 409 si ya se convirtió. */
+  actualizar(id: string, datos: RegistroAccionMejora): Observable<AccionMejora> {
+    return this.http.put<AccionMejora>(`${this.baseUrl}/${id}`, datos);
+  }
 }

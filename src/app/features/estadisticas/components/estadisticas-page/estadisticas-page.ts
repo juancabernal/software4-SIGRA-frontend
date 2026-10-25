@@ -521,20 +521,34 @@ export class EstadisticasPage {
   }
 
   protected readonly dialogoAbierto = signal(false);
+  protected readonly accionEnEdicion = signal<AccionMejora | null>(null);
 
   protected crearAccionDeMejora(): void {
+    this.accionEnEdicion.set(null);
+    this.dialogoAbierto.set(true);
+  }
+
+  protected editarAccionMejora(accion: AccionMejora): void {
+    this.accionEnEdicion.set(accion);
     this.dialogoAbierto.set(true);
   }
 
   protected alGuardarAccionMejora(): void {
+    const editando = this.accionEnEdicion() !== null;
     this.dialogoAbierto.set(false);
-    this.mostrarAviso('Acción de mejora registrada correctamente.');
+    this.accionEnEdicion.set(null);
+    this.mostrarAviso(
+      editando
+        ? 'Acción de mejora actualizada correctamente.'
+        : 'Acción de mejora registrada correctamente.',
+    );
     this.consultarConclusion();
     this.recargaAcciones.update((valor) => valor + 1);
   }
 
   protected alCancelarAccionMejora(): void {
     this.dialogoAbierto.set(false);
+    this.accionEnEdicion.set(null);
   }
 
   protected abrirConversion(accion: AccionMejora): void {
