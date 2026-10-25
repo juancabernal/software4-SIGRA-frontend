@@ -8,6 +8,7 @@ import { AccionMejora, DESCRIPCION_ACCION_MAX, NOMBRE_ACCION_MAX } from '../../m
 import { AccionMejoraFormDialog } from './accion-mejora-form-dialog';
 
 const URL = `${environment.apiUrl}/v1/conclusiones/c1/acciones-mejora`;
+const URL_ACTUALIZAR = `${environment.apiUrl}/v1/acciones-mejora/am1`;
 
 const CONCLUSION: Conclusion = {
   id: 'c1',
@@ -67,6 +68,13 @@ describe('AccionMejoraFormDialog', () => {
 
   async function abrir(): Promise<void> {
     fixture.componentRef.setInput('conclusion', CONCLUSION);
+    fixture.componentRef.setInput('abierto', true);
+    await fixture.whenStable();
+  }
+
+  async function abrirParaEditar(accion: AccionMejora): Promise<void> {
+    fixture.componentRef.setInput('conclusion', null);
+    fixture.componentRef.setInput('accion', accion);
     fixture.componentRef.setInput('abierto', true);
     await fixture.whenStable();
   }
@@ -186,5 +194,29 @@ describe('AccionMejoraFormDialog', () => {
     expect(alerta.textContent).toContain('El nombre es obligatorio');
     expect(campo<HTMLInputElement>('accion-nombre').value).toBe('Taller de refuerzo');
     expect(guardados).toEqual([]);
+  });
+
+  it('en modo edición precarga los campos y llama a actualizar', async () => {
+    await abrirParaEditar(ACCION_CREADA);
+
+    expect(campo<HTMLInputElement>('accion-nombre').value).toBe(ACCION_CREADA.nombre);
+    expect(campo<HTMLTextAreaElement>('accion-descripcion').value).toBe(ACCION_CREADA.descripcion);
+    expect(html.textContent).toContain('Editar acción de mejora');
+    expect(enviarBoton().textContent).toContain('Guardar cambios');
+
+    const actualizada: AccionMejora = { ...ACCION_CREADA, nombre: 'Taller actualizado' };
+    await escribir('accion-nombre', 'Taller actualizado');
+    await enviar();
+
+    const req = http.expectOne(URL_ACTUALIZAR);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({
+      nombre: 'Taller actualizado',
+      descripcion: ACCION_CREADA.descripcion,
+    });
+    req.flush(actualizada);
+    await fixture.whenStable();
+
+    expect(guardados).toEqual([actualizada]);
   });
 });

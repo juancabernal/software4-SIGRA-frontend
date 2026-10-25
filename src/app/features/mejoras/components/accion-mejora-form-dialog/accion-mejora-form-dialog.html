@@ -1,7 +1,7 @@
 <app-modal-crud
   [abierto]="abierto()"
-  titulo="Registrar acción de mejora"
-  etiquetaEnviar="Registrar"
+  [titulo]="titulo()"
+  [etiquetaEnviar]="etiquetaEnviar()"
   [procesando]="procesando()"
   [error]="errorApi()?.mensaje ?? null"
   [detalles]="errorApi()?.detalles ?? []"
