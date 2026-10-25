@@ -60,7 +60,16 @@ export class AsignaturaService {
     return this.http.patch<Asignatura>(`${this.baseUrl}/${encodeURIComponent(id)}/activar`, null);
   }
 
-  inactivar(id: string): Observable<Asignatura> {
-    return this.http.patch<Asignatura>(`${this.baseUrl}/${encodeURIComponent(id)}/inactivar`, null);
+  /** Con evaluaciones abiertas del semestre en curso el backend responde 409 si `confirmar` es falso. */
+  inactivar(id: string, confirmar = false): Observable<Asignatura> {
+    let params = new HttpParams();
+    if (confirmar) {
+      params = params.set('confirmar', confirmar);
+    }
+    return this.http.patch<Asignatura>(
+      `${this.baseUrl}/${encodeURIComponent(id)}/inactivar`,
+      null,
+      { params },
+    );
   }
 }

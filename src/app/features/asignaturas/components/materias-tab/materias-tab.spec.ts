@@ -376,6 +376,84 @@ describe('MateriasTab', () => {
     expect(html.querySelector('.aviso-zona')?.textContent).toContain('Materia inactivada');
   });
 
+  it('inactivar con evaluaciones abiertas (409) pide confirmación reforzada con el mensaje del backend', async () => {
+    await iniciar([ACTIVA]);
+    boton(fila('BRU10'), 'Inactivar').click();
+    await fixture.whenStable();
+
+    let dialogo = html.querySelector('app-dialogo-confirmacion dialog') as HTMLDialogElement;
+    boton(dialogo, 'Inactivar').click();
+    await fixture.whenStable();
+
+    const primera = http.expectOne((r) => r.url === `${URL}/ac/inactivar`);
+    expect(primera.request.params.has('confirmar')).toBe(false);
+    primera.flush(
+      { mensaje: 'Tiene 3 evaluaciones abiertas en el semestre en curso.' },
+      { status: 409, statusText: 'Conflict' },
+    );
+    await fixture.whenStable();
+
+    const dialogos = html.querySelectorAll('app-dialogo-confirmacion dialog');
+    dialogo = dialogos[dialogos.length - 1] as HTMLDialogElement;
+    expect(dialogo.textContent).toContain('Tiene 3 evaluaciones abiertas en el semestre en curso.');
+
+    boton(dialogo, 'Inactivar').click();
+    await fixture.whenStable();
+
+    const segunda = http.expectOne((r) => r.url === `${URL}/ac/inactivar`);
+    expect(segunda.request.params.get('confirmar')).toBe('true');
+    segunda.flush({ ...ACTIVA, estado: 'INACTIVA', cantidadRa: 0 });
+    await fixture.whenStable();
+
+    expect(fila('BRU10').textContent).toContain('Inactiva');
+    expect(html.querySelector('.aviso-zona')?.textContent).toContain('Materia inactivada');
+  });
+
+  it('inactivar sin evaluaciones abiertas (200) no abre ningún diálogo de confirmación reforzada', async () => {
+    await iniciar([ACTIVA]);
+    boton(fila('BRU10'), 'Inactivar').click();
+    await fixture.whenStable();
+
+    const dialogo = html.querySelector('app-dialogo-confirmacion dialog') as HTMLDialogElement;
+    boton(dialogo, 'Inactivar').click();
+    await fixture.whenStable();
+
+    http.expectOne(`${URL}/ac/inactivar`).flush({ ...ACTIVA, estado: 'INACTIVA', cantidadRa: 0 });
+    await fixture.whenStable();
+
+    http.expectNone((r) => r.url === `${URL}/ac/inactivar` && r.params.get('confirmar') === 'true');
+    const abiertos = Array.from(html.querySelectorAll('app-dialogo-confirmacion dialog')).filter(
+      (d) => d.hasAttribute('open'),
+    );
+    expect(abiertos.length).toBe(0);
+  });
+
+  it('al cancelar la confirmación reforzada no se reintenta y la materia queda como estaba', async () => {
+    await iniciar([ACTIVA]);
+    boton(fila('BRU10'), 'Inactivar').click();
+    await fixture.whenStable();
+
+    let dialogo = html.querySelector('app-dialogo-confirmacion dialog') as HTMLDialogElement;
+    boton(dialogo, 'Inactivar').click();
+    await fixture.whenStable();
+
+    http
+      .expectOne((r) => r.url === `${URL}/ac/inactivar`)
+      .flush(
+        { mensaje: 'Tiene 3 evaluaciones abiertas en el semestre en curso.' },
+        { status: 409, statusText: 'Conflict' },
+      );
+    await fixture.whenStable();
+
+    const dialogos = html.querySelectorAll('app-dialogo-confirmacion dialog');
+    dialogo = dialogos[dialogos.length - 1] as HTMLDialogElement;
+    boton(dialogo, 'Cancelar').click();
+    await fixture.whenStable();
+
+    http.expectNone((r) => r.url === `${URL}/ac/inactivar`);
+    expect(fila('BRU10').textContent).toContain('Activa');
+  });
+
   it('una materia INACTIVA ofrece Reactivar (siempre habilitado) y no Activar ni Inactivar', async () => {
     await iniciar([INACTIVA]);
     const acciones = fila('BRU11');
