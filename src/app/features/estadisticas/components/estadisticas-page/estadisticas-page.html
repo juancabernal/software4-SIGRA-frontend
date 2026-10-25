@@ -393,13 +393,17 @@
                       </div>
                       <p class="accion-mejora__descripcion">{{ accion.descripcion }}</p>
                       <p class="accion-mejora__fecha">
-                        Propuesta el {{ formatearFecha(accion.fechaPropuesta) }}
+                        Registrada el {{ formatearFecha(accion.fechaPropuesta) }}
                       </p>
                       @if (accion.convertida) {
                         <p class="accion-mejora__evaluacion">
                           Ya se generó la evaluación a partir de esta acción.
                         </p>
                       } @else {
+                        <button type="button" class="btn" (click)="editarAccionMejora(accion)">
+                          <app-icono nombre="lapiz" [tamano]="16" />
+                          Editar
+                        </button>
                         <button type="button" class="btn" (click)="abrirConversion(accion)">
                           <app-icono nombre="flecha-der" [tamano]="16" />
                           Convertir en evaluación
@@ -419,6 +423,7 @@
   <app-accion-mejora-form-dialog
     [abierto]="dialogoAbierto()"
     [conclusion]="consultaConclusion()"
+    [accion]="accionEnEdicion()"
     (guardado)="alGuardarAccionMejora()"
     (cancelar)="alCancelarAccionMejora()"
   />

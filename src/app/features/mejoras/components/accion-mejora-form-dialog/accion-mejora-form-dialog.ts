@@ -37,9 +37,9 @@ function longitudMaxima(maximo: number) {
 type Campo = 'nombre' | 'descripcion';
 
 /**
- * Registrar una acción de mejora sobre una conclusión VIGENTE (RF-17). Se abre desde la pantalla
- * de estadísticas una vez detectada la conclusión; al guardar, el backend marca la conclusión
- * como ATENDIDA.
+ * Registrar una acción de mejora sobre una conclusión VIGENTE (RF-17), o editar una ya registrada
+ * que todavía no se ha convertido en evaluación. Se abre desde la pantalla de estadísticas; al
+ * registrar, el backend marca la conclusión como ATENDIDA.
  */
 @Component({
   selector: 'app-accion-mejora-form-dialog',
@@ -54,6 +54,8 @@ export class AccionMejoraFormDialog {
 
   readonly abierto = input(false);
   readonly conclusion = input<Conclusion | null>(null);
+  /** Cuando se recibe, el diálogo edita esta acción en vez de registrar una nueva. */
+  readonly accion = input<AccionMejora | null>(null);
 
   readonly guardado = output<AccionMejora>();
   readonly cancelar = output<void>();
@@ -76,6 +78,11 @@ export class AccionMejoraFormDialog {
 
   protected readonly enviarDeshabilitado = computed(() => !this.formValido());
 
+  protected readonly titulo = computed(() =>
+    this.accion() ? 'Editar acción de mejora' : 'Registrar acción de mejora',
+  );
+  protected readonly etiquetaEnviar = computed(() => (this.accion() ? 'Guardar cambios' : 'Registrar'));
+
   constructor() {
     effect(() => {
       const abierto = this.abierto();
@@ -97,35 +104,41 @@ export class AccionMejoraFormDialog {
   }
 
   protected enviar(): void {
+    const accion = this.accion();
     const conclusion = this.conclusion();
-    if (!conclusion) {
+    if (!accion && !conclusion) {
       return;
     }
     const valores = this.form.getRawValue();
+    const datos = {
+      nombre: valores.nombre.trim(),
+      descripcion: valores.descripcion.trim(),
+    };
     this.errorApi.set(null);
     this.procesando.set(true);
 
-    this.service
-      .registrar(conclusion.id, {
-        nombre: valores.nombre.trim(),
-        descripcion: valores.descripcion.trim(),
-      })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (accion) => {
-          this.procesando.set(false);
-          this.guardado.emit(accion);
-        },
-        error: (error: unknown) => {
-          this.procesando.set(false);
-          this.errorApi.set(mensajeDeError(error));
-        },
-      });
+    const peticion = accion ? this.service.actualizar(accion.id, datos) : this.service.registrar(conclusion!.id, datos);
+
+    peticion.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (accionGuardada) => {
+        this.procesando.set(false);
+        this.guardado.emit(accionGuardada);
+      },
+      error: (error: unknown) => {
+        this.procesando.set(false);
+        this.errorApi.set(mensajeDeError(error));
+      },
+    });
   }
 
   private preparar(): void {
     this.procesando.set(false);
     this.errorApi.set(null);
-    this.form.reset();
+    const accion = this.accion();
+    if (accion) {
+      this.form.setValue({ nombre: accion.nombre, descripcion: accion.descripcion });
+    } else {
+      this.form.reset();
+    }
   }
 }

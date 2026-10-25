@@ -614,22 +614,59 @@ describe('EstadisticasPage', () => {
       expect(html.textContent).toContain('Guía de ejercicios adicionales');
     });
 
-    it('una acción no convertida ofrece «Convertir en evaluación»', async () => {
+    it('una acción no convertida ofrece «Convertir en evaluación» y «Editar»', async () => {
       await iniciarConSeleccion([ra(1)], [NO_CONVERTIDA]);
 
       const item = html.querySelector('.accion-mejora') as HTMLElement;
       expect(boton(item, 'Convertir en evaluación')).toBeDefined();
+      expect(boton(item, 'Editar')).toBeDefined();
       expect(item.textContent).toContain('No convertida');
+      expect(item.textContent).toContain('Registrada el');
     });
 
-    it('una acción ya convertida no ofrece «Convertir en evaluación» ni muestra el id de la evaluación', async () => {
+    it('una acción ya convertida no ofrece «Convertir en evaluación» ni «Editar», ni muestra el id de la evaluación', async () => {
       await iniciarConSeleccion([ra(1)], [CONVERTIDA]);
 
       const item = html.querySelector('.accion-mejora') as HTMLElement;
       expect(boton(item, 'Convertir en evaluación')).toBeUndefined();
+      expect(boton(item, 'Editar')).toBeUndefined();
       expect(item.textContent).toContain('Convertida');
       expect(item.textContent).toContain('Ya se generó la evaluación a partir de esta acción.');
       expect(item.textContent).not.toContain('ev1');
+    });
+
+    it('al editar una acción no convertida precarga el diálogo y, al guardar, refresca el listado', async () => {
+      await iniciarConSeleccion([ra(1)], [NO_CONVERTIDA]);
+
+      boton(html, 'Editar').click();
+      await fixture.whenStable();
+
+      const dialogo = html.querySelector('dialog') as HTMLElement;
+      expect(dialogo.hasAttribute('open')).toBe(true);
+      expect(dialogo.textContent).toContain('Editar acción de mejora');
+      const nombre = dialogo.querySelector('#accion-nombre') as HTMLInputElement;
+      const descripcion = dialogo.querySelector('#accion-descripcion') as HTMLTextAreaElement;
+      expect(nombre.value).toBe(NO_CONVERTIDA.nombre);
+      expect(descripcion.value).toBe(NO_CONVERTIDA.descripcion);
+
+      (dialogo.querySelector('form') as HTMLFormElement).dispatchEvent(
+        new Event('submit', { cancelable: true }),
+      );
+      await fixture.whenStable();
+
+      const actualizada = { ...NO_CONVERTIDA, nombre: 'Taller actualizado' };
+      http
+        .expectOne((r) => r.url === `${URL_ACCIONES_MEJORA}/${NO_CONVERTIDA.id}` && r.method === 'PUT')
+        .flush(actualizada);
+      await fixture.whenStable();
+
+      // alGuardarAccionMejora también refresca la conclusión (reutiliza el flujo de registro).
+      http.expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id)).flush(RESULTADO_VIGENTE);
+      http.expectOne((r) => r.url === URL_ACCIONES_MEJORA && r.method === 'GET').flush([actualizada]);
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('Acción de mejora actualizada correctamente.');
+      expect(html.textContent).toContain('Taller actualizado');
     });
 
     async function abrirConversion(): Promise<void> {
