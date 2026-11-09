@@ -33,14 +33,14 @@ describe('Paginador', () => {
   it('muestra «Página X de Y» y ofrece 5/10/25/50 con 10 por defecto', async () => {
     await fijar(45, 2, 10);
     expect(html.querySelector('.paginador__texto')?.textContent).toBe('Página 2 de 5');
-    const opciones = Array.from(html.querySelectorAll('#paginador-tamano option'));
+    const opciones = Array.from(html.querySelectorAll('[id^="paginador-tamano"] option'));
     expect(opciones.map((o) => o.textContent?.trim())).toEqual([
       '5 por página',
       '10 por página',
       '25 por página',
       '50 por página',
     ]);
-    expect((html.querySelector('#paginador-tamano') as HTMLSelectElement).value).toBe('10');
+    expect((html.querySelector('[id^="paginador-tamano"]') as HTMLSelectElement).value).toBe('10');
   });
 
   it('Anterior y Siguiente emiten la página, pero no en los extremos (aria-disabled)', async () => {
@@ -64,7 +64,7 @@ describe('Paginador', () => {
 
   it('cambiar el tamaño de página emite el nuevo valor', async () => {
     await fijar(100, 1, 10);
-    const select = html.querySelector('#paginador-tamano') as HTMLSelectElement;
+    const select = html.querySelector('[id^="paginador-tamano"]') as HTMLSelectElement;
     select.value = '25';
     select.dispatchEvent(new Event('change'));
     expect(tamanos).toEqual([25]);

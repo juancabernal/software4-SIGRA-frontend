@@ -1,7 +1,7 @@
 <div class="paginador">
   <div class="paginador__tamano">
-    <label class="solo-lectores" for="paginador-tamano">Registros por página</label>
-    <select id="paginador-tamano" class="selector" (change)="alCambiarTamano($event)">
+    <label class="solo-lectores" [attr.for]="idTamano">Registros por página</label>
+    <select [id]="idTamano" class="selector" (change)="alCambiarTamano($event)">
       @for (t of tamanos; track t) {
         <option [value]="t" [selected]="t === tamanoPagina()">{{ t }} por página</option>
       }
