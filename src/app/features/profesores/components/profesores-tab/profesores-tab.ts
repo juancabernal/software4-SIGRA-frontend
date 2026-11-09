@@ -14,8 +14,6 @@ import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confi
 import { PanelLateral } from '../../../../shared/components/panel-lateral/panel-lateral';
 import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
-import { Paginador } from '../../../../shared/ui/paginador/paginador';
-import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 import { AsignaturaProfesor, Profesor } from '../../models/profesor.model';
 import { ProfesorService } from '../../services/profesor.service';
 import { ProfesorFormDialog } from '../profesor-form-dialog/profesor-form-dialog';
@@ -53,7 +51,7 @@ const DURACION_AVISO_MS = 6000;
  */
 @Component({
   selector: 'app-profesores-tab',
-  imports: [ChipEstado, DialogoConfirmacion, Icono, Paginador, PanelLateral, ProfesorFormDialog],
+  imports: [ChipEstado, DialogoConfirmacion, Icono, PanelLateral, ProfesorFormDialog],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './profesores-tab.html',
   styleUrl: './profesores-tab.scss',
@@ -86,8 +84,6 @@ export class ProfesoresTab {
   protected readonly cargando = signal(true);
   protected readonly errorCarga = signal<MensajeError | null>(null);
   protected readonly profesores = signal<Profesor[]>([]);
-  /** Paginación en cliente, igual que en «Materias». */
-  protected readonly paginacion = paginarEnCliente(this.profesores);
   protected readonly aviso = signal<Aviso | null>(null);
 
   protected readonly dialogo = signal<Dialogo>(null);
@@ -136,12 +132,10 @@ export class ProfesoresTab {
 
   // ── Filtro ────────────────────────────────────────────────────────
   protected alEscribir(evento: Event): void {
-    this.paginacion.reiniciar();
     this.texto.set((evento.target as HTMLInputElement).value);
   }
 
   protected limpiarFiltros(): void {
-    this.paginacion.reiniciar();
     this.texto.set('');
   }
 

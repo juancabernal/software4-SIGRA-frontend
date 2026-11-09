@@ -668,7 +668,7 @@ describe('MateriasTab', () => {
       boton(html, 'Siguiente').click();
       await fixture.whenStable();
 
-      const select = html.querySelector('[id^="paginador-tamano"]') as HTMLSelectElement;
+      const select = html.querySelector('#paginador-tamano') as HTMLSelectElement;
       select.value = '25';
       select.dispatchEvent(new Event('change'));
       await fixture.whenStable();

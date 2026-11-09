@@ -15,8 +15,6 @@ import { MatriculaFormDialog } from '../matricula-form-dialog/matricula-form-dia
 import { ConfettiService } from '../../../../shared/ui/confetti/confetti.service';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
-import { Paginador } from '../../../../shared/ui/paginador/paginador';
-import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 import {
   EstudianteMatriculado,
   OpcionAsignatura,
@@ -44,7 +42,7 @@ const DURACION_AVISO_MS = 6000;
  */
 @Component({
   selector: 'app-matriculados-page',
-  imports: [ChipEstado, DialogoConfirmacion, Icono, MatriculaFormDialog, Paginador],
+  imports: [ChipEstado, DialogoConfirmacion, Icono, MatriculaFormDialog],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './matriculados-page.html',
   styleUrl: './matriculados-page.scss',
@@ -80,8 +78,6 @@ export class MatriculadosPage {
   protected readonly cargando = signal(false);
   protected readonly errorCarga = signal<MensajeError | null>(null);
   protected readonly matriculados = signal<EstudianteMatriculado[]>([]);
-  /** Paginación en cliente, igual que en «Materias». */
-  protected readonly paginacion = paginarEnCliente(this.matriculados);
 
   /**
    * La columna de fecha solo existe si el servidor la manda en alguna fila (D13). Hoy nunca la
@@ -167,17 +163,14 @@ export class MatriculadosPage {
 
   // ── Filtros ───────────────────────────────────────────────────────
   protected alCambiarAsignatura(evento: Event): void {
-    this.paginacion.reiniciar();
     this.asignaturaId.set((evento.target as HTMLSelectElement).value);
   }
 
   protected alCambiarSemestre(evento: Event): void {
-    this.paginacion.reiniciar();
     this.semestreId.set((evento.target as HTMLSelectElement).value);
   }
 
   protected alCambiarIncluirInactivas(evento: Event): void {
-    this.paginacion.reiniciar();
     this.incluirInactivas.set((evento.target as HTMLInputElement).checked);
   }
 

@@ -15,8 +15,6 @@ import { SemestreIcono } from '../semestre-icono/semestre-icono';
 import { EstadoSemestreBadge } from '../estado-semestre-badge/estado-semestre-badge';
 import { SemestreExtenderDialog } from '../semestre-extender-dialog/semestre-extender-dialog';
 import { SemestreFormDialog } from '../semestre-form-dialog/semestre-form-dialog';
-import { Paginador } from '../../../../shared/ui/paginador/paginador';
-import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 
 /** Fila de la tabla con los textos ya preparados para la vista. */
 interface FilaSemestre {
@@ -39,7 +37,7 @@ const DURACION_AVISO_MS = 6000;
  */
 @Component({
   selector: 'app-semestres-page',
-  imports: [EstadoSemestreBadge, Paginador, SemestreFormDialog, SemestreExtenderDialog, SemestreIcono],
+  imports: [EstadoSemestreBadge, SemestreFormDialog, SemestreExtenderDialog, SemestreIcono],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './semestres-page.html',
   styleUrl: './semestres-page.scss',
@@ -76,9 +74,6 @@ export class SemestresPage {
       };
     });
   });
-
-  /** Paginación en cliente, igual que en «Materias». */
-  protected readonly paginacion = paginarEnCliente(this.filas);
 
   protected readonly filaActiva = computed(
     () => this.filas().find((fila) => fila.semestre.estado === 'ACTIVO') ?? null,

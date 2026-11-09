@@ -15,8 +15,6 @@ import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-e
 import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
 import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
-import { Paginador } from '../../../../shared/ui/paginador/paginador';
-import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 import {
   EstadoPrograma,
   FiltrosProgramas,
@@ -57,7 +55,7 @@ interface Aviso {
  */
 @Component({
   selector: 'app-programas-tab',
-  imports: [ChipEstado, DialogoConfirmacion, Icono, Paginador, ProgramaFormDialog],
+  imports: [ChipEstado, DialogoConfirmacion, Icono, ProgramaFormDialog],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './programas-tab.html',
   styleUrl: './programas-tab.scss',
@@ -85,8 +83,6 @@ export class ProgramasTab {
 
   // ── Datos y estado de la vista ────────────────────────────────────
   protected readonly programas = signal<Programa[]>([]);
-  /** Paginación en cliente, igual que en «Materias». */
-  protected readonly paginacion = paginarEnCliente(this.programas);
   protected readonly cargando = signal(true);
   protected readonly errorCarga = signal<MensajeError | null>(null);
   protected readonly hayFiltros = computed(
@@ -139,26 +135,22 @@ export class ProgramasTab {
 
   /** El buscador espera 300 ms sin teclear antes de consultar. */
   protected alEscribirNombre(evento: Event): void {
-    this.paginacion.reiniciar();
     const valor = (evento.target as HTMLInputElement).value;
     clearTimeout(this.temporizadorBusqueda);
     this.temporizadorBusqueda = setTimeout(() => this.nombre.set(valor), RETARDO_BUSQUEDA_MS);
   }
 
   protected alEscribirCodigo(evento: Event): void {
-    this.paginacion.reiniciar();
     const valor = (evento.target as HTMLInputElement).value;
     clearTimeout(this.temporizadorBusqueda);
     this.temporizadorBusqueda = setTimeout(() => this.codigo.set(valor), RETARDO_BUSQUEDA_MS);
   }
 
   protected alCambiarEstado(evento: Event): void {
-    this.paginacion.reiniciar();
     this.estado.set((evento.target as HTMLSelectElement).value as EstadoPrograma | '');
   }
 
   protected limpiarFiltros(): void {
-    this.paginacion.reiniciar();
     clearTimeout(this.temporizadorBusqueda);
     this.nombre.set('');
     this.codigo.set('');

@@ -3,8 +3,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
 import { Icono } from '../../../../shared/ui/icono/icono';
-import { Paginador } from '../../../../shared/ui/paginador/paginador';
-import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 import { AsignaturaProfesor, Profesor } from '../../../profesores/models/profesor.model';
 import { ProfesorService } from '../../../profesores/services/profesor.service';
 import { AsignacionDocenteService } from '../../services/asignacion-docente.service';
@@ -22,7 +20,7 @@ interface Aviso {
  */
 @Component({
   selector: 'app-consultar-tab',
-  imports: [Icono, Paginador],
+  imports: [Icono],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './consultar-tab.html',
   styleUrl: './consultar-tab.scss',
@@ -42,8 +40,6 @@ export class ConsultarTab {
 
   protected readonly profesorElegido = signal<string>('');
   protected readonly asignaciones = signal<AsignaturaProfesor[]>([]);
-  /** Paginación en cliente, igual que en «Materias». */
-  protected readonly paginacion = paginarEnCliente(this.asignaciones);
   protected readonly cargandoAsignaciones = signal(false);
   protected readonly desasignandoId = signal<string | null>(null);
   protected readonly aviso = signal<Aviso | null>(null);
@@ -75,7 +71,6 @@ export class ConsultarTab {
   }
 
   protected alCambiarProfesor(evento: Event): void {
-    this.paginacion.reiniciar();
     this.profesorElegido.set((evento.target as HTMLSelectElement).value);
     this.consultarAsignaciones();
   }

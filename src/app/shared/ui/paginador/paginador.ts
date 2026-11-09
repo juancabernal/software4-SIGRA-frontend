@@ -3,8 +3,6 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 /** Tamaños de página que ofrece el selector; 10 es el valor por defecto. */
 export const TAMANOS_PAGINA = [5, 10, 25, 50] as const;
 
-let siguienteId = 0;
-
 /**
  * Paginador genérico: navega entre páginas y deja elegir cuántos registros ver por página.
  * No pagina nada por sí mismo: solo presenta los controles sobre los valores que recibe y
@@ -24,7 +22,6 @@ export class Paginador {
   readonly cambioPagina = output<number>();
   readonly cambioTamano = output<number>();
 
-  protected readonly idTamano = `paginador-tamano-${++siguienteId}`;
   protected readonly tamanos = TAMANOS_PAGINA;
   protected readonly totalPaginas = computed(() =>
     Math.max(1, Math.ceil(this.total() / this.tamanoPagina())),
