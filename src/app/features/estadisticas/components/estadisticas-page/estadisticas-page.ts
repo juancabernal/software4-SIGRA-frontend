@@ -436,7 +436,7 @@ export class EstadisticasPage {
     ) {
       return;
     }
-    this.emitirConsulta(this.filtrosConsulta(), false, true);
+    this.emitirConsulta(this.filtrosConsulta(), false, true, true);
   }
 
   /** Vuelve a consultar el nivel de logro sin mostrar "cargando" ni borrar lo que ya hay en pantalla. */
@@ -449,7 +449,7 @@ export class EstadisticasPage {
     ) {
       return;
     }
-    this.emitirConsulta(this.filtrosConsulta(), true, false);
+    this.emitirConsulta(this.filtrosConsulta(), true, false, true);
   }
 
   /** Vuelve a cargar las acciones de mejora sin mostrar "cargando" ni borrar lo que ya hay en pantalla. */
