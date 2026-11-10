@@ -178,11 +178,30 @@ describe('EstadisticasPage', () => {
     fixture.detectChanges();
   }
 
+  function atenderConsultaAutomatica(
+    raId = 'ra-1',
+    semestreId = SEMESTRE_ACTIVO.id,
+    estadisticas = ESTADISTICAS,
+    conclusion = RESULTADO_VIGENTE,
+  ) {
+    http
+      .expectOne((r) => r.url === urlEstadisticas(raId, semestreId) && r.method === 'GET')
+      .flush(estadisticas);
+    http.expectOne((r) => r.url === urlEstadoConclusion(raId, semestreId)).flush(conclusion);
+  }
+
   /** «Consultar» también pide el nivel de logro (RF-14/15); estas pruebas se centran en RF-16. */
   function responderEstadisticas(estadisticas = ESTADISTICAS) {
     http
       .expectOne((r) => r.url === urlEstadisticas('ra-1', SEMESTRE_ACTIVO.id) && r.method === 'GET')
       .flush(estadisticas);
+  }
+
+  function atenderRendimientoPendiente() {
+    http
+      .match((r) => r.url.endsWith('/rendimiento'))
+      .filter((req) => !req.cancelled)
+      .forEach((req) => req.flush(RENDIMIENTO_VACIO));
   }
 
   async function elegirMateria(asignatura: Asignatura, resultados: ResultadoAprendizaje[]) {
@@ -203,12 +222,17 @@ describe('EstadisticasPage', () => {
   async function iniciarConSeleccion(
     resultados: ResultadoAprendizaje[],
     accionesMejora: AccionMejora[] = [],
+    responderConsulta = true,
   ) {
     await iniciar([MATERIA], [SEMESTRE_ACTIVO, SEMESTRE_INACTIVO]);
     await elegirMateria(MATERIA, resultados);
     elegirRa('ra-1');
     await fixture.whenStable();
     http.expectOne((r) => r.url === URL_ACCIONES_MEJORA).flush(accionesMejora);
+    if (responderConsulta) {
+      atenderConsultaAutomatica();
+    }
+    atenderRendimientoPendiente();
     await fixture.whenStable();
   }
 
@@ -260,6 +284,7 @@ describe('EstadisticasPage', () => {
       elegirRa('ra-1');
       await fixture.whenStable();
       http.expectOne((r) => r.url === URL_ACCIONES_MEJORA).flush([]);
+      atenderConsultaAutomatica();
       http
         .expectOne(
           (r) =>
@@ -300,12 +325,171 @@ describe('EstadisticasPage', () => {
       await fixture.whenStable();
       fixture.detectChanges();
 
-      const texto = html.querySelector('#titulo-rendimiento')?.closest('section')?.textContent ?? '';
+      const texto =
+        html.querySelector('#titulo-rendimiento')?.closest('section')?.textContent ?? '';
       expect(texto).toContain('RA1');
       expect(texto).toContain('Bajo · Completo');
       // El RA2 no está elegido: no se muestra.
       expect(texto).not.toContain('RA2');
       expect(texto).not.toContain('Sin evaluar');
+    });
+  });
+
+  describe('consulta automática de estadísticas y conclusión', () => {
+    it('consulta una vez estadísticas y conclusión al completar los tres filtros', async () => {
+      await iniciarConSeleccion([ra(1)], [], false);
+
+      const estadisticas = http.expectOne(
+        (r) => r.url === urlEstadisticas('ra-1', SEMESTRE_ACTIVO.id) && r.method === 'GET',
+      );
+      const conclusion = http.expectOne(
+        (r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id),
+      );
+      expect(http.match((r) => r.url.includes('/estadisticas') && r.method === 'GET')).toHaveLength(
+        0,
+      );
+      estadisticas.flush(ESTADISTICAS);
+      conclusion.flush(RESULTADO_VIGENTE);
+      await fixture.whenStable();
+
+      expect(html.querySelectorAll('.distribucion__fila').length).toBe(4);
+      expect(html.textContent).toContain(CONCLUSION.mensaje);
+    });
+
+    it('no consulta estadísticas ni conclusión con filtros incompletos', async () => {
+      await iniciar([MATERIA], [SEMESTRE_ACTIVO]);
+      const selectorMateria = html.querySelector('#selector-materia') as HTMLSelectElement;
+      selectorMateria.value = MATERIA.id;
+      selectorMateria.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+      http.expectOne(urlRa(MATERIA.id)).flush([ra(1)]);
+      await fixture.whenStable();
+
+      http.expectNone((r) => r.url.includes('/estadisticas'));
+      http.expectNone((r) => r.url.includes('/conclusiones/estado'));
+    });
+
+    it('cancela la consulta anterior y consulta con los nuevos ids al cambiar un filtro', async () => {
+      await iniciarConSeleccion([ra(1)], [], false);
+
+      const consultaAnterior = http.expectOne(
+        (r) => r.url === urlEstadisticas('ra-1', SEMESTRE_ACTIVO.id),
+      );
+      const conclusionAnterior = http.expectOne(
+        (r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id),
+      );
+
+      const selectorSemestre = html.querySelector('#selector-semestre') as HTMLSelectElement;
+      selectorSemestre.value = SEMESTRE_INACTIVO.id;
+      selectorSemestre.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+
+      expect(consultaAnterior.cancelled).toBe(true);
+      expect(conclusionAnterior.cancelled).toBe(true);
+      http
+        .expectOne(
+          (r) =>
+            r.urlWithParams ===
+            `${URL_ACCIONES_MEJORA}?resultadoAprendizajeId=ra-1&semestreId=${SEMESTRE_INACTIVO.id}`,
+        )
+        .flush([]);
+      http
+        .expectOne((r) => r.url === urlEstadisticas('ra-1', SEMESTRE_INACTIVO.id))
+        .flush(ESTADISTICAS);
+      http
+        .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_INACTIVO.id))
+        .flush(RESULTADO_VIGENTE);
+    });
+
+    it('no deja que una respuesta vieja sobrescriba la consulta más nueva', async () => {
+      await iniciarConSeleccion([ra(1)], [], false);
+
+      const consultaAnterior = http.expectOne(
+        (r) => r.url === urlEstadisticas('ra-1', SEMESTRE_ACTIVO.id),
+      );
+      const conclusionAnterior = http.expectOne(
+        (r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id),
+      );
+      const selectorSemestre = html.querySelector('#selector-semestre') as HTMLSelectElement;
+      selectorSemestre.value = SEMESTRE_INACTIVO.id;
+      selectorSemestre.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+
+      http
+        .expectOne(
+          (r) =>
+            r.urlWithParams ===
+            `${URL_ACCIONES_MEJORA}?resultadoAprendizajeId=ra-1&semestreId=${SEMESTRE_INACTIVO.id}`,
+        )
+        .flush([]);
+      const nuevasEstadisticas = http.expectOne(
+        (r) => r.url === urlEstadisticas('ra-1', SEMESTRE_INACTIVO.id),
+      );
+      const nuevaConclusion = http.expectOne(
+        (r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_INACTIVO.id),
+      );
+      nuevasEstadisticas.flush({ ...ESTADISTICAS, codigoSemestre: SEMESTRE_INACTIVO.codigo });
+      nuevaConclusion.flush({
+        ...RESULTADO_SATISFACTORIO,
+        totalEvaluados: 30,
+      });
+      await fixture.whenStable();
+
+      expect(consultaAnterior.cancelled).toBe(true);
+      expect(conclusionAnterior.cancelled).toBe(true);
+      expect(html.textContent).toContain('dentro de lo esperado');
+      expect(html.textContent).not.toContain(CONCLUSION.mensaje);
+    });
+
+    it('no recalcula automáticamente y un doble clic envía un solo POST', async () => {
+      await iniciarConSeleccion([ra(1)], [], false);
+      const consultaEstadisticas = http.expectOne(
+        (r) => r.url === urlEstadisticas('ra-1', SEMESTRE_ACTIVO.id),
+      );
+      const consultaConclusion = http.expectOne(
+        (r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id),
+      );
+      expect(http.match((r) => r.url.endsWith('/estadisticas/recalculo'))).toHaveLength(0);
+      consultaEstadisticas.flush(ESTADISTICAS);
+      consultaConclusion.flush(RESULTADO_VIGENTE);
+      await fixture.whenStable();
+
+      const botonRecalcular = boton(html, 'Recalcular');
+      botonRecalcular.click();
+      botonRecalcular.click();
+      const recalculos = http.match(
+        (r) => r.url.endsWith('/estadisticas/recalculo') && r.method === 'POST',
+      );
+      expect(recalculos).toHaveLength(1);
+      recalculos[0].flush({
+        estadisticas: ESTADISTICAS,
+        conclusion: { generada: true, motivo: null, conclusion: CONCLUSION },
+      });
+      await fixture.whenStable();
+      atenderConsultaAutomatica();
+      atenderRendimientoPendiente();
+    });
+
+    it('permite reintentar la conclusión después de un error', async () => {
+      await iniciarConSeleccion([ra(1)], [], false);
+      http
+        .expectOne((r) => r.url === urlEstadisticas('ra-1', SEMESTRE_ACTIVO.id))
+        .flush(ESTADISTICAS);
+      http
+        .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id))
+        .flush({ mensaje: 'detalle técnico' }, { status: 503, statusText: 'Service Unavailable' });
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('El servicio no está disponible');
+      boton(html, 'Reintentar').click();
+      await fixture.whenStable();
+      http
+        .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id))
+        .flush(RESULTADO_SATISFACTORIO);
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('dentro de lo esperado');
+      expect(html.textContent).not.toContain('El servicio no está disponible');
     });
   });
 
@@ -350,9 +534,38 @@ describe('EstadisticasPage', () => {
         .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id))
         .flush(RESULTADO_VIGENTE);
       http.expectOne((r) => r.url === URL_ACCIONES_MEJORA).flush([]);
+      atenderRendimientoPendiente();
+      await fixture.whenStable();
+
+      expect(html.textContent).not.toContain('Consultando…');
+      expect(html.textContent).not.toContain('Cargando acciones de mejora');
+      expect(html.textContent).toContain(CONCLUSION.mensaje);
+    });
+
+    it('si el refresco de fondo falla, conserva los datos anteriores sin mostrar error', async () => {
+      await iniciarConSeleccion([ra(1)]);
+
+      document.dispatchEvent(new Event('visibilitychange'));
+      await fixture.whenStable();
+
+      http
+        .expectOne((r) => r.url === urlEstadisticas('ra-1', SEMESTRE_ACTIVO.id))
+        .flush(
+          { mensaje: 'detalle técnico' },
+          { status: 500, statusText: 'Internal Server Error' },
+        );
+      http
+        .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id))
+        .flush(
+          { mensaje: 'detalle técnico' },
+          { status: 500, statusText: 'Internal Server Error' },
+        );
+      http.expectOne((r) => r.url === URL_ACCIONES_MEJORA).flush([]);
+      atenderRendimientoPendiente();
       await fixture.whenStable();
 
       expect(html.textContent).toContain(CONCLUSION.mensaje);
+      expect(html.textContent).not.toContain('El servicio no está disponible');
     });
 
     it('con diagnóstico disponible muestra los números y la recomendación', async () => {
@@ -460,13 +673,6 @@ describe('EstadisticasPage', () => {
   });
 
   describe('nivel de logro (RF-14 / RF-15) en la misma vista', () => {
-    it('antes de consultar pide elegir materia, RA y semestre, sin pedir datos', async () => {
-      await iniciarConSeleccion([ra(1)]);
-
-      expect(html.textContent).toContain('presiona «Consultar»');
-      expect(html.querySelector('app-nivel-logro-resumen')).toBeNull();
-    });
-
     it('«Consultar» muestra el nivel de logro y la conclusión en secciones separadas', async () => {
       await iniciarConSeleccion([ra(1)]);
 
@@ -532,6 +738,9 @@ describe('EstadisticasPage', () => {
       });
       await fixture.whenStable();
       http
+        .expectOne((r) => r.url === urlEstadisticas('ra-1', SEMESTRE_ACTIVO.id))
+        .flush(ESTADISTICAS);
+      http
         .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id))
         .flush(RESULTADO_VIGENTE);
       await fixture.whenStable();
@@ -555,10 +764,16 @@ describe('EstadisticasPage', () => {
       elegirRa('ra-2');
       await fixture.whenStable();
       http.expectOne((r) => r.url === URL_ACCIONES_MEJORA).flush([]);
+      atenderConsultaAutomatica(
+        'ra-2',
+        SEMESTRE_ACTIVO.id,
+        { ...ESTADISTICAS, resultadoAprendizajeId: 'ra-2' },
+        RESULTADO_SATISFACTORIO,
+      );
       await fixture.whenStable();
 
-      expect(html.querySelector('app-nivel-logro-resumen')).toBeNull();
       expect(html.textContent).not.toContain(CONCLUSION.mensaje);
+      expect(html.textContent).toContain('dentro de lo esperado');
     });
   });
 
@@ -656,13 +871,19 @@ describe('EstadisticasPage', () => {
 
       const actualizada = { ...NO_CONVERTIDA, nombre: 'Taller actualizado' };
       http
-        .expectOne((r) => r.url === `${URL_ACCIONES_MEJORA}/${NO_CONVERTIDA.id}` && r.method === 'PUT')
+        .expectOne(
+          (r) => r.url === `${URL_ACCIONES_MEJORA}/${NO_CONVERTIDA.id}` && r.method === 'PUT',
+        )
         .flush(actualizada);
       await fixture.whenStable();
 
       // alGuardarAccionMejora también refresca la conclusión (reutiliza el flujo de registro).
-      http.expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id)).flush(RESULTADO_VIGENTE);
-      http.expectOne((r) => r.url === URL_ACCIONES_MEJORA && r.method === 'GET').flush([actualizada]);
+      http
+        .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id))
+        .flush(RESULTADO_VIGENTE);
+      http
+        .expectOne((r) => r.url === URL_ACCIONES_MEJORA && r.method === 'GET')
+        .flush([actualizada]);
       await fixture.whenStable();
 
       expect(html.textContent).toContain('Acción de mejora actualizada correctamente.');
@@ -730,7 +951,7 @@ describe('EstadisticasPage', () => {
         );
       await fixture.whenStable();
 
-      const alerta = html.querySelector('[role="alert"]') as HTMLElement;
+      const alerta = html.querySelector('dialog [role="alert"]') as HTMLElement;
       expect(alerta.textContent).toContain('El porcentaje supera el 100% del RA en el semestre.');
       expect(html.querySelector('.accion-mejora')).not.toBeNull();
     });
@@ -747,7 +968,7 @@ describe('EstadisticasPage', () => {
         );
       await fixture.whenStable();
 
-      const alerta = html.querySelector('[role="alert"]') as HTMLElement;
+      const alerta = html.querySelector('dialog [role="alert"]') as HTMLElement;
       expect(alerta.textContent).toContain('La acción de mejora ya fue convertida.');
       expect(html.querySelector('.accion-mejora')).not.toBeNull();
     });
