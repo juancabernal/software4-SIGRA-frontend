@@ -274,6 +274,19 @@ Los nombres coinciden con los módulos del backend —`resultadosaprendizaje` en
 La matriz completa, decisiones de seguridad y pendientes de integración están en
 [`docs/security/`](docs/security/).
 
+### R1 — Rendimiento académico por RA y asignatura
+
+| Elemento | Implementación |
+| --- | --- |
+| Rutas | `/admin/reportes` (Administrador) y `/profesor/reportes` (Profesor), ambas con la misma pantalla `RendimientoRaPage` (carga diferida desde `features/reportes/components/rendimiento-ra-page/`) |
+| Backend | `GET /api/v1/reportes/rendimiento-ra` con los filtros opcionales `semestreId`, `programaId` y `asignaturaId` |
+| Filtros | En cascada: semestre → programa → asignatura. El Administrador arma las opciones con todas las asignaturas; el Profesor, solo con las suyas (`/asignaturas/mias`). Cada cambio consulta automáticamente y cancela la petición anterior |
+| Tabla | Una tarjeta por asignatura, con una fila por RA: calificaciones, promedio, nivel de logro (`app-badge-nivel-logro`) y distribución por nivel |
+| Estados | Cargando, error con reintento (sin detalles técnicos, RNF-17) y vacío («Sin datos disponibles») |
+| Accesibilidad | `label` en cada filtro, tabla con `caption` y encabezados `scope`, región `aria-live` y el nivel nunca va solo en color (RNF-21) |
+
+El Estudiante no tiene acceso: el backend responde 403 y la ruta no existe en su menú.
+
 ---
 
 ## 6. Cómo ejecutar el proyecto

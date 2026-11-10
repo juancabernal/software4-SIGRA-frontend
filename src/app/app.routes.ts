@@ -108,6 +108,21 @@ export const routes: Routes = [
         },
       },
       {
+        // R1: rendimiento académico por RA y asignatura (solo las asignaturas del profesor).
+        ...profesor,
+        path: 'profesor/reportes',
+        loadComponent: () =>
+          import('./features/reportes/components/rendimiento-ra-page/rendimiento-ra-page').then(
+            (m) => m.RendimientoRaPage,
+          ),
+        title: 'Rendimiento por RA · SIGRA',
+        data: {
+          ...profesor.data,
+          titulo: 'Reportes',
+          subtitulo: 'Rendimiento por RA de tus asignaturas',
+        },
+      },
+      {
         ...profesor,
         path: 'profesor/historial',
         loadComponent: pendiente,
@@ -198,10 +213,14 @@ export const routes: Routes = [
         title: 'Historial de auditoría · SIGRA',
       },
       {
+        // R1: rendimiento académico por RA y asignatura (todas las asignaturas).
         ...administrador,
         path: 'admin/reportes',
-        loadComponent: pendiente,
-        title: 'Reportes · SIGRA',
+        loadComponent: () =>
+          import('./features/reportes/components/rendimiento-ra-page/rendimiento-ra-page').then(
+            (m) => m.RendimientoRaPage,
+          ),
+        title: 'Rendimiento por RA · SIGRA',
         data: {
           ...administrador.data,
           titulo: 'Reportes',

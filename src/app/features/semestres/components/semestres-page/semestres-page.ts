@@ -6,8 +6,9 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { Subscription } from 'rxjs';
 
-import { Semestre } from '../../models/semestre.model';
+import { EstadoSemestre, Semestre } from '../../models/semestre.model';
 import { duracionEnDias, formatearFecha, hoyIso } from '../../models/semestre-fechas';
 import { MensajeError, mensajeDeError } from '../../services/semestre-error';
 import { SemestreService } from '../../services/semestre.service';
@@ -29,6 +30,7 @@ interface FilaSemestre {
 type Dialogo = { tipo: 'crear' } | { tipo: 'extender'; semestre: Semestre } | null;
 
 const DURACION_AVISO_MS = 6000;
+const ESPERA_BUSQUEDA_MS = 300;
 
 /**
  * RF-Semestre: listado, registro y extensión de la fecha de fin.
@@ -45,12 +47,17 @@ const DURACION_AVISO_MS = 6000;
 export class SemestresPage {
   private readonly service = inject(SemestreService);
   private temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
+  private temporizadorBusqueda: ReturnType<typeof setTimeout> | undefined;
+  private consulta: Subscription | undefined;
 
   protected readonly cargando = signal(true);
   protected readonly errorCarga = signal<MensajeError | null>(null);
   protected readonly semestres = signal<Semestre[]>([]);
   protected readonly dialogo = signal<Dialogo>(null);
   protected readonly aviso = signal<string | null>(null);
+  protected readonly codigo = signal('');
+  protected readonly estado = signal<EstadoSemestre | ''>('');
+  protected readonly hayFiltros = computed(() => this.codigo().trim() !== '' || this.estado() !== '');
 
   protected readonly filas = computed<FilaSemestre[]>(() => {
     const hoy = hoyIso();
@@ -80,23 +87,50 @@ export class SemestresPage {
   );
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => clearTimeout(this.temporizadorAviso));
+    inject(DestroyRef).onDestroy(() => {
+      clearTimeout(this.temporizadorAviso);
+      clearTimeout(this.temporizadorBusqueda);
+      this.consulta?.unsubscribe();
+    });
     this.cargar();
   }
 
   protected cargar(): void {
     this.cargando.set(true);
     this.errorCarga.set(null);
-    this.service.listar().subscribe({
-      next: (semestres) => {
-        this.semestres.set(semestres);
-        this.cargando.set(false);
-      },
-      error: (error: unknown) => {
-        this.errorCarga.set(mensajeDeError(error));
-        this.cargando.set(false);
-      },
-    });
+    this.consulta?.unsubscribe();
+    this.consulta = this.service
+      .listar({ codigo: this.codigo(), estado: this.estado() || undefined })
+      .subscribe({
+        next: (semestres) => {
+          this.semestres.set(semestres);
+          this.cargando.set(false);
+        },
+        error: (error: unknown) => {
+          this.errorCarga.set(mensajeDeError(error));
+          this.cargando.set(false);
+        },
+      });
+  }
+
+  /** Espera a que la persona deje de teclear y vuelve a consultar con el filtro vigente. */
+  protected alEscribirCodigo(evento: Event): void {
+    this.codigo.set((evento.target as HTMLInputElement).value);
+    clearTimeout(this.temporizadorBusqueda);
+    this.temporizadorBusqueda = setTimeout(() => this.cargar(), ESPERA_BUSQUEDA_MS);
+  }
+
+  protected alCambiarEstado(evento: Event): void {
+    this.estado.set((evento.target as HTMLSelectElement).value as EstadoSemestre | '');
+    clearTimeout(this.temporizadorBusqueda);
+    this.cargar();
+  }
+
+  protected limpiarFiltros(): void {
+    this.codigo.set('');
+    this.estado.set('');
+    clearTimeout(this.temporizadorBusqueda);
+    this.cargar();
   }
 
   protected abrirRegistro(): void {

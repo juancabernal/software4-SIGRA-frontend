@@ -33,6 +33,7 @@ export const PERFILES: Readonly<Record<Rol, PerfilRol>> = {
       { ruta: '/profesor/evaluaciones', etiqueta: 'Evaluaciones / RA', icono: 'lista' },
       { ruta: '/profesor/notas', etiqueta: 'Calificaciones', icono: 'documento' },
       { ruta: '/profesor/estadisticas', etiqueta: 'Estadísticas', icono: 'barras' },
+      { ruta: '/profesor/reportes', etiqueta: 'Reportes', icono: 'torta' },
       { ruta: '/profesor/historial', etiqueta: 'Mi historial', icono: 'reloj' },
     ],
   },
