@@ -86,6 +86,90 @@ describe('SemestresPage', () => {
     expect(html.querySelectorAll('tbody tr').length).toBe(1);
   });
 
+  describe('búsqueda y filtros', () => {
+    const consulta = () => http.expectOne((r) => r.url === URL);
+
+    function escribirCodigo(valor: string): void {
+      const input = html.querySelector('#filtro-codigo') as HTMLInputElement;
+      input.value = valor;
+      input.dispatchEvent(new Event('input'));
+    }
+
+    afterEach(() => vi.useRealTimers());
+
+    it('busca por código tras una pausa al teclear, con un solo pedido', () => {
+      vi.useFakeTimers();
+      fixture.detectChanges();
+      consulta().flush([FUTURO, TERMINADO]);
+      fixture.detectChanges();
+
+      escribirCodigo('2');
+      escribirCodigo('20');
+      escribirCodigo('2090');
+      vi.advanceTimersByTime(299);
+      http.expectNone((r) => r.url === URL);
+      vi.advanceTimersByTime(1);
+
+      const req = consulta();
+      expect(req.request.params.get('codigo')).toBe('2090');
+      req.flush([FUTURO]);
+      fixture.detectChanges();
+      expect(html.querySelectorAll('tbody tr').length).toBe(1);
+      expect(html.querySelector('tbody')?.textContent).toContain('2090-1');
+    });
+
+    it('filtra por estado de inmediato', async () => {
+      await responderListado([FUTURO]);
+
+      const select = html.querySelector('#filtro-estado') as HTMLSelectElement;
+      select.value = 'ACTIVO';
+      select.dispatchEvent(new Event('change'));
+
+      const req = consulta();
+      expect(req.request.params.get('estado')).toBe('ACTIVO');
+      req.flush([]);
+    });
+
+    it('sin coincidencias muestra «Sin resultados» y limpiar filtros vuelve al listado completo', async () => {
+      await responderListado([FUTURO]);
+      const select = html.querySelector('#filtro-estado') as HTMLSelectElement;
+      select.value = 'ACTIVO';
+      select.dispatchEvent(new Event('change'));
+      consulta().flush([]);
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('Sin resultados');
+      expect(html.textContent).not.toContain('Todavía no hay semestres registrados');
+      expect(html.textContent).not.toContain('Semestre en curso');
+      expect(html.textContent).not.toContain('Hoy no hay ningún semestre en curso');
+
+      const limpiar = [...html.querySelectorAll('.estado-vista button')].find((b) =>
+        b.textContent?.includes('Limpiar filtros'),
+      ) as HTMLButtonElement;
+      limpiar.click();
+
+      const req = consulta();
+      expect(req.request.params.keys()).toEqual([]);
+      req.flush([FUTURO, TERMINADO]);
+      await fixture.whenStable();
+      expect(html.querySelectorAll('tbody tr').length).toBe(2);
+    });
+
+    it('conserva el filtro activo al recargar tras un error', async () => {
+      await responderListado([FUTURO]);
+      const select = html.querySelector('#filtro-estado') as HTMLSelectElement;
+      select.value = 'INACTIVO';
+      select.dispatchEvent(new Event('change'));
+      consulta().flush(null, { status: 0, statusText: 'Unknown Error' });
+      await fixture.whenStable();
+
+      (html.querySelector('[role="alert"] button') as HTMLButtonElement).click();
+      const req = consulta();
+      expect(req.request.params.get('estado')).toBe('INACTIVO');
+      req.flush([FUTURO]);
+    });
+  });
+
   it('abre el diálogo de registro', async () => {
     await responderListado([FUTURO]);
     (html.querySelector('.cabecera button') as HTMLButtonElement).click();
