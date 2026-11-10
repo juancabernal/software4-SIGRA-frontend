@@ -15,6 +15,12 @@ export interface Semestre {
   estado: EstadoSemestre;
 }
 
+/** Filtros opcionales de GET /semestres: búsqueda parcial por código y estado calculado. */
+export interface FiltrosSemestres {
+  codigo?: string;
+  estado?: EstadoSemestre;
+}
+
 /** SemestreRequestDTO (POST /semestres). */
 export interface SemestreRequest {
   codigo: string;
