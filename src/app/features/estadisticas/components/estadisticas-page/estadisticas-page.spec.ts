@@ -185,6 +185,16 @@ describe('EstadisticasPage', () => {
       .flush(estadisticas);
   }
 
+  function responderConsultaAutomatica(
+    estadisticas = ESTADISTICAS,
+    conclusion = RESULTADO_VIGENTE,
+  ) {
+    responderEstadisticas(estadisticas);
+    http
+      .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id))
+      .flush(conclusion);
+  }
+
   async function elegirMateria(asignatura: Asignatura, resultados: ResultadoAprendizaje[]) {
     const selector = html.querySelector('#selector-materia') as HTMLSelectElement;
     selector.value = asignatura.id;
@@ -203,12 +213,16 @@ describe('EstadisticasPage', () => {
   async function iniciarConSeleccion(
     resultados: ResultadoAprendizaje[],
     accionesMejora: AccionMejora[] = [],
+    responderConsulta = true,
   ) {
     await iniciar([MATERIA], [SEMESTRE_ACTIVO, SEMESTRE_INACTIVO]);
     await elegirMateria(MATERIA, resultados);
     elegirRa('ra-1');
     await fixture.whenStable();
     http.expectOne((r) => r.url === URL_ACCIONES_MEJORA).flush(accionesMejora);
+    if (responderConsulta) {
+      responderConsultaAutomatica();
+    }
     await fixture.whenStable();
   }
 
@@ -300,12 +314,158 @@ describe('EstadisticasPage', () => {
       await fixture.whenStable();
       fixture.detectChanges();
 
-      const texto = html.querySelector('#titulo-rendimiento')?.closest('section')?.textContent ?? '';
+      const texto =
+        html.querySelector('#titulo-rendimiento')?.closest('section')?.textContent ?? '';
       expect(texto).toContain('RA1');
       expect(texto).toContain('Bajo · Completo');
       // El RA2 no está elegido: no se muestra.
       expect(texto).not.toContain('RA2');
       expect(texto).not.toContain('Sin evaluar');
+    });
+  });
+
+  describe('consulta automática de estadísticas y conclusión', () => {
+    it('consulta una vez estadísticas y conclusión al completar los tres filtros', async () => {
+      await iniciarConSeleccion([ra(1)], [], false);
+
+      const estadisticas = http.expectOne(
+        (r) => r.url === urlEstadisticas('ra-1', SEMESTRE_ACTIVO.id) && r.method === 'GET',
+      );
+      const conclusion = http.expectOne(
+        (r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id),
+      );
+      expect(http.match((r) => r.url.includes('/estadisticas') && r.method === 'GET')).toHaveLength(
+        0,
+      );
+      estadisticas.flush(ESTADISTICAS);
+      conclusion.flush(RESULTADO_VIGENTE);
+      await fixture.whenStable();
+
+      expect(html.querySelectorAll('.distribucion__fila').length).toBe(4);
+      expect(html.textContent).toContain(CONCLUSION.mensaje);
+    });
+
+    it('no consulta estadísticas ni conclusión con filtros incompletos', async () => {
+      await iniciar([MATERIA], [SEMESTRE_ACTIVO]);
+      const selectorMateria = html.querySelector('#selector-materia') as HTMLSelectElement;
+      selectorMateria.value = MATERIA.id;
+      selectorMateria.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+      http.expectOne(urlRa(MATERIA.id)).flush([ra(1)]);
+      await fixture.whenStable();
+
+      http.expectNone((r) => r.url.includes('/estadisticas'));
+      http.expectNone((r) => r.url.includes('/conclusiones/estado'));
+    });
+
+    it('cancela la consulta anterior y consulta con los nuevos ids al cambiar un filtro', async () => {
+      await iniciarConSeleccion([ra(1)], [], false);
+
+      const consultaAnterior = http.expectOne(
+        (r) => r.url === urlEstadisticas('ra-1', SEMESTRE_ACTIVO.id),
+      );
+      const conclusionAnterior = http.expectOne(
+        (r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id),
+      );
+
+      const selectorSemestre = html.querySelector('#selector-semestre') as HTMLSelectElement;
+      selectorSemestre.value = SEMESTRE_INACTIVO.id;
+      selectorSemestre.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+
+      expect(consultaAnterior.cancelled).toBe(true);
+      expect(conclusionAnterior.cancelled).toBe(true);
+      http
+        .expectOne((r) => r.url === urlEstadisticas('ra-1', SEMESTRE_INACTIVO.id))
+        .flush(ESTADISTICAS);
+      http
+        .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_INACTIVO.id))
+        .flush(RESULTADO_VIGENTE);
+    });
+
+    it('no deja que una respuesta vieja sobrescriba la consulta más nueva', async () => {
+      await iniciarConSeleccion([ra(1)], [], false);
+
+      const consultaAnterior = http.expectOne(
+        (r) => r.url === urlEstadisticas('ra-1', SEMESTRE_ACTIVO.id),
+      );
+      const conclusionAnterior = http.expectOne(
+        (r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id),
+      );
+      const selectorSemestre = html.querySelector('#selector-semestre') as HTMLSelectElement;
+      selectorSemestre.value = SEMESTRE_INACTIVO.id;
+      selectorSemestre.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+
+      const nuevasEstadisticas = http.expectOne(
+        (r) => r.url === urlEstadisticas('ra-1', SEMESTRE_INACTIVO.id),
+      );
+      const nuevaConclusion = http.expectOne(
+        (r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_INACTIVO.id),
+      );
+      nuevasEstadisticas.flush({ ...ESTADISTICAS, codigoSemestre: SEMESTRE_INACTIVO.codigo });
+      nuevaConclusion.flush({
+        ...RESULTADO_SATISFACTORIO,
+        totalEvaluados: 30,
+      });
+      await fixture.whenStable();
+
+      expect(consultaAnterior.cancelled).toBe(true);
+      expect(conclusionAnterior.cancelled).toBe(true);
+      expect(html.textContent).toContain('dentro de lo esperado');
+      expect(html.textContent).not.toContain(CONCLUSION.mensaje);
+    });
+
+    it('no recalcula automáticamente y un doble clic envía un solo POST', async () => {
+      await iniciarConSeleccion([ra(1)], [], false);
+      const consultaEstadisticas = http.expectOne(
+        (r) => r.url === urlEstadisticas('ra-1', SEMESTRE_ACTIVO.id),
+      );
+      const consultaConclusion = http.expectOne(
+        (r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id),
+      );
+      expect(http.match((r) => r.url.endsWith('/recalculo'))).toHaveLength(0);
+      consultaEstadisticas.flush(ESTADISTICAS);
+      consultaConclusion.flush(RESULTADO_VIGENTE);
+      await fixture.whenStable();
+
+      const botonRecalcular = boton(html, 'Recalcular');
+      botonRecalcular.click();
+      botonRecalcular.click();
+      expect(http.match((r) => r.url.endsWith('/recalculo') && r.method === 'POST')).toHaveLength(
+        1,
+      );
+
+      http
+        .expectOne((r) => r.url.endsWith('/recalculo') && r.method === 'POST')
+        .flush({
+          estadisticas: ESTADISTICAS,
+          conclusion: { generada: true, motivo: null, conclusion: CONCLUSION },
+        });
+      await fixture.whenStable();
+      responderConsultaAutomatica();
+    });
+
+    it('permite reintentar la conclusión después de un error', async () => {
+      await iniciarConSeleccion([ra(1)], [], false);
+      http
+        .expectOne((r) => r.url === urlEstadisticas('ra-1', SEMESTRE_ACTIVO.id))
+        .flush(ESTADISTICAS);
+      http
+        .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id))
+        .flush({ mensaje: 'detalle técnico' }, { status: 503, statusText: 'Service Unavailable' });
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('El servicio no está disponible');
+      boton(html, 'Reintentar').click();
+      await fixture.whenStable();
+      http
+        .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id))
+        .flush(RESULTADO_SATISFACTORIO);
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('dentro de lo esperado');
+      expect(html.textContent).not.toContain('El servicio no está disponible');
     });
   });
 
@@ -460,13 +620,6 @@ describe('EstadisticasPage', () => {
   });
 
   describe('nivel de logro (RF-14 / RF-15) en la misma vista', () => {
-    it('antes de consultar pide elegir materia, RA y semestre, sin pedir datos', async () => {
-      await iniciarConSeleccion([ra(1)]);
-
-      expect(html.textContent).toContain('presiona «Consultar»');
-      expect(html.querySelector('app-nivel-logro-resumen')).toBeNull();
-    });
-
     it('«Consultar» muestra el nivel de logro y la conclusión en secciones separadas', async () => {
       await iniciarConSeleccion([ra(1)]);
 
@@ -532,6 +685,9 @@ describe('EstadisticasPage', () => {
       });
       await fixture.whenStable();
       http
+        .expectOne((r) => r.url === urlEstadisticas('ra-1', SEMESTRE_ACTIVO.id))
+        .flush(ESTADISTICAS);
+      http
         .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id))
         .flush(RESULTADO_VIGENTE);
       await fixture.whenStable();
@@ -555,10 +711,16 @@ describe('EstadisticasPage', () => {
       elegirRa('ra-2');
       await fixture.whenStable();
       http.expectOne((r) => r.url === URL_ACCIONES_MEJORA).flush([]);
+      http
+        .expectOne((r) => r.url === urlEstadisticas('ra-2', SEMESTRE_ACTIVO.id))
+        .flush({ ...ESTADISTICAS, resultadoAprendizajeId: 'ra-2' });
+      http
+        .expectOne((r) => r.url === urlEstadoConclusion('ra-2', SEMESTRE_ACTIVO.id))
+        .flush(RESULTADO_SATISFACTORIO);
       await fixture.whenStable();
 
-      expect(html.querySelector('app-nivel-logro-resumen')).toBeNull();
       expect(html.textContent).not.toContain(CONCLUSION.mensaje);
+      expect(html.textContent).toContain('dentro de lo esperado');
     });
   });
 
@@ -656,13 +818,19 @@ describe('EstadisticasPage', () => {
 
       const actualizada = { ...NO_CONVERTIDA, nombre: 'Taller actualizado' };
       http
-        .expectOne((r) => r.url === `${URL_ACCIONES_MEJORA}/${NO_CONVERTIDA.id}` && r.method === 'PUT')
+        .expectOne(
+          (r) => r.url === `${URL_ACCIONES_MEJORA}/${NO_CONVERTIDA.id}` && r.method === 'PUT',
+        )
         .flush(actualizada);
       await fixture.whenStable();
 
       // alGuardarAccionMejora también refresca la conclusión (reutiliza el flujo de registro).
-      http.expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id)).flush(RESULTADO_VIGENTE);
-      http.expectOne((r) => r.url === URL_ACCIONES_MEJORA && r.method === 'GET').flush([actualizada]);
+      http
+        .expectOne((r) => r.url === urlEstadoConclusion('ra-1', SEMESTRE_ACTIVO.id))
+        .flush(RESULTADO_VIGENTE);
+      http
+        .expectOne((r) => r.url === URL_ACCIONES_MEJORA && r.method === 'GET')
+        .flush([actualizada]);
       await fixture.whenStable();
 
       expect(html.textContent).toContain('Acción de mejora actualizada correctamente.');

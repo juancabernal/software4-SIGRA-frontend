@@ -121,6 +121,7 @@
           type="button"
           class="btn"
           title="Vuelve a calcular el nivel de logro con las calificaciones actuales"
+          [disabled]="!puedeConsultar() || recalculando()"
           [attr.aria-disabled]="puedeConsultar() && !recalculando() ? null : 'true'"
           [attr.aria-busy]="recalculando() ? 'true' : null"
           (click)="recalcular()"
@@ -174,7 +175,7 @@
 
       @if (consultaEstado() === 'inactivo' && cargaEstadisticas().estado === 'inactivo') {
         <div class="estado-vista">
-          <p>Elige materia, RA y semestre, y presiona «Consultar».</p>
+          <p>Elige materia, RA y semestre para ver los resultados.</p>
         </div>
       } @else {
         <!-- RF-14 / RF-15: nivel de logro -->
