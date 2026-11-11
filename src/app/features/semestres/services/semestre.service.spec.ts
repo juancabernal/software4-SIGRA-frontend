@@ -41,6 +41,28 @@ describe('SemestreService', () => {
     expect(resultado).toEqual([SEMESTRE]);
   });
 
+  it('lista sin parámetros cuando no hay filtros', () => {
+    service.listar().subscribe();
+
+    const req = http.expectOne((r) => r.url === URL);
+    expect(req.request.params.keys()).toEqual([]);
+    req.flush([]);
+  });
+
+  it('envía solo los filtros con valor y recorta el código', () => {
+    service.listar({ codigo: '  2090  ', estado: 'ACTIVO' }).subscribe();
+
+    const req = http.expectOne((r) => r.url === URL);
+    expect(req.request.params.get('codigo')).toBe('2090');
+    expect(req.request.params.get('estado')).toBe('ACTIVO');
+    req.flush([]);
+
+    service.listar({ codigo: '   ' }).subscribe();
+    const sinFiltros = http.expectOne((r) => r.url === URL);
+    expect(sinFiltros.request.params.keys()).toEqual([]);
+    sinFiltros.flush([]);
+  });
+
   it('consulta por código con GET /v1/semestres/{codigo}', () => {
     service.consultarPorCodigo('2090-1').subscribe();
 

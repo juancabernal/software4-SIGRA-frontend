@@ -68,6 +68,47 @@ h1 {
   line-height: 1.55;
 }
 
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+}
+
+.campo {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 11rem;
+}
+
+.campo--busqueda {
+  flex: 1 1 16rem;
+  max-width: 24rem;
+}
+
+.campo label {
+  color: var(--sem-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.campo input,
+.campo select {
+  min-height: 2.5rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--sem-line);
+  border-radius: var(--sem-radius-control);
+  background: var(--sem-field);
+  color: var(--sem-ink);
+  font: inherit;
+}
+
+.campo input:focus-visible,
+.campo select:focus-visible {
+  outline: 2px solid var(--sem-navy);
+  outline-offset: 2px;
+}
+
 .hoy {
   display: flex;
   align-items: center;
