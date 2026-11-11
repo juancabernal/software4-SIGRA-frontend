@@ -24,15 +24,15 @@ type Carga =
 
 const NIVELES: readonly DistribucionNivel['nivel'][] = ['BAJO', 'MEDIO', 'ALTO', 'SOBRESALIENTE'];
 
-/** Reporte R1: rendimiento académico por RA y asignatura, con filtros en cascada semestre → programa → asignatura. */
+/** Pestaña R1: rendimiento académico por RA y asignatura. */
 @Component({
-  selector: 'app-rendimiento-ra-page',
+  selector: 'app-rendimiento-ra-tab',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [BadgeNivelLogro],
-  templateUrl: './rendimiento-ra-page.html',
-  styleUrl: './rendimiento-ra-page.scss',
+  templateUrl: './rendimiento-ra-tab.html',
+  styleUrl: './rendimiento-ra-tab.scss',
 })
-export class RendimientoRaPage {
+export class RendimientoRaTab {
   private readonly reportes = inject(ReporteService);
   private readonly asignaturaService = inject(AsignaturaService);
   private readonly semestreService = inject(SemestreService);
@@ -52,7 +52,6 @@ export class RendimientoRaPage {
     { initialValue: [] },
   );
 
-  /** El Profesor solo ve sus asignaturas; el Administrador, todas. El backend aplica el mismo alcance al reporte. */
   private readonly asignaturas = toSignal<Asignatura[], Asignatura[]>(
     (this.sesion.rol() === 'profesor'
       ? this.asignaturaService.misAsignaturas()
@@ -83,7 +82,6 @@ export class RendimientoRaPage {
   }));
   private readonly intento = signal(0);
 
-  /** Consulta automática al cambiar un filtro; `switchMap` cancela la petición anterior. */
   protected readonly carga = toSignal<Carga, Carga>(
     toObservable(computed(() => ({ filtros: this.filtros(), intento: this.intento() }))).pipe(
       switchMap(({ filtros }) =>
@@ -127,7 +125,10 @@ export class RendimientoRaPage {
     return !!(this.semestreId() || this.programaId() || this.asignaturaId());
   }
 
-  protected distribucionDe(distribucion: DistribucionNivel[], nivel: DistribucionNivel['nivel']): DistribucionNivel | undefined {
+  protected distribucionDe(
+    distribucion: DistribucionNivel[],
+    nivel: DistribucionNivel['nivel'],
+  ): DistribucionNivel | undefined {
     return distribucion.find((d) => d.nivel === nivel);
   }
 }

@@ -5,23 +5,15 @@
   font-size: 0.875rem;
 }
 
-.pagina {
-  max-width: 72rem;
-  margin: 0 auto;
-  padding: 24px;
+.panel-reporte {
   display: grid;
-  gap: 20px;
+  gap: 1rem;
 }
 
-.cabecera h1 {
+.panel-reporte__sub {
   margin: 0;
-  font-family: var(--sg-font-titulo, Manrope, system-ui, sans-serif);
-  font-size: 1.5rem;
-}
-
-.cabecera__sub {
-  margin: 4px 0 0;
   color: var(--sg-ink-muted, #64748b);
+  font-size: 0.875rem;
 }
 
 .filtros {
@@ -56,14 +48,12 @@
   }
 }
 
-
-
 .resultado {
   display: grid;
   gap: 16px;
 }
 
-.semestre {
+.meta {
   margin: 0;
   color: var(--sg-ink-muted, #64748b);
 }
@@ -82,7 +72,8 @@
 }
 
 .tarjeta__programa {
-  margin-left: 8px;
+  display: block;
+  margin-top: 0.2rem;
   font-family: var(--sg-font-cuerpo, Inter, system-ui, sans-serif);
   font-size: 0.8125rem;
   font-weight: 400;
@@ -117,27 +108,36 @@ thead th {
   white-space: nowrap;
 }
 
-.ra {
+.est {
   font-weight: 400;
 }
 
-.ra__codigo {
+.est__nombre {
   display: block;
   font-weight: 600;
 }
 
-.ra__descripcion,
-.nota {
+.est__correo {
+  display: block;
   color: var(--sg-ink-muted, #64748b);
   font-size: 0.8125rem;
 }
 
-.nota {
-  display: block;
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
-.num .nota {
-  display: inline;
+.chip-ra {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.chip-ra__txt {
+  font-size: 0.8125rem;
+  color: var(--sg-ink-muted, #64748b);
 }
 
 .estado-vista {

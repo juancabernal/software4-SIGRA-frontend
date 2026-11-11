@@ -6,7 +6,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { environment } from '../../../../../environments/environment';
 import { SesionService } from '../../../../core/services/sesion';
 import { RendimientoRaReporte, badgeDeRa } from '../../models/rendimiento-ra.model';
-import { RendimientoRaPage } from './rendimiento-ra-page';
+import { RendimientoRaTab } from './rendimiento-ra-tab';
 
 const API = environment.apiUrl;
 const ASIGNATURA = {
@@ -68,13 +68,13 @@ const REPORTE: RendimientoRaReporte = {
   ],
 };
 
-describe('RendimientoRaPage', () => {
-  let fixture: ComponentFixture<RendimientoRaPage>;
+describe('RendimientoRaTab', () => {
+  let fixture: ComponentFixture<RendimientoRaTab>;
   let http: HttpTestingController;
 
   function crear(rol: 'admin' | 'profesor'): HTMLElement {
     TestBed.configureTestingModule({
-      imports: [RendimientoRaPage],
+      imports: [RendimientoRaTab],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
@@ -82,7 +82,7 @@ describe('RendimientoRaPage', () => {
       ],
     });
     http = TestBed.inject(HttpTestingController);
-    fixture = TestBed.createComponent(RendimientoRaPage);
+    fixture = TestBed.createComponent(RendimientoRaTab);
     fixture.detectChanges();
     return fixture.nativeElement as HTMLElement;
   }
@@ -116,7 +116,7 @@ describe('RendimientoRaPage', () => {
     http.expectOne((r) => r.url === `${API}/v1/reportes/rendimiento-ra`).flush(REPORTE);
     fixture.detectChanges();
 
-    const opciones = [...(fixture.nativeElement as HTMLElement).querySelectorAll('#filtro-asignatura option')];
+    const opciones = [...(fixture.nativeElement as HTMLElement).querySelectorAll('#filtro-asignatura-r1 option')];
     expect(opciones.map((o) => o.textContent?.trim())).toContain('SIS101 · Programación');
   });
 
@@ -151,7 +151,7 @@ describe('RendimientoRaPage', () => {
     http.expectOne((r) => r.url === `${API}/v1/reportes/rendimiento-ra`).flush(REPORTE);
     fixture.detectChanges();
 
-    const select = html.querySelector('#filtro-asignatura') as HTMLSelectElement;
+    const select = html.querySelector('#filtro-asignatura-r1') as HTMLSelectElement;
     select.value = 'a1';
     select.dispatchEvent(new Event('change'));
     fixture.detectChanges();

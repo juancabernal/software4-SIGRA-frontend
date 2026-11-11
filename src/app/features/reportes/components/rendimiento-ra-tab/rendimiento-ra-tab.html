@@ -1,13 +1,10 @@
-<section class="pagina" aria-labelledby="titulo-rendimiento-ra">
-  <header class="cabecera">
-    <h1 id="titulo-rendimiento-ra">Rendimiento académico por RA</h1>
-    <p class="cabecera__sub">Nivel de logro por resultado de aprendizaje, agrupado por asignatura</p>
-  </header>
+<div class="panel-reporte" aria-label="Rendimiento académico por RA">
+  <p class="panel-reporte__sub">Nivel de logro por resultado de aprendizaje, agrupado por asignatura</p>
 
   <form class="filtros" (submit)="$event.preventDefault()" aria-label="Filtros del reporte">
     <div class="campo">
-      <label for="filtro-semestre">Semestre</label>
-      <select id="filtro-semestre" [value]="semestreId()" (change)="cambiarSemestre($any($event.target).value)">
+      <label for="filtro-semestre-r1">Semestre</label>
+      <select id="filtro-semestre-r1" [value]="semestreId()" (change)="cambiarSemestre($any($event.target).value)">
         <option value="">Semestre activo</option>
         @for (semestre of semestres(); track semestre.id) {
           <option [value]="semestre.id" [selected]="semestre.id === semestreId()">{{ semestre.codigo }}</option>
@@ -15,8 +12,8 @@
       </select>
     </div>
     <div class="campo">
-      <label for="filtro-programa">Programa</label>
-      <select id="filtro-programa" (change)="cambiarPrograma($any($event.target).value)">
+      <label for="filtro-programa-r1">Programa</label>
+      <select id="filtro-programa-r1" (change)="cambiarPrograma($any($event.target).value)">
         <option value="">Todos los programas</option>
         @for (programa of programas(); track programa.id) {
           <option [value]="programa.id" [selected]="programa.id === programaId()">{{ programa.nombre }}</option>
@@ -24,8 +21,8 @@
       </select>
     </div>
     <div class="campo">
-      <label for="filtro-asignatura">Asignatura</label>
-      <select id="filtro-asignatura" (change)="cambiarAsignatura($any($event.target).value)">
+      <label for="filtro-asignatura-r1">Asignatura</label>
+      <select id="filtro-asignatura-r1" (change)="cambiarAsignatura($any($event.target).value)">
         <option value="">Todas las asignaturas</option>
         @for (asignatura of asignaturasDelPrograma(); track asignatura.id) {
           <option [value]="asignatura.id" [selected]="asignatura.id === asignaturaId()">
@@ -86,7 +83,17 @@
                         <th scope="col" class="num">Promedio</th>
                         <th scope="col">Nivel de logro</th>
                         @for (nivel of niveles; track nivel) {
-                          <th scope="col" class="num">{{ nivel === 'SOBRESALIENTE' ? 'Sobresaliente' : nivel === 'ALTO' ? 'Alto' : nivel === 'MEDIO' ? 'Medio' : 'Bajo' }}</th>
+                          <th scope="col" class="num">
+                            {{
+                              nivel === 'SOBRESALIENTE'
+                                ? 'Sobresaliente'
+                                : nivel === 'ALTO'
+                                  ? 'Alto'
+                                  : nivel === 'MEDIO'
+                                    ? 'Medio'
+                                    : 'Bajo'
+                            }}
+                          </th>
                         }
                       </tr>
                     </thead>
@@ -123,4 +130,4 @@
       }
     }
   </div>
-</section>
+</div>
