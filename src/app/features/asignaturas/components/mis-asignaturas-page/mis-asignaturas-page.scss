@@ -180,32 +180,6 @@ dd {
   border-top: 1px solid var(--sg-divider);
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 0.85rem;
-  border: 1px solid var(--sg-border);
-  border-radius: var(--sg-radius-control);
-  background: var(--sg-card);
-  color: var(--sg-ink-body);
-  font: inherit;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn--primario {
-  border-color: var(--sg-navy);
-  background: var(--sg-navy);
-  color: #fff;
-}
-
-.btn--secundario:hover,
-.btn--primario:hover {
-  filter: brightness(1.08);
-}
-
 .estado-vista {
   display: grid;
   justify-items: center;

@@ -125,40 +125,6 @@ form {
   flex-wrap: wrap;
 }
 
-.btn {
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-  padding: 0.55rem 1rem;
-  border-radius: var(--sg-radius-control);
-  border: 1px solid var(--sg-border);
-  background: var(--sg-card);
-  color: var(--sg-ink-body);
-  cursor: pointer;
-  transition:
-    background var(--sg-transition),
-    border-color var(--sg-transition);
-}
-
-.btn:hover:not(:disabled) {
-  background: var(--sg-field);
-}
-
-.btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.btn--primario {
-  border-color: var(--sg-navy);
-  background: var(--sg-navy);
-  color: #fff;
-}
-
-.btn--primario:hover:not(:disabled) {
-  background: var(--sg-navy-hover);
-}
-
 // ── Identificación del estudiante ───────────────────────────────────
 
 // Documento + botón en una línea; en móvil el botón baja y ocupa el ancho.
@@ -360,7 +326,3 @@ form {
   color: var(--sg-warning-fg);
 }
 
-.btn--pequeno {
-  padding: 0.35rem 0.7rem;
-  font-size: 0.8rem;
-}
