@@ -157,6 +157,28 @@ tbody tr:hover {
   font-size: 0.8125rem;
 }
 
+// Programas en «Facultad sin asignar»: barra lateral y fondo de advertencia, además del chip.
+.fila--sin-facultad {
+  background: var(--sg-warning-bg);
+
+  > :first-child {
+    box-shadow: inset 3px 0 0 var(--sg-warning);
+  }
+}
+
+.reasignar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.7rem 1.25rem;
+  border-bottom: 1px solid var(--sg-divider);
+  background: var(--sg-warning-bg);
+  color: var(--sg-warning-fg);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 .acciones {
   display: flex;
   flex-wrap: wrap;

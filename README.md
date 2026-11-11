@@ -66,10 +66,10 @@ Las vistas se construyen en paralelo con el módulo backend correspondiente. Cad
 
 | Integrante | Vistas y componentes | Requisitos |
 | --- | --- | --- |
-| Jean Paul Ortiz | Asignación docente con selección múltiple y resumen del resultado | RF-07 |
+| Simón Tabares | Asignación docente con selección múltiple y resumen del resultado | RF-07 |
 | Andrés Vélez | Vista de matrícula para administrador y profesor, con confirmación extra si hay calificaciones | RF-08, RF-09 |
 | Juan José Narváez | Vista del profesor: evaluaciones por RA con el porcentaje acumulado visible | RF-10, RF-11 |
-| Simón Tabares | Planilla de notas por evaluación, con el ícono ⚠ de registro fuera de fecha | RF-12, RF-13 |
+| Jean Paul Ortiz Restrepo | Planilla de notas por evaluación, con el ícono ⚠ de registro fuera de fecha | RF-12, RF-13 |
 | Santiago Torres | Badges de nivel de logro (texto, ícono y color) y vista de estadísticas del profesor | RF-14, RF-15 |
 | Juan Camilo Bernal | Mensaje de conclusión en la vista de estadísticas, con opción de crear acción de mejora | RF-16 |
 | José Alejandro Valencia | Reporte de historial de auditoría para administrador, con filtros y paginación | RF-19, RF-21c |

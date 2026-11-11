@@ -53,10 +53,21 @@ export function mensajeDeError(error: unknown): MensajeError {
   const cuerpo = (error.error ?? {}) as CuerpoError;
   const mensaje =
     typeof cuerpo.mensaje === 'string' && cuerpo.mensaje.trim() ? cuerpo.mensaje : INESPERADO;
-  const detalles = Array.isArray(cuerpo.detalles)
-    ? cuerpo.detalles
-        .filter((d): d is string => typeof d === 'string')
-        .map((d) => (d.includes(': ') ? d.slice(d.indexOf(': ') + 2) : d))
-    : [];
-  return { mensaje, detalles };
+  return { mensaje, detalles: detallesDe(cuerpo.detalles) };
+}
+
+/**
+ * Los detalles llegan como lista «campo: mensaje» o como objeto { campo: mensaje }, según el
+ * módulo del backend. En ambos casos se devuelve solo el mensaje de cada campo.
+ */
+function detallesDe(detalles: unknown): string[] {
+  if (Array.isArray(detalles)) {
+    return detalles
+      .filter((d): d is string => typeof d === 'string')
+      .map((d) => (d.includes(': ') ? d.slice(d.indexOf(': ') + 2) : d));
+  }
+  if (detalles !== null && typeof detalles === 'object') {
+    return Object.values(detalles).filter((d): d is string => typeof d === 'string');
+  }
+  return [];
 }

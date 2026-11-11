@@ -16,7 +16,8 @@
     font-weight: 600;
   }
 
-  input {
+  input,
+  select {
     padding: 0.6rem 0.75rem;
     border: 1px solid var(--sg-borde, #cfd6e0);
     border-radius: var(--sg-radius-control);
@@ -34,12 +35,26 @@
       cursor: not-allowed;
     }
   }
+
+  select {
+    cursor: pointer;
+  }
 }
 
 .ayuda {
   margin: 0;
   font-size: 0.8rem;
   opacity: 0.75;
+}
+
+.aviso-reasignar {
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+  border-left: 3px solid var(--sg-warning);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-warning-bg);
+  color: var(--sg-warning-fg);
+  font-size: 0.8rem;
 }
 
 .error-campo {

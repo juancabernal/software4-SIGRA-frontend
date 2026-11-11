@@ -7,11 +7,12 @@ import {
 } from '@angular/core';
 
 import { MateriasTab } from '../../../asignaturas/components/materias-tab/materias-tab';
+import { FacultadesTab } from '../../../facultades/components/facultades-tab/facultades-tab';
 import { ProgramasTab } from '../../../programas/components/programas-tab/programas-tab';
 import { ProfesoresTab } from '../../../profesores/components/profesores-tab/profesores-tab';
 import { Icono } from '../../../../shared/ui/icono/icono';
 
-type IdPestana = 'profesores' | 'programas' | 'materias';
+type IdPestana = 'profesores' | 'facultades' | 'programas' | 'materias';
 
 interface Pestana {
   id: IdPestana;
@@ -21,18 +22,17 @@ interface Pestana {
 
 export const PESTANAS: readonly Pestana[] = [
   { id: 'profesores', etiqueta: 'Profesores', icono: 'personas' },
+  { id: 'facultades', etiqueta: 'Facultades', icono: 'edificio' },
   { id: 'programas', etiqueta: 'Programas académicos', icono: 'edificio' },
   { id: 'materias', etiqueta: 'Materias', icono: 'libro' },
 ];
 
 /**
- * Catálogo académico del Administrador con tres pestañas (patrón ARIA de tabs con activación
- * automática: flechas, Inicio y Fin mueven el foco y seleccionan). Materias (RF-03), Profesores
- * (RF-01) y Programas académicos (RF-02) están implementadas.
+ * Catálogo académico del Administrador con pestañas ARIA y activación por teclado.
  */
 @Component({
   selector: 'app-catalogo-page',
-  imports: [Icono, MateriasTab, ProfesoresTab, ProgramasTab],
+  imports: [Icono, FacultadesTab, MateriasTab, ProfesoresTab, ProgramasTab],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './catalogo-page.html',
   styleUrl: './catalogo-page.scss',
