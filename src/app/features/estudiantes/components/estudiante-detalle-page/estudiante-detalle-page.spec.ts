@@ -17,7 +17,11 @@ const ANA: Estudiante = {
   id: 'e1',
   tipoDocumentoNombre: 'Cédula de ciudadanía',
   numeroDocumento: '1234567890',
-  nombreCompleto: 'Ana María Gómez',
+  primerNombre: 'Ana',
+  segundoNombre: 'María',
+  primerApellido: 'Gómez',
+  segundoApellido: 'Ruiz',
+  nombreCompleto: 'Ana María Gómez Ruiz',
   correoInstitucional: 'ana@uco.net.co',
   estado: 'ACTIVO',
 };
@@ -235,7 +239,12 @@ describe('EstudianteDetallePage', () => {
       boton(dialogoDesvincular(), 'Desvincular').click();
       await fixture.whenStable();
 
-      http.expectOne(`${URL_MATRICULAS}/m1`).flush(null, { status: 204, statusText: 'No Content' });
+      // Con tieneCalificaciones=true el front ya manda confirmar=true (RF-08b / 0000039).
+      const req = http.expectOne(
+        (r) => r.url === `${URL_MATRICULAS}/m1` && r.params.get('confirmar') === 'true',
+      );
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null, { status: 204, statusText: 'No Content' });
       await fixture.whenStable();
 
       // Tras desvincular se relee el historial (D9).

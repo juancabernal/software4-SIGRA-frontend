@@ -143,12 +143,12 @@ describe('MatriculadosPage', () => {
     http
       .expectOne(`${URL_MATRICULAS}/m1`)
       .flush(
-        { status: 409, error: 'CONFLICT', mensaje: 'La matrícula ya estaba desvinculada' },
+        { status: 409, error: 'CONFLICT', mensaje: 'La matrícula ya no está activa.' },
         { status: 409, statusText: 'Conflict' },
       );
     await fixture.whenStable();
 
-    expect(dialogo.textContent).toContain('La matrícula ya estaba desvinculada');
+    expect(dialogo.textContent).toContain('La matrícula ya no está activa.');
     expect(dialogo.hasAttribute('open')).toBe(true);
     consultaMatriculados().flush([{ ...ANA, estado: 'DESVINCULADA' }]);
   });
@@ -218,7 +218,12 @@ describe('MatriculadosPage', () => {
       boton(dialogoDesvincular(), 'Desvincular').click();
       await fixture.whenStable();
 
-      http.expectOne(`${URL_MATRICULAS}/m1`).flush(null, { status: 204, statusText: 'No Content' });
+      // Con tieneCalificaciones=true el front ya manda confirmar=true (RF-08b / 0000039).
+      const req = http.expectOne(
+        (r) => r.url === `${URL_MATRICULAS}/m1` && r.params.get('confirmar') === 'true',
+      );
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null, { status: 204, statusText: 'No Content' });
       await fixture.whenStable();
 
       expect(html.textContent).toContain('Desvinculado: Ana María Gómez.');

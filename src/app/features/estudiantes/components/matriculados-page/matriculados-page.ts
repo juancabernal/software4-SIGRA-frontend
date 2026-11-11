@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -99,6 +100,13 @@ export class MatriculadosPage {
   protected readonly aDesvincular = signal<EstudianteMatriculado | null>(null);
   protected readonly desvinculando = signal(false);
   protected readonly errorDesvincular = signal<string | null>(null);
+  /** 409 de confirmación (calificaciones): segundo diálogo con mensaje del servidor. */
+  protected readonly conflictoDesvincular = signal<{
+    matricula: EstudianteMatriculado;
+    mensaje: string;
+  } | null>(null);
+  protected readonly confirmandoConflicto = signal(false);
+  protected readonly errorConflicto = signal<string | null>(null);
 
   protected readonly tituloDesvincular = computed(() => {
     const matricula = this.aDesvincular();
@@ -217,6 +225,11 @@ export class MatriculadosPage {
     this.errorDesvincular.set(null);
   }
 
+  protected cancelarConflictoDesvincular(): void {
+    this.conflictoDesvincular.set(null);
+    this.errorConflicto.set(null);
+  }
+
   protected confirmarDesvincular(): void {
     const matricula = this.aDesvincular();
     if (!matricula || this.desvinculando()) {
@@ -224,8 +237,9 @@ export class MatriculadosPage {
     }
     this.desvinculando.set(true);
     this.errorDesvincular.set(null);
+    const confirmar = matricula.tieneCalificaciones === true;
     this.service
-      .desvincular(matricula.matriculaId)
+      .desvincular(matricula.matriculaId, confirmar)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -239,10 +253,54 @@ export class MatriculadosPage {
         },
         error: (error: unknown) => {
           this.desvinculando.set(false);
-          this.errorDesvincular.set(mensajeDeError(error).mensaje);
+          const mensaje = mensajeDeError(error).mensaje;
+          if (
+            !confirmar &&
+            error instanceof HttpErrorResponse &&
+            error.status === 409 &&
+            this.esConfirmacionDesvinculacion(mensaje)
+          ) {
+            this.aDesvincular.set(null);
+            this.conflictoDesvincular.set({ matricula, mensaje });
+            return;
+          }
+          this.errorDesvincular.set(mensaje);
           this.recargar();
         },
       });
+  }
+
+  protected confirmarConflictoDesvincular(): void {
+    const conflicto = this.conflictoDesvincular();
+    if (!conflicto || this.confirmandoConflicto()) {
+      return;
+    }
+    this.confirmandoConflicto.set(true);
+    this.errorConflicto.set(null);
+    this.service
+      .desvincular(conflicto.matricula.matriculaId, true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.confirmandoConflicto.set(false);
+          this.conflictoDesvincular.set(null);
+          this.mostrarAviso({
+            texto: `Desvinculado: ${conflicto.matricula.nombreCompleto}.`,
+            tono: 'ok',
+          });
+          this.recargar();
+        },
+        error: (error: unknown) => {
+          this.confirmandoConflicto.set(false);
+          this.errorConflicto.set(mensajeDeError(error).mensaje);
+          this.recargar();
+        },
+      });
+  }
+
+  private esConfirmacionDesvinculacion(mensaje: string): boolean {
+    const texto = mensaje.toLowerCase();
+    return texto.includes('confirmar') && texto.includes('calificaci');
   }
 
   // ── Avisos ────────────────────────────────────────────────────────

@@ -18,7 +18,11 @@ import { catchError, of } from 'rxjs';
 
 import { Estudiante, EstudianteRequest } from '../../models/estudiante.model';
 import { TipoDocumento, mismoNombreDeTipo } from '../../models/tipos-documento';
-import { CampoEstudiante, validadoresEstudiante } from '../../models/validadores-estudiante';
+import {
+  CampoEstudiante,
+  partesNombreParaPeticion,
+  validadoresEstudiante,
+} from '../../models/validadores-estudiante';
 import {
   MensajeError,
   mensajeDeError,
@@ -85,7 +89,10 @@ export class EstudianteFormDialog implements OnInit {
   protected readonly form = inject(FormBuilder).nonNullable.group({
     tipoDocumentoId: ['', this.validadores.tipoDocumentoId],
     numeroDocumento: ['', this.validadores.numeroDocumento],
-    nombreCompleto: ['', this.validadores.nombreCompleto],
+    primerNombre: ['', this.validadores.primerNombre],
+    segundoNombre: ['', this.validadores.segundoNombre],
+    primerApellido: ['', this.validadores.primerApellido],
+    segundoApellido: ['', this.validadores.segundoApellido],
     correoInstitucional: ['', this.validadores.correoInstitucional],
   });
 
@@ -118,7 +125,10 @@ export class EstudianteFormDialog implements OnInit {
     // El tipo de documento se completa aparte: depende del catálogo, que llega del servidor.
     this.form.patchValue({
       numeroDocumento: estudiante.numeroDocumento,
-      nombreCompleto: estudiante.nombreCompleto,
+      primerNombre: estudiante.primerNombre,
+      segundoNombre: estudiante.segundoNombre ?? '',
+      primerApellido: estudiante.primerApellido,
+      segundoApellido: estudiante.segundoApellido,
       correoInstitucional: estudiante.correoInstitucional,
     });
     this.form.controls.numeroDocumento.disable();
@@ -174,7 +184,7 @@ export class EstudianteFormDialog implements OnInit {
     const dto: EstudianteRequest = {
       tipoDocumentoId: valores.tipoDocumentoId,
       numeroDocumento: valores.numeroDocumento,
-      nombreCompleto: valores.nombreCompleto.trim(),
+      ...partesNombreParaPeticion(valores),
       correoInstitucional: valores.correoInstitucional.trim(),
     };
 

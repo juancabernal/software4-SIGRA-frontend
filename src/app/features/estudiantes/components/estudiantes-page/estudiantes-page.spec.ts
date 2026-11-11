@@ -15,7 +15,11 @@ function estudiante(parcial: Partial<Estudiante>): Estudiante {
     id: 'e1',
     tipoDocumentoNombre: 'Cédula de ciudadanía',
     numeroDocumento: '1234567890',
-    nombreCompleto: 'Ana María Gómez',
+    primerNombre: 'Ana',
+    segundoNombre: 'María',
+    primerApellido: 'Gómez',
+    segundoApellido: 'Ruiz',
+    nombreCompleto: 'Ana María Gómez Ruiz',
     correoInstitucional: 'ana@uco.net.co',
     estado: 'ACTIVO',
     ...parcial,
@@ -74,7 +78,7 @@ describe('EstudiantesPage', () => {
     await fixture.whenStable();
 
     expect(html.querySelectorAll('tbody tr').length).toBe(1);
-    const primera = fila('Ana María Gómez');
+    const primera = fila('Ana María Gómez Ruiz');
     expect(primera.textContent).toContain('Cédula de ciudadanía 1234567890');
     expect(primera.textContent).toContain('ana@uco.net.co');
     expect(primera.textContent).toContain('Activo');
@@ -157,11 +161,11 @@ describe('EstudiantesPage', () => {
 
   it('Inactivar pide confirmación y cancelar no llama al servicio', async () => {
     await iniciar([ANA]);
-    boton(fila('Ana María Gómez'), 'Inactivar').click();
+    boton(fila('Ana María Gómez Ruiz'), 'Inactivar').click();
     await fixture.whenStable();
 
     const dialogo = html.querySelector('app-dialogo-confirmacion dialog') as HTMLDialogElement;
-    expect(dialogo.querySelector('h2')?.textContent).toContain('¿Inactivar a «Ana María Gómez»?');
+    expect(dialogo.querySelector('h2')?.textContent).toContain('¿Inactivar a «Ana María Gómez Ruiz»?');
     expect(dialogo.textContent).toContain('su historial académico se conserva');
 
     boton(dialogo, 'Cancelar').click();
@@ -171,7 +175,7 @@ describe('EstudiantesPage', () => {
 
   it('confirmar Inactivar llama al servicio y vuelve a consultar el listado', async () => {
     await iniciar([ANA]);
-    boton(fila('Ana María Gómez'), 'Inactivar').click();
+    boton(fila('Ana María Gómez Ruiz'), 'Inactivar').click();
     await fixture.whenStable();
 
     const dialogo = html.querySelector('app-dialogo-confirmacion dialog') as HTMLDialogElement;
@@ -184,11 +188,11 @@ describe('EstudiantesPage', () => {
     await fixture.whenStable();
 
     expect(html.querySelector('.aviso-zona')?.textContent).toContain(
-      'Estudiante inactivado: Ana María Gómez.',
+      'Estudiante inactivado: Ana María Gómez Ruiz.',
     );
     listado().flush([estudiante({ estado: 'INACTIVO' })]);
     await fixture.whenStable();
-    expect(fila('Ana María Gómez').textContent).toContain('Inactivo');
+    expect(fila('Ana María Gómez Ruiz').textContent).toContain('Inactivo');
   });
 
   it('abrir "Registrar estudiante" deja el diálogo abierto, y cancelarlo no llama al servicio de guardado', async () => {
@@ -212,7 +216,7 @@ describe('EstudiantesPage', () => {
 
   it('abrir "Modificar" sobre una fila deja el diálogo abierto, y cancelarlo no llama al servicio de guardado', async () => {
     await iniciar([ANA]);
-    boton(fila('Ana María Gómez'), 'Modificar').click();
+    boton(fila('Ana María Gómez Ruiz'), 'Modificar').click();
     await fixture.whenStable();
     // El diálogo pide su catálogo de tipos de documento al abrirse.
     http.expectOne((r) => r.url === URL_TIPOS_DOCUMENTO).flush([]);

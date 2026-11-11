@@ -19,7 +19,11 @@ const ESTUDIANTE: Estudiante = {
   id: '00000000-0000-4000-c000-000000000010',
   tipoDocumentoNombre: TIPOS_DOCUMENTO[0].nombre,
   numeroDocumento: '1234567890',
-  nombreCompleto: 'Ana María Gómez',
+  primerNombre: 'Ana',
+  segundoNombre: 'María',
+  primerApellido: 'Gómez',
+  segundoApellido: 'Ruiz',
+  nombreCompleto: 'Ana María Gómez Ruiz',
   correoInstitucional: 'ana@uco.net.co',
   estado: 'ACTIVO',
 };
@@ -79,10 +83,15 @@ describe('EstudianteFormDialog', () => {
     await abrirCrear();
     escribir('estudiante-tipo-documento', TIPOS_DOCUMENTO[0].id);
     escribir('estudiante-numero-documento', '1234567890');
-    escribir('estudiante-nombre', 'Ana María Gómez');
+    escribir('estudiante-primer-nombre', 'Ana');
+    escribir('estudiante-segundo-nombre', 'María');
+    escribir('estudiante-primer-apellido', 'Gómez');
+    escribir('estudiante-segundo-apellido', 'Ruiz');
     escribir('estudiante-correo', 'ana@uco.net.co');
     await fixture.whenStable();
   }
+
+  const MENSAJE_PARTE = 'Usa solo letras, sin espacios, números ni símbolos (máximo 50).';
 
   it('rechaza un documento de 5 dígitos', async () => {
     await llenarValido();
@@ -107,32 +116,47 @@ describe('EstudianteFormDialog', () => {
 
   it('rechaza un nombre con dígitos', async () => {
     await llenarValido();
-    escribir('estudiante-nombre', 'Ana2 Gómez');
+    escribir('estudiante-primer-nombre', 'Ana2');
     await fixture.whenStable();
-    expect(html.textContent).toContain(
-      'Usa solo letras y un único espacio entre cada palabra, sin números ni símbolos.',
-    );
+    expect(html.textContent).toContain(MENSAJE_PARTE);
   });
 
-  it('rechaza un nombre con espacios dobles', async () => {
+  it('rechaza un nombre con espacios', async () => {
     await llenarValido();
-    escribir('estudiante-nombre', 'Ana  Gómez');
+    escribir('estudiante-primer-apellido', 'De La Cruz');
     await fixture.whenStable();
-    expect(html.textContent).toContain(
-      'Usa solo letras y un único espacio entre cada palabra, sin números ni símbolos.',
-    );
+    expect(html.textContent).toContain(MENSAJE_PARTE);
   });
 
-  it('rechaza un nombre de menos de 3 caracteres', async () => {
+  it('rechaza una parte del nombre de más de 50 caracteres', async () => {
     await llenarValido();
-    escribir('estudiante-nombre', 'Jo');
+    escribir('estudiante-segundo-nombre', 'a'.repeat(51));
     await fixture.whenStable();
-    expect(html.textContent).toContain('El nombre completo debe tener entre 3 y 150 caracteres.');
+    expect(html.textContent).toContain(MENSAJE_PARTE);
   });
 
-  it('acepta un nombre con tildes, Ñ y varias palabras', async () => {
+  it.each([
+    ['estudiante-primer-nombre', 'Escribe el primer nombre.'],
+    ['estudiante-primer-apellido', 'Escribe el primer apellido.'],
+    ['estudiante-segundo-apellido', 'Escribe el segundo apellido.'],
+  ])('%s vacío muestra su error', async (id, mensaje) => {
     await llenarValido();
-    escribir('estudiante-nombre', 'José María Ñústes');
+    escribir(id, '');
+    await fixture.whenStable();
+    expect(html.textContent).toContain(mensaje);
+  });
+
+  it('el segundo nombre es opcional', async () => {
+    await llenarValido();
+    escribir('estudiante-segundo-nombre', '');
+    await fixture.whenStable();
+    expect(html.querySelector('.error-campo')).toBeNull();
+  });
+
+  it('acepta partes con tildes y Ñ', async () => {
+    await llenarValido();
+    escribir('estudiante-primer-nombre', 'José');
+    escribir('estudiante-primer-apellido', 'Ñústes');
     await fixture.whenStable();
     expect(html.querySelector('.error-campo')).toBeNull();
   });
@@ -162,12 +186,42 @@ describe('EstudianteFormDialog', () => {
     const esperado: EstudianteRequest = {
       tipoDocumentoId: TIPOS_DOCUMENTO[0].id,
       numeroDocumento: '1234567890',
-      nombreCompleto: 'Ana María Gómez',
+      primerNombre: 'Ana',
+      segundoNombre: 'María',
+      primerApellido: 'Gómez',
+      segundoApellido: 'Ruiz',
       correoInstitucional: 'ana@uco.net.co',
     };
     expect(req.request.body).toEqual(esperado);
+    expect(req.request.body).not.toHaveProperty('nombreCompleto');
     req.flush(ESTUDIANTE, { status: 201, statusText: 'Created' });
     expect(creado).toEqual(ESTUDIANTE);
+  });
+
+  it('omite el segundo nombre del cuerpo cuando se deja vacío', async () => {
+    await llenarValido();
+    escribir('estudiante-segundo-nombre', '');
+    await enviar();
+
+    const req = http.expectOne(URL);
+    expect(req.request.body).not.toHaveProperty('segundoNombre');
+    expect(req.request.body.primerNombre).toBe('Ana');
+    req.flush(ESTUDIANTE, { status: 201, statusText: 'Created' });
+  });
+
+  it('en modificación precarga las cuatro partes del nombre desde la respuesta', async () => {
+    await abrirEditar();
+
+    expect(campo<HTMLInputElement>('estudiante-primer-nombre').value).toBe('Ana');
+    expect(campo<HTMLInputElement>('estudiante-segundo-nombre').value).toBe('María');
+    expect(campo<HTMLInputElement>('estudiante-primer-apellido').value).toBe('Gómez');
+    expect(campo<HTMLInputElement>('estudiante-segundo-apellido').value).toBe('Ruiz');
+  });
+
+  it('en modificación deja vacío el segundo nombre si la respuesta no lo trae', async () => {
+    await abrirEditar({ ...ESTUDIANTE, segundoNombre: null, nombreCompleto: 'Ana Gómez Ruiz' });
+
+    expect(campo<HTMLInputElement>('estudiante-segundo-nombre').value).toBe('');
   });
 
   it('deja el documento y el tipo de documento no editables en modificación', async () => {
@@ -178,7 +232,7 @@ describe('EstudianteFormDialog', () => {
     expect(campo<HTMLSelectElement>('estudiante-tipo-documento').value).toBe(TIPOS_DOCUMENTO[0].id);
     expect(campo<HTMLInputElement>('estudiante-numero-documento').disabled).toBe(true);
     expect(campo<HTMLInputElement>('estudiante-numero-documento').value).toBe('1234567890');
-    expect(campo<HTMLInputElement>('estudiante-nombre').disabled).toBe(false);
+    expect(campo<HTMLInputElement>('estudiante-primer-nombre').disabled).toBe(false);
   });
 
   it('muestra el mensaje del servidor ante un 409 de documento duplicado', async () => {
@@ -239,12 +293,12 @@ describe('EstudianteFormDialog', () => {
     expect(html.textContent).toContain('No se pudieron cargar los tipos de documento');
   });
 
-  it('el nombre completo vacío muestra su error y no permite enviar', async () => {
+  it('el primer nombre vacío muestra su error y no permite enviar', async () => {
     await llenarValido();
-    escribir('estudiante-nombre', '');
+    escribir('estudiante-primer-nombre', '');
     await fixture.whenStable();
 
-    expect(html.textContent).toContain('Escribe el nombre completo.');
+    expect(html.textContent).toContain('Escribe el primer nombre.');
 
     await enviar();
     http.expectNone(URL);
@@ -288,7 +342,7 @@ describe('EstudianteFormDialog', () => {
 
   it('mientras se modifica, el botón de envío muestra "Guardando…" y queda deshabilitado', async () => {
     await abrirEditar();
-    escribir('estudiante-nombre', 'Ana María Gómez Actualizada');
+    escribir('estudiante-primer-apellido', 'Actualizado');
     await enviar();
 
     const submit = html.querySelector('button[type="submit"]') as HTMLButtonElement;

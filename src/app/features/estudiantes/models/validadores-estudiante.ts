@@ -19,17 +19,71 @@ export const PATRON_NUMERO_DOCUMENTO = /^\d{6,10}$/;
 export const PATRON_CORREO_INSTITUCIONAL = /^\s*[\w.-]+@uco\.net\.co\s*$/i;
 
 /**
- * Solo letras (con tildes y Ñ) y un único espacio entre palabras — mismo patrón que valida el
- * backend (@Pattern en EstudianteRequestDTO). Nada de dígitos, símbolos ni espacios dobles o al
- * borde.
+ * Cada parte del nombre (primer/segundo nombre, primer/segundo apellido): solo letras (con
+ * tildes y Ñ), sin espacios, dígitos ni símbolos — mismo patrón que valida el backend
+ * (`^\p{L}+$` en los DTO de estudiante, profesor y matrícula con estudiante nuevo).
  */
-export const PATRON_NOMBRE_COMPLETO = /^\p{L}+(?:\s\p{L}+)*$/u;
-export const LONGITUD_MINIMA_NOMBRE_COMPLETO = 3;
-export const LONGITUD_MAXIMA_NOMBRE_COMPLETO = 150;
+export const PATRON_PARTE_NOMBRE = /^\p{L}+$/u;
+export const LONGITUD_MAXIMA_PARTE_NOMBRE = 50;
 
-/** Los cuatro campos de identificación de un estudiante. */
+/** Campos de identificación de un estudiante (segundo nombre es opcional). */
 export type CampoEstudiante =
-  'tipoDocumentoId' | 'numeroDocumento' | 'nombreCompleto' | 'correoInstitucional';
+  | 'tipoDocumentoId'
+  | 'numeroDocumento'
+  | 'primerNombre'
+  | 'segundoNombre'
+  | 'primerApellido'
+  | 'segundoApellido'
+  | 'correoInstitucional';
+
+/** Las cuatro partes del nombre que viajan en las peticiones. */
+export interface PartesNombre {
+  primerNombre: string;
+  segundoNombre?: string;
+  primerApellido: string;
+  segundoApellido: string;
+}
+
+/**
+ * Validadores de las partes del nombre. `segundoNombre` no es obligatorio: `Validators.pattern`
+ * y `maxLength` ignoran el valor vacío. Arreglos nuevos en cada llamada (ver `validadoresEstudiante`).
+ */
+export function validadoresPartesNombre(): Record<
+  'primerNombre' | 'segundoNombre' | 'primerApellido' | 'segundoApellido',
+  ValidatorFn[]
+> {
+  const parte = (): ValidatorFn[] => [
+    Validators.maxLength(LONGITUD_MAXIMA_PARTE_NOMBRE),
+    Validators.pattern(PATRON_PARTE_NOMBRE),
+  ];
+  return {
+    primerNombre: [Validators.required, ...parte()],
+    segundoNombre: parte(),
+    primerApellido: [Validators.required, ...parte()],
+    segundoApellido: [Validators.required, ...parte()],
+  };
+}
+
+/**
+ * Arma las cuatro partes para la petición: el segundo nombre vacío se omite (es opcional).
+ * No se recorta nada: las partes no admiten espacios y el formulario ya las valida.
+ */
+export function partesNombreParaPeticion(valores: {
+  primerNombre: string;
+  segundoNombre: string;
+  primerApellido: string;
+  segundoApellido: string;
+}): PartesNombre {
+  const partes: PartesNombre = {
+    primerNombre: valores.primerNombre,
+    primerApellido: valores.primerApellido,
+    segundoApellido: valores.segundoApellido,
+  };
+  if (valores.segundoNombre) {
+    partes.segundoNombre = valores.segundoNombre;
+  }
+  return partes;
+}
 
 /**
  * Validadores de cada campo, listos para `FormBuilder.group`. Se devuelven arreglos nuevos en cada
@@ -40,12 +94,7 @@ export function validadoresEstudiante(): Record<CampoEstudiante, ValidatorFn[]> 
   return {
     tipoDocumentoId: [Validators.required],
     numeroDocumento: [Validators.required, Validators.pattern(PATRON_NUMERO_DOCUMENTO)],
-    nombreCompleto: [
-      Validators.required,
-      Validators.minLength(LONGITUD_MINIMA_NOMBRE_COMPLETO),
-      Validators.maxLength(LONGITUD_MAXIMA_NOMBRE_COMPLETO),
-      Validators.pattern(PATRON_NOMBRE_COMPLETO),
-    ],
+    ...validadoresPartesNombre(),
     correoInstitucional: [Validators.required, Validators.pattern(PATRON_CORREO_INSTITUCIONAL)],
   };
 }
