@@ -24,6 +24,7 @@ import {
 import { formatearFechaHora } from '../../../../core/util/formato-fecha';
 import { refrescoAutomatico } from '../../../../core/util/refresco-automatico';
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
+import { SesionService } from '../../../../core/services/sesion';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
 import { Asignatura } from '../../../asignaturas/models/asignatura.model';
@@ -136,6 +137,7 @@ export class EstadisticasPage {
   private readonly asignaturaService = inject(AsignaturaService);
   private readonly resultadosService = inject(ResultadoAprendizajeService);
   private readonly semestreService = inject(SemestreService);
+  private readonly sesion = inject(SesionService);
   private readonly conclusionService = inject(ConclusionService);
   private readonly accionMejoraService = inject(AccionMejoraService);
   private readonly nivelLogroService = inject(NivelLogroService);
@@ -491,7 +493,10 @@ export class EstadisticasPage {
   protected cargarSemestres(): void {
     this.cargandoSemestres.set(true);
     this.errorSemestres.set(null);
-    this.semestreService.listar().subscribe({
+    // El Profesor solo ve los semestres en los que tiene asignaturas (Mantis 0000045).
+    const semestres$ =
+      this.sesion.rol() === 'profesor' ? this.semestreService.listarMios() : this.semestreService.listar();
+    semestres$.subscribe({
       next: (semestres) => {
         this.semestres.set(semestres);
         const activo = semestres.find((s) => s.estado === 'ACTIVO');
