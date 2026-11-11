@@ -19,8 +19,14 @@ export class MatriculaService {
     return this.http.post<Matricula>(this.baseUrl, matricula, { observe: 'response' });
   }
 
-  desvincular(matriculaId: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${encodeURIComponent(matriculaId)}`);
+  desvincular(matriculaId: string, confirmar = false): Observable<void> {
+    let params = new HttpParams();
+    if (confirmar) {
+      params = params.set('confirmar', confirmar);
+    }
+    return this.http.delete<void>(`${this.baseUrl}/${encodeURIComponent(matriculaId)}`, {
+      params,
+    });
   }
 
   /** `asignaturaId` y `semestreId` son obligatorios; `incluirInactivas` solo se envía cuando es true. */
