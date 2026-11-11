@@ -74,7 +74,7 @@ jobs:
 
       - name: Logs SSR
         if: always()
-        run: ubuntu-24.04
+        run: |
           test ! -f ssr.log || cat ssr.log
 
   e2e-integrada:
