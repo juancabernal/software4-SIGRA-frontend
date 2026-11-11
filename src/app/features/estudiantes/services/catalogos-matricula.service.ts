@@ -1,8 +1,9 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
+import { SesionService } from '../../../core/services/sesion';
 import { OpcionAsignatura, OpcionSemestre } from '../models/matricula.model';
 
 interface AsignaturaCatalogoDTO {
@@ -25,10 +26,12 @@ interface SemestreCatalogoDTO {
 @Injectable({ providedIn: 'root' })
 export class CatalogosMatriculaService {
   private readonly http = inject(HttpClient);
+  private readonly sesion = inject(SesionService);
 
-  listarAsignaturas(): Observable<OpcionAsignatura[]> {
+  listarAsignaturas(semestreId?: string): Observable<OpcionAsignatura[]> {
+    const params = semestreId ? new HttpParams().set('semestreId', semestreId) : new HttpParams();
     return this.http
-      .get<AsignaturaCatalogoDTO[]>(`${environment.apiUrl}/v1/asignaturas`)
+      .get<AsignaturaCatalogoDTO[]>(`${environment.apiUrl}/v1/asignaturas`, { params })
       .pipe(
         map((asignaturas) => asignaturas.map(({ id, nombre, estado }) => ({ id, nombre, estado }))),
       );
@@ -36,7 +39,7 @@ export class CatalogosMatriculaService {
 
   listarSemestres(): Observable<OpcionSemestre[]> {
     return this.http
-      .get<SemestreCatalogoDTO[]>(`${environment.apiUrl}/v1/semestres`)
+      .get<SemestreCatalogoDTO[]>(`${environment.apiUrl}/v1/semestres${this.sesion.rol() === 'profesor' ? '/mios' : ''}`)
       .pipe(
         map((semestres) => semestres.map(({ id, codigo, estado }) => ({ id, codigo, estado }))),
       );

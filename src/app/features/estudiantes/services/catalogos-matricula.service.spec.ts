@@ -1,5 +1,8 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
+import { SesionService } from '../../../core/services/sesion';
+import { Rol } from '../../../core/models/rol';
 import { TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../../environments/environment';
@@ -10,18 +13,34 @@ const URL_ASIGNATURAS = `${environment.apiUrl}/v1/asignaturas`;
 const URL_SEMESTRES = `${environment.apiUrl}/v1/semestres`;
 
 describe('CatalogosMatriculaService', () => {
+  const rol = signal<Rol | null>('admin');
   let service: CatalogosMatriculaService;
   let http: HttpTestingController;
 
   beforeEach(() => {
+    rol.set('admin');
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: SesionService, useValue: { rol } }],
     });
     service = TestBed.inject(CatalogosMatriculaService);
     http = TestBed.inject(HttpTestingController);
   });
 
   afterEach(() => http.verify());
+
+  it('consulta los semestres propios del docente', () => {
+    rol.set('profesor');
+    service.listarSemestres().subscribe();
+    http.expectOne(`${URL_SEMESTRES}/mios`).flush([]);
+    http.expectNone(URL_SEMESTRES);
+  });
+
+  it('envía el semestre elegido al consultar asignaturas', () => {
+    service.listarAsignaturas('s1').subscribe();
+    const req = http.expectOne(`${URL_ASIGNATURAS}?semestreId=s1`);
+    expect(req.request.method).toBe('GET');
+    req.flush([]);
+  });
 
   it('lista asignaturas con GET /v1/asignaturas y mapea al modelo local', () => {
     let resultado: OpcionAsignatura[] | undefined;

@@ -70,8 +70,9 @@ describe('Ruta profesor/matricula (Router real sobre app.routes.ts)', () => {
   async function abrir(url: string): Promise<HTMLElement> {
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl(url);
-    http.expectOne((r) => r.url === URL_ASIGNATURAS).flush([]);
-    http.expectOne((r) => r.url === URL_SEMESTRES).flush([]);
+    http.expectNone((r) => r.url === URL_ASIGNATURAS);
+    const semestresUrl = url.startsWith('/profesor/') ? `${URL_SEMESTRES}/mios` : URL_SEMESTRES;
+    http.expectOne(semestresUrl).flush([]);
     await harness.fixture.whenStable();
     return harness.fixture.nativeElement as HTMLElement;
   }

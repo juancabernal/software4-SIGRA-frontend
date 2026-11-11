@@ -30,25 +30,6 @@
   <div class="tarjeta">
     <div class="barra">
       <label class="campo-filtro">
-        <span>Asignatura</span>
-        <select
-          id="filtro-asignatura"
-          class="selector"
-          [value]="asignaturaId()"
-          (change)="alCambiarAsignatura($event)"
-        >
-          <option value="" disabled>
-            {{ cargandoCatalogos() ? 'Cargando…' : 'Selecciona una asignatura' }}
-          </option>
-          @for (a of asignaturas(); track a.id) {
-            <option [value]="a.id">
-              {{ a.nombre }}{{ a.estado !== 'ACTIVA' ? ' (inactiva)' : '' }}
-            </option>
-          }
-        </select>
-      </label>
-
-      <label class="campo-filtro">
         <span>Semestre</span>
         <select
           id="filtro-semestre"
@@ -62,6 +43,26 @@
           @for (s of semestres(); track s.id) {
             <option [value]="s.id">
               {{ s.codigo }}{{ s.estado !== 'ACTIVO' ? ' (inactivo)' : '' }}
+            </option>
+          }
+        </select>
+      </label>
+
+      <label class="campo-filtro">
+        <span>Asignatura</span>
+        <select
+          id="filtro-asignatura"
+          [disabled]="!semestreId() || cargandoAsignaturas()"
+          class="selector"
+          [value]="asignaturaId()"
+          (change)="alCambiarAsignatura($event)"
+        >
+          <option value="" disabled>
+            {{ !semestreId() ? 'Elige primero un semestre' : cargandoAsignaturas() ? 'Cargando…' : asignaturas().length === 0 ? 'Sin asignaturas en este semestre' : 'Selecciona una asignatura' }}
+          </option>
+          @for (a of asignaturas(); track a.id) {
+            <option [value]="a.id">
+              {{ a.nombre }}{{ a.estado !== 'ACTIVA' ? ' (inactiva)' : '' }}
             </option>
           }
         </select>
