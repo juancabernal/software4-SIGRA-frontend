@@ -56,14 +56,17 @@ describe('ReporteService', () => {
     req.flush(VACIO);
   });
 
-  it('consulta GET /v1/reportes/riesgo-academico con umbral', () => {
+  it('consulta GET /v1/reportes/riesgo-academico con umbral y facultad', () => {
     let resultado: RiesgoAcademicoReporte | undefined;
-    service.riesgoAcademico({ minRaNoAlcanzados: 2, asignaturaId: 'a1' }).subscribe((r) => (resultado = r));
+    service
+      .riesgoAcademico({ minRaNoAlcanzados: 2, asignaturaId: 'a1', facultadId: 'f1' })
+      .subscribe((r) => (resultado = r));
 
     const req = http.expectOne((r) => r.url === URL_RIESGO);
     expect(req.request.method).toBe('GET');
     expect(req.request.params.get('minRaNoAlcanzados')).toBe('2');
     expect(req.request.params.get('asignaturaId')).toBe('a1');
+    expect(req.request.params.get('facultadId')).toBe('f1');
     req.flush(VACIO_RIESGO);
     expect(resultado).toEqual(VACIO_RIESGO);
   });

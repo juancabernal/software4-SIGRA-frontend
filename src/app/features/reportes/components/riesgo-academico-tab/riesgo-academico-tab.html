@@ -12,6 +12,15 @@
       </select>
     </div>
     <div class="campo">
+      <label for="filtro-facultad-r6">Facultad</label>
+      <select id="filtro-facultad-r6" (change)="cambiarFacultad($any($event.target).value)">
+        <option value="">Todas las facultades</option>
+        @for (facultad of facultades(); track facultad.id) {
+          <option [value]="facultad.id" [selected]="facultad.id === facultadId()">{{ facultad.nombre }}</option>
+        }
+      </select>
+    </div>
+    <div class="campo">
       <label for="filtro-programa-r6">Programa</label>
       <select id="filtro-programa-r6" (change)="cambiarPrograma($any($event.target).value)">
         <option value="">Todos los programas</option>

@@ -44,6 +44,7 @@ export interface RiesgoAcademicoReporte {
 
 export interface FiltrosRiesgoAcademico {
   semestreId?: string;
+  facultadId?: string;
   programaId?: string;
   asignaturaId?: string;
   minRaNoAlcanzados?: number;

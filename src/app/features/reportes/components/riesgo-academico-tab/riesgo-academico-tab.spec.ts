@@ -9,6 +9,15 @@ import { RiesgoAcademicoReporte, chipSeveridad } from '../../models/riesgo-acade
 import { RiesgoAcademicoTab } from './riesgo-academico-tab';
 
 const API = environment.apiUrl;
+const FACULTAD = { id: 'f1', nombre: 'Facultad de Ingeniería', estado: 'ACTIVO' as const };
+const PROGRAMA = {
+  id: 'p1',
+  codigo: 'ISIS',
+  nombre: 'Ingeniería de Sistemas',
+  facultadId: 'f1',
+  facultadNombre: 'Facultad de Ingeniería',
+  estado: 'ACTIVO' as const,
+};
 const ASIGNATURA = {
   id: 'a1',
   codigo: 'SIS101',
@@ -81,6 +90,8 @@ describe('RiesgoAcademicoTab', () => {
   function responderListas(): void {
     http.expectOne(`${API}/v1/semestres`).flush([{ id: 's1', codigo: '2026-2' }]);
     http.expectOne((r) => r.url === `${API}/v1/asignaturas`).flush([ASIGNATURA]);
+    http.expectOne((r) => r.url === `${API}/v1/programas`).flush([PROGRAMA]);
+    http.expectOne((r) => r.url === `${API}/v1/facultades`).flush([FACULTAD]);
   }
 
   afterEach(() => http.verify());
@@ -99,6 +110,7 @@ describe('RiesgoAcademicoTab', () => {
     expect(html.textContent).toContain('RA-01');
     expect(html.textContent).toContain('Riesgo');
     expect(html.textContent).toContain('Estudiantes en riesgo: 1');
+    expect(html.querySelector('#filtro-facultad-r6')).not.toBeNull();
   });
 
   it('muestra vacío cuando el backend no tiene filas', () => {
@@ -130,6 +142,25 @@ describe('RiesgoAcademicoTab', () => {
     const req = http.expectOne((r) => r.url === `${API}/v1/reportes/riesgo-academico`);
     expect(req.request.params.get('minRaNoAlcanzados')).toBe('2');
     req.flush(REPORTE);
+  });
+
+  it('al elegir facultad envía facultadId y filtra programas', () => {
+    const html = crear();
+    responderListas();
+    http.expectOne((r) => r.url === `${API}/v1/reportes/riesgo-academico`).flush(REPORTE);
+    fixture.detectChanges();
+
+    const select = html.querySelector('#filtro-facultad-r6') as HTMLSelectElement;
+    select.value = 'f1';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const req = http.expectOne((r) => r.url === `${API}/v1/reportes/riesgo-academico`);
+    expect(req.request.params.get('facultadId')).toBe('f1');
+    req.flush(REPORTE);
+    fixture.detectChanges();
+
+    expect(html.textContent).toContain('Ingeniería de Sistemas');
   });
 });
 

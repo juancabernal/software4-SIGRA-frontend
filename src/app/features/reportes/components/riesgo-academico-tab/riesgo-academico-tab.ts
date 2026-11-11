@@ -9,6 +9,10 @@ import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Asignatura } from '../../../asignaturas/models/asignatura.model';
 import { AsignaturaService } from '../../../asignaturas/services/asignatura.service';
 import { formatearNota } from '../../../estadisticas/models/nivel-logro-formato';
+import { Facultad } from '../../../facultades/models/facultad.model';
+import { FacultadService } from '../../../facultades/services/facultad.service';
+import { Programa } from '../../../programas/models/programa.model';
+import { ProgramaService } from '../../../programas/services/programa.service';
 import { SemestreService } from '../../../semestres/services/semestre.service';
 import {
   FiltrosRiesgoAcademico,
@@ -40,6 +44,8 @@ const UMBRALES = [
 export class RiesgoAcademicoTab {
   private readonly reportes = inject(ReporteService);
   private readonly asignaturaService = inject(AsignaturaService);
+  private readonly facultadService = inject(FacultadService);
+  private readonly programaService = inject(ProgramaService);
   private readonly semestreService = inject(SemestreService);
   private readonly sesion = inject(SesionService);
 
@@ -49,6 +55,7 @@ export class RiesgoAcademicoTab {
   protected readonly chipSeveridad = chipSeveridad;
 
   protected readonly semestreId = signal('');
+  protected readonly facultadId = signal('');
   protected readonly programaId = signal('');
   protected readonly asignaturaId = signal('');
   protected readonly minRaNoAlcanzados = signal(1);
@@ -66,23 +73,65 @@ export class RiesgoAcademicoTab {
     { initialValue: [] },
   );
 
-  protected readonly programas = computed(() => {
-    const porId = new Map<string, string>();
-    for (const asignatura of this.asignaturas()) {
-      porId.set(asignatura.programaId, asignatura.programaNombre);
+  private readonly programasTodos = toSignal<Programa[], Programa[]>(
+    this.programaService.listar({ estado: 'ACTIVO' }).pipe(catchError(() => of([] as Programa[]))),
+    { initialValue: [] },
+  );
+
+  private readonly facultadesTodas = toSignal<Facultad[], Facultad[]>(
+    this.facultadService.listar({ estado: 'ACTIVO' }).pipe(catchError(() => of([] as Facultad[]))),
+    { initialValue: [] },
+  );
+
+  /** Programas del alcance del rol (profesor: solo los de sus asignaturas). */
+  private readonly programasAlcance = computed(() => {
+    const todos = this.programasTodos();
+    if (this.sesion.rol() !== 'profesor') {
+      return todos;
     }
-    return [...porId].map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const ids = new Set(this.asignaturas().map((a) => a.programaId));
+    return todos.filter((p) => ids.has(p.id));
+  });
+
+  protected readonly facultades = computed(() => {
+    const facultades = this.facultadesTodas();
+    if (this.sesion.rol() !== 'profesor') {
+      return [...facultades].sort((a, b) => a.nombre.localeCompare(b.nombre));
+    }
+    const ids = new Set(this.programasAlcance().map((p) => p.facultadId));
+    return facultades
+      .filter((f) => ids.has(f.id))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  });
+
+  protected readonly programas = computed(() => {
+    const facultad = this.facultadId();
+    return this.programasAlcance()
+      .filter((p) => !facultad || p.facultadId === facultad)
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
   });
 
   protected readonly asignaturasDelPrograma = computed(() => {
     const programa = this.programaId();
+    const facultad = this.facultadId();
+    const programasFacultad = new Set(
+      this.programasAlcance()
+        .filter((p) => !facultad || p.facultadId === facultad)
+        .map((p) => p.id),
+    );
     return this.asignaturas()
-      .filter((a) => !programa || a.programaId === programa)
+      .filter((a) => {
+        if (programa) {
+          return a.programaId === programa;
+        }
+        return !facultad || programasFacultad.has(a.programaId);
+      })
       .sort((a, b) => a.codigo.localeCompare(b.codigo));
   });
 
   private readonly filtros = computed<FiltrosRiesgoAcademico>(() => ({
     semestreId: this.semestreId() || undefined,
+    facultadId: this.facultadId() || undefined,
     programaId: this.programaId() || undefined,
     asignaturaId: this.asignaturaId() || undefined,
     minRaNoAlcanzados: this.minRaNoAlcanzados(),
@@ -106,6 +155,23 @@ export class RiesgoAcademicoTab {
     this.semestreId.set(valor);
   }
 
+  protected cambiarFacultad(valor: string): void {
+    this.facultadId.set(valor);
+    const programa = this.programasAlcance().find((p) => p.id === this.programaId());
+    if (valor && programa && programa.facultadId !== valor) {
+      this.programaId.set('');
+      this.asignaturaId.set('');
+      return;
+    }
+    const asignatura = this.asignaturas().find((a) => a.id === this.asignaturaId());
+    if (valor && asignatura) {
+      const prog = this.programasAlcance().find((p) => p.id === asignatura.programaId);
+      if (!prog || prog.facultadId !== valor) {
+        this.asignaturaId.set('');
+      }
+    }
+  }
+
   protected cambiarPrograma(valor: string): void {
     this.programaId.set(valor);
     const asignatura = this.asignaturas().find((a) => a.id === this.asignaturaId());
@@ -125,6 +191,7 @@ export class RiesgoAcademicoTab {
 
   protected limpiarFiltros(): void {
     this.semestreId.set('');
+    this.facultadId.set('');
     this.programaId.set('');
     this.asignaturaId.set('');
     this.minRaNoAlcanzados.set(1);
@@ -135,6 +202,12 @@ export class RiesgoAcademicoTab {
   }
 
   protected hayFiltros(): boolean {
-    return !!(this.semestreId() || this.programaId() || this.asignaturaId() || this.minRaNoAlcanzados() !== 1);
+    return !!(
+      this.semestreId() ||
+      this.facultadId() ||
+      this.programaId() ||
+      this.asignaturaId() ||
+      this.minRaNoAlcanzados() !== 1
+    );
   }
 }
