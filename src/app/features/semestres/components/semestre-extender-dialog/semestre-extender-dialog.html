@@ -56,12 +56,18 @@
       </div>
     </div>
 
+    @if (guardando()) {
+      <span class="accion-estado" role="status" aria-live="polite">
+        <span class="accion-estado__spinner" aria-hidden="true"></span>
+        Extendiendo…
+      </span>
+    }
     <div class="acciones">
       <button type="button" class="btn" (click)="cancelar()" [disabled]="guardando()">
         Cancelar
       </button>
       <button type="submit" class="btn btn--primario" [disabled]="guardando()">
-        {{ guardando() ? 'Extendiendo…' : 'Extender fecha de fin' }}
+        Extender fecha de fin
       </button>
     </div>
   </form>

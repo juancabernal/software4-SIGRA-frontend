@@ -92,13 +92,19 @@
         <p class="resumen-seleccion">
           {{ profesoresSeleccionados().size }} profesor(es) × {{ asignaturasSeleccionadas().size }} materia(s)
         </p>
+        @if (asignando()) {
+          <span class="accion-estado" role="status" aria-live="polite">
+            <span class="accion-estado__spinner" aria-hidden="true"></span>
+            Asignando…
+          </span>
+        }
         <button
           type="button"
           class="btn btn--primario barra__registrar"
           [attr.aria-disabled]="!haySeleccion() || asignando() ? 'true' : null"
           (click)="asignar()"
         >
-          {{ asignando() ? 'Asignando…' : 'Asignar seleccionados' }}
+          Asignar seleccionados
         </button>
       </div>
     }
