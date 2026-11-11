@@ -7,7 +7,19 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { EMPTY, catchError, combineLatest, map, of, skip, startWith, switchMap } from 'rxjs';
+import {
+  EMPTY,
+  Observable,
+  Subject,
+  catchError,
+  combineLatest,
+  filter,
+  map,
+  of,
+  skip,
+  startWith,
+  switchMap,
+} from 'rxjs';
 
 import { formatearFechaHora } from '../../../../core/util/formato-fecha';
 import { refrescoAutomatico } from '../../../../core/util/refresco-automatico';
@@ -75,8 +87,27 @@ interface Aviso {
 
 const DURACION_AVISO_MS = 6000;
 
+interface SolicitudConsulta {
+  asignaturaId: string;
+  resultadoAprendizajeId: string;
+  semestreId: string;
+  estadisticas: boolean;
+  conclusion: boolean;
+  silenciosa: boolean;
+}
+
+interface ResultadoConsultaEstadisticas {
+  carga: CargaEstadisticas;
+  silenciosa: boolean;
+}
+
+interface ResultadoConsultaConclusion {
+  carga: CargaConclusion;
+  silenciosa: boolean;
+}
+
 /**
- * Vista de estadísticas del profesor. Se elige materia → RA activo → semestre y «Consultar» trae,
+ * Vista de estadísticas del profesor. Se elige materia → RA activo → semestre y la página consulta,
  * en paralelo y con estados independientes:
  *
  * 1. RF-14 / RF-15: nivel de logro — totales, promedio y distribución por los 4 niveles.
@@ -157,6 +188,13 @@ export class EstadisticasPage {
   protected readonly errorSemestres = signal<MensajeError | null>(null);
   protected readonly semestres = signal<Semestre[]>([]);
   protected readonly semestreId = signal('');
+
+  private readonly solicitudConsulta = new Subject<SolicitudConsulta>();
+  private readonly filtrosConsulta = computed(() => ({
+    asignaturaId: this.asignaturaId(),
+    resultadoAprendizajeId: this.resultadoAprendizajeId(),
+    semestreId: this.semestreId(),
+  }));
 
   // ── Rendimiento del RA elegido en el semestre elegido ────
   private readonly recargaRendimiento = signal(0);
@@ -264,6 +302,96 @@ export class EstadisticasPage {
     this.cargarSemestres();
     this.cargarCatalogoNiveles();
 
+    this.solicitudConsulta
+      .pipe(
+        filter((solicitud) => solicitud.estadisticas),
+        switchMap(
+          ({
+            asignaturaId,
+            resultadoAprendizajeId,
+            semestreId,
+            silenciosa,
+          }): Observable<ResultadoConsultaEstadisticas> => {
+            if (!asignaturaId || !resultadoAprendizajeId || !semestreId) {
+              return EMPTY;
+            }
+            const carga = this.nivelLogroService
+              .consultarEstadisticas(resultadoAprendizajeId, semestreId)
+              .pipe(
+                map((estadisticas): ResultadoConsultaEstadisticas => ({
+                  carga: { estado: 'listo', estadisticas },
+                  silenciosa,
+                })),
+                catchError((error: unknown): Observable<ResultadoConsultaEstadisticas> =>
+                  silenciosa
+                    ? EMPTY
+                    : of({
+                        carga: { estado: 'error', error: mensajeDeError(error) },
+                        silenciosa,
+                      }),
+                ),
+              );
+            return silenciosa
+              ? carga
+              : carga.pipe(
+                  startWith<ResultadoConsultaEstadisticas>({
+                    carga: { estado: 'cargando' },
+                    silenciosa,
+                  }),
+                );
+          },
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe(({ carga }) => this.cargaEstadisticas.set(carga));
+
+    this.solicitudConsulta
+      .pipe(
+        filter((solicitud) => solicitud.conclusion),
+        switchMap(
+          ({
+            asignaturaId,
+            resultadoAprendizajeId,
+            semestreId,
+            silenciosa,
+          }): Observable<ResultadoConsultaConclusion> => {
+            if (!asignaturaId || !resultadoAprendizajeId || !semestreId) {
+              return EMPTY;
+            }
+            const carga = this.conclusionService
+              .consultarEstado(resultadoAprendizajeId, semestreId)
+              .pipe(
+                map((resultado): ResultadoConsultaConclusion => ({
+                  carga: { estado: 'listo', resultado },
+                  silenciosa,
+                })),
+                catchError((error: unknown): Observable<ResultadoConsultaConclusion> =>
+                  silenciosa
+                    ? EMPTY
+                    : of({
+                        carga: { estado: 'error', error: mensajeDeError(error) },
+                        silenciosa,
+                      }),
+                ),
+              );
+            return silenciosa
+              ? carga
+              : carga.pipe(
+                  startWith<ResultadoConsultaConclusion>({
+                    carga: { estado: 'cargando' },
+                    silenciosa,
+                  }),
+                );
+          },
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe(({ carga }) => this.consulta.set(carga));
+
+    toObservable(this.filtrosConsulta)
+      .pipe(takeUntilDestroyed())
+      .subscribe((filtros) => this.emitirConsulta(filtros));
+
     combineLatest([
       toObservable(this.resultadoAprendizajeId),
       toObservable(this.semestreId),
@@ -301,26 +429,14 @@ export class EstadisticasPage {
 
   /** Vuelve a consultar el estado sin mostrar "cargando" ni borrar lo que ya hay en pantalla. */
   private refrescarConclusionEnSegundoPlano(): void {
-    if (!this.puedeConsultar() || this.consulta().estado === 'inactivo') {
+    if (
+      !this.puedeConsultar() ||
+      this.consulta().estado === 'inactivo' ||
+      this.consulta().estado === 'cargando'
+    ) {
       return;
     }
-    this.conclusionService
-      .consultarEstado(this.resultadoAprendizajeId(), this.semestreId())
-      .subscribe({
-        next: (resultado) => {
-          const actual = this.consulta();
-          if (
-            actual.estado === 'listo' &&
-            JSON.stringify(actual.resultado) === JSON.stringify(resultado)
-          ) {
-            return;
-          }
-          this.consulta.set({ estado: 'listo', resultado });
-        },
-        error: () => {
-          // refresco en segundo plano: ante un fallo se conservan los datos previos sin avisar
-        },
-      });
+    this.emitirConsulta(this.filtrosConsulta(), false, true, true);
   }
 
   /** Vuelve a consultar el nivel de logro sin mostrar "cargando" ni borrar lo que ya hay en pantalla. */
@@ -328,24 +444,12 @@ export class EstadisticasPage {
     if (
       !this.puedeConsultar() ||
       this.cargaEstadisticas().estado !== 'listo' ||
-      this.recalculando()
+      this.recalculando() ||
+      this.consulta().estado === 'cargando'
     ) {
       return;
     }
-    this.nivelLogroService
-      .consultarEstadisticas(this.resultadoAprendizajeId(), this.semestreId())
-      .subscribe({
-        next: (estadisticas) => {
-          const actual = this.estadisticas();
-          if (actual && JSON.stringify(actual) === JSON.stringify(estadisticas)) {
-            return;
-          }
-          this.cargaEstadisticas.set({ estado: 'listo', estadisticas });
-        },
-        error: () => {
-          // refresco en segundo plano: ante un fallo se conservan los datos previos sin avisar
-        },
-      });
+    this.emitirConsulta(this.filtrosConsulta(), true, false, true);
   }
 
   /** Vuelve a cargar las acciones de mejora sin mostrar "cargando" ni borrar lo que ya hay en pantalla. */
@@ -418,6 +522,20 @@ export class EstadisticasPage {
     this.cargaEstadisticas.set({ estado: 'inactivo' });
   }
 
+  private emitirConsulta(
+    filtros: Pick<SolicitudConsulta, 'asignaturaId' | 'resultadoAprendizajeId' | 'semestreId'>,
+    estadisticas = true,
+    conclusion = true,
+    silenciosa = false,
+  ): void {
+    this.solicitudConsulta.next({
+      ...filtros,
+      estadisticas,
+      conclusion,
+      silenciosa,
+    });
+  }
+
   protected alCambiarAsignatura(evento: Event): void {
     this.asignaturaId.set((evento.target as HTMLSelectElement).value);
     this.resultadoAprendizajeId.set('');
@@ -439,8 +557,7 @@ export class EstadisticasPage {
     if (!this.puedeConsultar()) {
       return;
     }
-    this.consultarEstadisticas();
-    this.consultarConclusion();
+    this.emitirConsulta(this.filtrosConsulta());
     this.recargaRendimiento.update((n) => n + 1);
   }
 
@@ -448,14 +565,7 @@ export class EstadisticasPage {
     if (!this.puedeConsultar()) {
       return;
     }
-    this.cargaEstadisticas.set({ estado: 'cargando' });
-    this.nivelLogroService
-      .consultarEstadisticas(this.resultadoAprendizajeId(), this.semestreId())
-      .subscribe({
-        next: (estadisticas) => this.cargaEstadisticas.set({ estado: 'listo', estadisticas }),
-        error: (error: unknown) =>
-          this.cargaEstadisticas.set({ estado: 'error', error: mensajeDeError(error) }),
-      });
+    this.emitirConsulta(this.filtrosConsulta(), true, false);
   }
 
   /**
@@ -470,8 +580,9 @@ export class EstadisticasPage {
     this.nivelLogroService.recalcular(this.resultadoAprendizajeId(), this.semestreId()).subscribe({
       next: (respuesta) => {
         this.recalculando.set(false);
-        this.cargaEstadisticas.set({ estado: 'listo', estadisticas: respuesta.estadisticas });
-        this.consultarConclusion();
+        if (this.puedeConsultar()) {
+          this.emitirConsulta(this.filtrosConsulta());
+        }
         this.recargaRendimiento.update((n) => n + 1);
         this.mostrarAviso(
           respuesta.conclusion?.generada
@@ -490,14 +601,7 @@ export class EstadisticasPage {
     if (!this.puedeConsultar()) {
       return;
     }
-    this.consulta.set({ estado: 'cargando' });
-    this.conclusionService
-      .consultarEstado(this.resultadoAprendizajeId(), this.semestreId())
-      .subscribe({
-        next: (resultado) => this.consulta.set({ estado: 'listo', resultado }),
-        error: (error: unknown) =>
-          this.consulta.set({ estado: 'error', error: mensajeDeError(error) }),
-      });
+    this.emitirConsulta(this.filtrosConsulta(), false, true);
   }
 
   protected consultaEstado(): CargaConclusion['estado'] {
