@@ -153,7 +153,7 @@
   padding: 0.55rem 1rem;
   border: 1px solid var(--sg-border);
   border-radius: var(--sg-radius-control);
-  background: var(--sg-card);
+  background: var(--sg-neutral-bg);
   color: var(--sg-ink-body);
   font: inherit;
   font-size: 0.875rem;
@@ -165,7 +165,7 @@
     border-color var(--sg-transition);
 
   &:hover:not(:disabled):not([aria-disabled='true']) {
-    background: var(--sg-field);
+    background: var(--sg-border);
   }
 
   &:disabled,
@@ -192,11 +192,11 @@
 
 .btn--secundario {
   border-color: var(--sg-navy);
-  background: var(--sg-card);
+  background: var(--sg-secondary-hover);
   color: var(--sg-navy);
 
   &:hover:not(:disabled):not([aria-disabled='true']) {
-    background: var(--sg-secondary-hover);
+    background: color-mix(in srgb, var(--sg-secondary-hover) 40%, var(--sg-navy));
   }
 }
 
@@ -210,24 +210,27 @@
   }
 }
 
+/* Mismo lenguaje que el resto de botones (0000050): borde y radio siempre visibles e
+ * idénticos a los demás; solo cambia el color, nunca el tamaño ni la forma. */
 .btn-ghost {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.35rem 0.55rem;
-  border: 0;
-  border-radius: var(--sg-radius-micro);
-  background: transparent;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--sg-ink-muted);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
   color: var(--sg-ink-muted);
   font: inherit;
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   text-decoration: none;
 
   &:hover:not(:disabled) {
     background: var(--sg-divider);
     color: var(--sg-ink);
+    border-color: var(--sg-ink);
   }
 }
 
