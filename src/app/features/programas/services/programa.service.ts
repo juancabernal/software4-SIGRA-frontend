@@ -3,7 +3,12 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
-import { FiltrosProgramas, Programa, ProgramaRequest } from '../models/programa.model';
+import {
+  FiltrosProgramas,
+  Programa,
+  ProgramaModificacionRequest,
+  ProgramaRequest,
+} from '../models/programa.model';
 
 /** Acceso HTTP a /api/v1/programas. Las reglas de negocio las aplica el backend. */
 @Injectable({ providedIn: 'root' })
@@ -22,6 +27,9 @@ export class ProgramaService {
     if (codigo) {
       params = params.set('codigo', codigo);
     }
+    if (filtros.facultadId) {
+      params = params.set('facultadId', filtros.facultadId);
+    }
     if (filtros.estado) {
       params = params.set('estado', filtros.estado);
     }
@@ -32,9 +40,13 @@ export class ProgramaService {
     return this.http.post<Programa>(this.baseUrl, programa);
   }
 
-  /** Solo el nombre es modificable: el código es inmutable (RF-02c). */
-  modificar(id: string, nombre: string): Observable<Programa> {
-    return this.http.put<Programa>(`${this.baseUrl}/${encodeURIComponent(id)}`, { nombre });
+  /**
+   * Se modifican el nombre y, opcionalmente, la facultad. El código es inmutable (RF-02c).
+   * Sin `facultadId` el cuerpo no lo incluye y el programa conserva su facultad.
+   */
+  modificar(id: string, nombre: string, facultadId?: string): Observable<Programa> {
+    const cuerpo: ProgramaModificacionRequest = facultadId ? { nombre, facultadId } : { nombre };
+    return this.http.put<Programa>(`${this.baseUrl}/${encodeURIComponent(id)}`, cuerpo);
   }
 
   inactivar(id: string): Observable<Programa> {

@@ -70,7 +70,9 @@
                 }}
               </option>
               @for (ra of resultadosActivos(); track ra.id) {
-                <option [value]="ra.id">{{ ra.codigo }}</option>
+                <option [value]="ra.id">
+                  {{ ra.codigo }} · {{ ra.descripcion }}
+                </option>
               }
             </select>
           }
