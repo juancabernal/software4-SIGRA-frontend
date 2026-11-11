@@ -75,8 +75,7 @@ jobs:
       - name: Logs SSR
         if: always()
         run: |
-          if [ -f ssr.log ]; then cat ssr.log; fi
-
+          test ! -f ssr.log || cat ssr.log
   e2e-integrada:
     name: E2E integrada (backend release y PostgreSQL efímero)
     runs-on: ubuntu-latest
