@@ -40,7 +40,12 @@ import {
 } from '../../models/estudiante.model';
 import { OpcionAsignatura, OpcionSemestre } from '../../models/matricula.model';
 import { TipoDocumento } from '../../models/tipos-documento';
-import { validadoresEstudiante } from '../../models/validadores-estudiante';
+import {
+  CampoEstudiante,
+  PATRON_PARTE_NOMBRE,
+  partesNombreParaPeticion,
+  validadoresEstudiante,
+} from '../../models/validadores-estudiante';
 import {
   MensajeError,
   mensajeDeError,
@@ -52,8 +57,7 @@ import { MatriculaService } from '../../services/matricula.service';
 import { TipoDocumentoOpcionesService } from '../../services/tipo-documento-opciones.service';
 
 type Campo = 'asignaturaId' | 'semestreId';
-type CampoEstudianteNuevo =
-  'tipoDocumentoId' | 'numeroDocumento' | 'nombreCompleto' | 'correoInstitucional';
+type CampoEstudianteNuevo = CampoEstudiante;
 
 /** Cómo se está indicando al estudiante cuando el padre no lo fija. */
 type Modo = 'buscar' | 'nuevo';
@@ -181,18 +185,21 @@ export class MatriculaFormDialog implements OnInit {
   protected readonly formNuevo = this.fb.nonNullable.group({
     tipoDocumentoId: ['', this.validadores.tipoDocumentoId],
     numeroDocumento: ['', this.validadores.numeroDocumento],
-    nombreCompleto: ['', this.validadores.nombreCompleto],
+    primerNombre: ['', this.validadores.primerNombre],
+    segundoNombre: ['', this.validadores.segundoNombre],
+    primerApellido: ['', this.validadores.primerApellido],
+    segundoApellido: ['', this.validadores.segundoApellido],
     correoInstitucional: ['', this.validadores.correoInstitucional],
   });
 
   /**
    * El alta y la matrícula son una sola acción para el usuario (RF-09a), así que el botón lo dice:
-   * en el modo «estudiante nuevo» registra y matricula de una vez.
+   * en el modo «estudiante nuevo» registra y matricula de una vez. El texto se decide al abrir el
+   * diálogo y no cambia mientras está abierto (0000051); si un reintento ya no necesita registrar
+   * (el alta quedó hecha y solo falló la matrícula), eso se explica en `altaParcial`, no en el botón.
    */
   protected readonly etiquetaConfirmar = computed(() =>
-    this.modo() === 'nuevo' && !this.creado() && !this.estudianteFijadoPorPadre()
-      ? 'Registrar y matricular'
-      : 'Matricular',
+    this.modo() === 'nuevo' && !this.estudianteFijadoPorPadre() ? 'Registrar y matricular' : 'Matricular',
   );
 
   /** Sin estudiante identificado no se puede matricular (D18). */
@@ -368,14 +375,54 @@ export class MatriculaFormDialog implements OnInit {
     this.formNuevo.patchValue(
       PATRON_DOCUMENTO_COMPLETO.test(criterio)
         ? { numeroDocumento: criterio }
-        : { nombreCompleto: criterio },
+        : this.partesDesdeCriterio(criterio),
     );
+  }
+
+  /**
+   * Reparte un criterio de texto (p. ej. «Ana Gómez») entre las partes del nombre, en orden:
+   * 1 palabra → primer nombre; 2 → nombre y primer apellido; 3 → nombre y dos apellidos;
+   * 4 o más → las cuatro partes. Solo se copian palabras que sean letras: el resto lo escribe el
+   * usuario.
+   */
+  private partesDesdeCriterio(criterio: string): Partial<{
+    primerNombre: string;
+    segundoNombre: string;
+    primerApellido: string;
+    segundoApellido: string;
+  }> {
+    const palabras = criterio.split(/\s+/).filter((p) => PATRON_PARTE_NOMBRE.test(p));
+    switch (palabras.length) {
+      case 0:
+        return {};
+      case 1:
+        return { primerNombre: palabras[0] };
+      case 2:
+        return { primerNombre: palabras[0], primerApellido: palabras[1] };
+      case 3:
+        return {
+          primerNombre: palabras[0],
+          primerApellido: palabras[1],
+          segundoApellido: palabras[2],
+        };
+      default:
+        return {
+          primerNombre: palabras[0],
+          segundoNombre: palabras[1],
+          primerApellido: palabras[2],
+          segundoApellido: palabras[3],
+        };
+    }
   }
 
   /** Vuelve a la búsqueda conservando lo escrito en el alta. */
   protected volverABuscar(): void {
-    const { numeroDocumento, nombreCompleto } = this.formNuevo.getRawValue();
-    const criterio = numeroDocumento.trim() || nombreCompleto.trim();
+    const { numeroDocumento, primerNombre, segundoNombre, primerApellido, segundoApellido } =
+      this.formNuevo.getRawValue();
+    const nombre = [primerNombre, segundoNombre, primerApellido, segundoApellido]
+      .filter((parte) => parte.trim())
+      .join(' ');
+    const criterio = numeroDocumento.trim() || nombre;
     this.modo.set('buscar');
     this.errorApi.set(null);
     this.noEncontrado.set(false);
@@ -460,7 +507,7 @@ export class MatriculaFormDialog implements OnInit {
     const dto: EstudianteRequest = {
       tipoDocumentoId: valores.tipoDocumentoId,
       numeroDocumento: valores.numeroDocumento,
-      nombreCompleto: valores.nombreCompleto.trim(),
+      ...partesNombreParaPeticion(valores),
       correoInstitucional: valores.correoInstitucional.trim(),
     };
     const { asignaturaId, semestreId } = this.form.getRawValue();

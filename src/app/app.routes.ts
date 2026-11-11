@@ -108,6 +108,19 @@ export const routes: Routes = [
         },
       },
       {
+        // Reportes: shell con pestañas R1 (rendimiento) y R6 (riesgo); alcance profesor en backend.
+        ...profesor,
+        path: 'profesor/reportes',
+        loadComponent: () =>
+          import('./features/reportes/components/reportes-page/reportes-page').then((m) => m.ReportesPage),
+        title: 'Reportes · SIGRA',
+        data: {
+          ...profesor.data,
+          titulo: 'Reportes',
+          subtitulo: 'Rendimiento y riesgo académico de tus asignaturas',
+        },
+      },
+      {
         ...profesor,
         path: 'profesor/historial',
         loadComponent: pendiente,
@@ -198,9 +211,11 @@ export const routes: Routes = [
         title: 'Historial de auditoría · SIGRA',
       },
       {
+        // Reportes: shell con pestañas R1 (rendimiento) y R6 (riesgo); vista global admin.
         ...administrador,
         path: 'admin/reportes',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import('./features/reportes/components/reportes-page/reportes-page').then((m) => m.ReportesPage),
         title: 'Reportes · SIGRA',
         data: {
           ...administrador.data,

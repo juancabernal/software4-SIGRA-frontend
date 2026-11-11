@@ -65,7 +65,7 @@ describe('Shell', () => {
     expect(enlacesDelMenu()).toEqual([]);
     expect(raiz().querySelector('.segmentado')).toBeNull();
     expect(raiz().querySelector('.barra__usuario')).toBeNull();
-    expect(raiz().querySelector('.btn-salir')).toBeNull();
+    expect(raiz().querySelector('.btn--secundario')).toBeNull();
   });
 
   it('pinta el menú del rol autenticado y no ofrece selector demo', async () => {
@@ -73,7 +73,7 @@ describe('Shell', () => {
 
     expect(enlacesDelMenu()).toEqual(PERFILES.profesor.menu.map((item) => item.etiqueta));
     expect(raiz().querySelector('.segmentado')).toBeNull();
-    expect(raiz().querySelector('.btn-salir')?.textContent).toContain('Cerrar sesión');
+    expect(raiz().querySelector('.btn--secundario')?.textContent).toContain('Cerrar sesión');
   });
 
   it('usa nombre, correo e iniciales de la sesión real', async () => {
@@ -112,7 +112,7 @@ describe('Shell', () => {
 
   it('cerrar sesión limpia la sesión guardada', async () => {
     await iniciarSesion();
-    raiz().querySelector<HTMLButtonElement>('.btn-salir')!.click();
+    raiz().querySelector<HTMLButtonElement>('.btn--secundario')!.click();
     await fixture.whenStable();
 
     expect(TestBed.inject(SessionService).hasSession()).toBe(false);

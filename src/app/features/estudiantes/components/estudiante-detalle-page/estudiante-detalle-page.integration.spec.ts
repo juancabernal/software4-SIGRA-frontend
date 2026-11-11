@@ -6,7 +6,6 @@ import { provideRouter } from '@angular/router';
 import { environment } from '../../../../../environments/environment';
 import { Estudiante } from '../../models/estudiante.model';
 import { AsignaturaDeEstudiante } from '../../models/matricula.model';
-import { ConfettiService } from '../../../../shared/ui/confetti/confetti.service';
 import { MatriculadosPage } from '../matriculados-page/matriculados-page';
 import { EstudianteDetallePage } from './estudiante-detalle-page';
 
@@ -26,7 +25,11 @@ const ANA: Estudiante = {
   id: 'e1',
   tipoDocumentoNombre: 'Cédula de ciudadanía',
   numeroDocumento: '1234567890',
-  nombreCompleto: 'Ana María Gómez',
+  primerNombre: 'Ana',
+  segundoNombre: 'María',
+  primerApellido: 'Gómez',
+  segundoApellido: 'Ruiz',
+  nombreCompleto: 'Ana María Gómez Ruiz',
   correoInstitucional: 'ana@uco.net.co',
   estado: 'ACTIVO',
 };
@@ -45,7 +48,6 @@ describe('EstudianteDetallePage (integración con MatriculaFormDialog)', () => {
   let fixture: ComponentFixture<EstudianteDetallePage>;
   let http: HttpTestingController;
   let html: HTMLElement;
-  let confettiSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -53,9 +55,6 @@ describe('EstudianteDetallePage (integración con MatriculaFormDialog)', () => {
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     });
     http = TestBed.inject(HttpTestingController);
-    confettiSpy = vi
-      .spyOn(TestBed.inject(ConfettiService), 'celebrar')
-      .mockImplementation(() => {});
     fixture = TestBed.createComponent(EstudianteDetallePage);
     html = fixture.nativeElement as HTMLElement;
     document.body.appendChild(html);
@@ -127,7 +126,6 @@ describe('EstudianteDetallePage (integración con MatriculaFormDialog)', () => {
 
     expect(html.querySelector('app-matricula-form-dialog')).toBeNull();
     expect(html.querySelector('.aviso-zona')?.textContent).toContain('Estudiante matriculado.');
-    expect(confettiSpy).toHaveBeenCalledTimes(1);
 
     const nueva: AsignaturaDeEstudiante = {
       matriculaId: 'm2',
@@ -172,8 +170,15 @@ describe('EstudianteDetallePage (integración con MatriculaFormDialog)', () => {
     document.body.appendChild(htmlMatriculados);
 
     await fixtureMatriculados.whenStable();
-    http.expectOne((r) => r.url === URL_ASIGNATURAS).flush(ASIGNATURAS);
+    http.expectNone((r) => r.url === URL_ASIGNATURAS);
     http.expectOne((r) => r.url === URL_SEMESTRES).flush(SEMESTRES);
+    await fixtureMatriculados.whenStable();
+
+    const selectSemestre = htmlMatriculados.querySelector('#filtro-semestre') as HTMLSelectElement;
+    selectSemestre.value = 's1';
+    selectSemestre.dispatchEvent(new Event('change'));
+    await fixtureMatriculados.whenStable();
+    http.expectOne(`${URL_ASIGNATURAS}?semestreId=s1`).flush(ASIGNATURAS);
     await fixtureMatriculados.whenStable();
 
     const selectAsignatura = htmlMatriculados.querySelector(
@@ -181,11 +186,6 @@ describe('EstudianteDetallePage (integración con MatriculaFormDialog)', () => {
     ) as HTMLSelectElement;
     selectAsignatura.value = 'a1';
     selectAsignatura.dispatchEvent(new Event('change'));
-    await fixtureMatriculados.whenStable();
-
-    const selectSemestre = htmlMatriculados.querySelector('#filtro-semestre') as HTMLSelectElement;
-    selectSemestre.value = 's1';
-    selectSemestre.dispatchEvent(new Event('change'));
     await fixtureMatriculados.whenStable();
 
     const consulta = http.expectOne((r) => r.url === URL_MATRICULAS && r.method === 'GET');

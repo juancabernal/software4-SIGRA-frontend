@@ -167,6 +167,19 @@
   (cancelar)="cancelarDesvincular()"
 />
 
+<app-dialogo-confirmacion
+  [abierto]="conflictoDesvincular() !== null"
+  titulo="Confirmación requerida"
+  [descripcion]="conflictoDesvincular()?.mensaje ?? ''"
+  gestoRequerido="Entiendo que las calificaciones se conservan y confirmo la desvinculación."
+  etiquetaConfirmar="Desvincular de todos modos"
+  tono="peligro"
+  [procesando]="confirmandoConflicto()"
+  [error]="errorConflicto()"
+  (confirmar)="confirmarConflictoDesvincular()"
+  (cancelar)="cancelarConflictoDesvincular()"
+/>
+
 @if (matriculaAbierta() && estudiante(); as e) {
   <app-matricula-form-dialog
     [estudianteId]="e.id"

@@ -35,21 +35,32 @@
           Reintentar
         </button>
       </div>
-    } @else if (asignaturas().length === 0) {
-      <div class="estado-vista">
-        <p class="estado-vista__titulo">No hay materias activas</p>
-        <p>Las evaluaciones se gestionan en materias activas con sus RA.</p>
-      </div>
     } @else {
       <div class="filtros">
+        <div class="filtro">
+          <label for="selector-semestre">Semestre</label>
+          <select
+            id="selector-semestre"
+            [value]="semestreId()"
+            (change)="alCambiarSemestre($event)"
+          >
+            @for (s of semestres(); track s.id) {
+              <option [value]="s.id" [selected]="s.id === semestreId()">
+                {{ etiquetaSemestre(s) }}
+              </option>
+            }
+          </select>
+        </div>
+
         <div class="filtro">
           <label for="selector-materia">Materia</label>
           <select
             id="selector-materia"
+            [disabled]="!semestreId() || cargandoAsignaturas()"
             [value]="asignaturaId()"
             (change)="alCambiarAsignatura($event)"
           >
-            <option value="">Selecciona una materia</option>
+            <option value="">{{ !semestreId() ? 'Elige primero un semestre' : cargandoAsignaturas() ? 'Cargando…' : asignaturas().length === 0 ? 'Sin materias en este semestre' : 'Selecciona una materia' }}</option>
             @for (a of asignaturas(); track a.id) {
               <option [value]="a.id" [selected]="a.id === asignaturaId()">
                 {{ a.codigo }} · {{ a.nombre }}
@@ -84,21 +95,6 @@
             }
           </select>
         </div>
-
-        <div class="filtro">
-          <label for="selector-semestre">Semestre</label>
-          <select
-            id="selector-semestre"
-            [value]="semestreId()"
-            (change)="alCambiarSemestre($event)"
-          >
-            @for (s of semestres(); track s.id) {
-              <option [value]="s.id" [selected]="s.id === semestreId()">
-                {{ etiquetaSemestre(s) }}
-              </option>
-            }
-          </select>
-        </div>
       </div>
 
       @if (errorRa(); as error) {
@@ -111,8 +107,8 @@
         </div>
       } @else if (semestres().length === 0) {
         <div class="estado-vista">
-          <p class="estado-vista__titulo">No hay semestres registrados</p>
-          <p>Las evaluaciones se crean en el semestre en curso.</p>
+          <p class="estado-vista__titulo">No tienes semestres con asignaturas</p>
+          <p>Aparecen aquí los semestres en los que tienes asignaturas asignadas.</p>
         </div>
       } @else if (!ra()) {
         <div class="estado-vista">
@@ -261,7 +257,7 @@
                           @if (e.estado === 'ACTIVA') {
                             <button
                               type="button"
-                              class="btn-ghost"
+                              class="btn btn--secundario btn--pequeno"
                               [attr.aria-label]="'Modificar ' + e.nombre"
                               (click)="abrirEdicion(e)"
                             >

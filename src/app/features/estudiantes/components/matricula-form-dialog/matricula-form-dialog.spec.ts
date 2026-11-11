@@ -250,7 +250,7 @@ describe('MatriculaFormDialog', () => {
     http.expectNone(URL_MATRICULAS);
   });
 
-  it('mientras se matricula, el botón de envío queda deshabilitado y muestra "Matriculando…"', async () => {
+  it('mientras se matricula, el botón de envío queda deshabilitado, no cambia de texto, y se avisa aparte con "Matriculando…"', async () => {
     await abrirConCatalogos();
 
     const selectAsignatura = html.querySelector('#matricula-asignatura') as HTMLSelectElement;
@@ -265,8 +265,9 @@ describe('MatriculaFormDialog', () => {
     await fixture.whenStable();
 
     const submit = html.querySelector('button[type="submit"]') as HTMLButtonElement;
-    expect(submit.textContent?.trim()).toBe('Matriculando…');
+    expect(submit.textContent?.trim()).toBe('Matricular');
     expect(submit.disabled).toBe(true);
+    expect(html.querySelector('[role="status"]')?.textContent?.trim()).toBe('Matriculando…');
 
     http
       .expectOne(URL_MATRICULAS)
@@ -305,7 +306,11 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
     id: 'e9',
     tipoDocumentoNombre: 'Cédula de ciudadanía',
     numeroDocumento: '1234567890',
-    nombreCompleto: 'Ana María Gómez',
+    primerNombre: 'Ana',
+    segundoNombre: 'María',
+    primerApellido: 'Gómez',
+    segundoApellido: 'Ruiz',
+    nombreCompleto: 'Ana María Gómez Ruiz',
     correoInstitucional: 'ana@uco.net.co',
     estado: 'ACTIVO',
   };
@@ -314,7 +319,11 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
     id: 'e10',
     tipoDocumentoNombre: TIPOS[0].nombre,
     numeroDocumento: '9876543210',
-    nombreCompleto: 'Carlos Ruiz',
+    primerNombre: 'Carlos',
+    segundoNombre: 'Andrés',
+    primerApellido: 'Ruiz',
+    segundoApellido: 'Pérez',
+    nombreCompleto: 'Carlos Andrés Ruiz Pérez',
     correoInstitucional: 'carlos@uco.net.co',
     estado: 'ACTIVO',
   };
@@ -653,7 +662,10 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
     async function completarEstudianteNuevo(): Promise<void> {
       elegir('#matricula-nuevo-tipo', TIPOS[0].id);
       escribir('#matricula-nuevo-documento', '9876543210');
-      escribir('#matricula-nuevo-nombre', 'Carlos Ruiz');
+      escribir('#matricula-nuevo-primer-nombre', 'Carlos');
+      escribir('#matricula-nuevo-segundo-nombre', 'Andrés');
+      escribir('#matricula-nuevo-primer-apellido', 'Ruiz');
+      escribir('#matricula-nuevo-segundo-apellido', 'Pérez');
       escribir('#matricula-nuevo-correo', 'carlos@uco.net.co');
       await fixture.whenStable();
     }
@@ -665,7 +677,9 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
       enviar();
       await fixture.whenStable();
 
-      expect(html.textContent).toContain('Escribe el nombre completo.');
+      expect(html.textContent).toContain('Escribe el primer nombre.');
+      expect(html.textContent).toContain('Escribe el primer apellido.');
+      expect(html.textContent).toContain('Escribe el segundo apellido.');
       expect(html.textContent).toContain('El correo debe ser del dominio institucional');
       http.expectNone((r) => r.method === 'POST');
     });
@@ -673,7 +687,9 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
     it('rechaza un correo de otro dominio', async () => {
       await irAEstudianteNuevo();
       elegir('#matricula-nuevo-tipo', TIPOS[0].id);
-      escribir('#matricula-nuevo-nombre', 'Carlos Ruiz');
+      escribir('#matricula-nuevo-primer-nombre', 'Carlos');
+      escribir('#matricula-nuevo-primer-apellido', 'Ruiz');
+      escribir('#matricula-nuevo-segundo-apellido', 'Pérez');
       escribir('#matricula-nuevo-correo', 'carlos@gmail.com');
       await elegirAsignaturaYSemestre();
 
@@ -684,19 +700,41 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
       http.expectNone((r) => r.method === 'POST');
     });
 
-    it('rechaza un nombre con dígitos o símbolos', async () => {
+    it.each([
+      ['#matricula-nuevo-primer-nombre', 'Carlos2'],
+      ['#matricula-nuevo-segundo-nombre', 'Juan Pablo'],
+      ['#matricula-nuevo-primer-apellido', 'Ruiz-Pérez'],
+      ['#matricula-nuevo-segundo-apellido', 'De La Cruz'],
+    ])('rechaza espacios, dígitos o símbolos en %s', async (selector, valor) => {
       await irAEstudianteNuevo();
       await completarEstudianteNuevo();
-      escribir('#matricula-nuevo-nombre', 'Carlos2 Ruiz');
+      escribir(selector, valor);
       await elegirAsignaturaYSemestre();
 
       enviar();
       await fixture.whenStable();
 
       expect(html.textContent).toContain(
-        'Usa solo letras y un único espacio entre cada palabra, sin números ni símbolos.',
+        'Usa solo letras, sin espacios, números ni símbolos (máximo 50).',
       );
       http.expectNone((r) => r.method === 'POST');
+    });
+
+    it('al pasar a registrar reparte un nombre buscado entre las partes', async () => {
+      await abrirConCatalogos();
+      escribir('#matricula-buscar-criterio', 'Carlos Ruiz');
+      boton('Buscar').click();
+      await fixture.whenStable();
+      busquedaDe('Carlos Ruiz').flush([]);
+      await fixture.whenStable();
+
+      await pasarARegistrar();
+
+      const valor = (id: string) =>
+        (html.querySelector(`#matricula-nuevo-${id}`) as HTMLInputElement).value;
+      expect(valor('primer-nombre')).toBe('Carlos');
+      expect(valor('primer-apellido')).toBe('Ruiz');
+      expect(valor('segundo-nombre')).toBe('');
     });
 
     it('envía el alta y luego la matrícula con el id devuelto, con un solo aviso', async () => {
@@ -715,9 +753,13 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
       expect(peticionAlta.request.body).toEqual({
         tipoDocumentoId: TIPOS[0].id,
         numeroDocumento: '9876543210',
-        nombreCompleto: 'Carlos Ruiz',
+        primerNombre: 'Carlos',
+        segundoNombre: 'Andrés',
+        primerApellido: 'Ruiz',
+        segundoApellido: 'Pérez',
         correoInstitucional: 'carlos@uco.net.co',
       });
+      expect(peticionAlta.request.body).not.toHaveProperty('nombreCompleto');
       peticionAlta.flush(CREADO, { status: 201, statusText: 'Created' });
       await fixture.whenStable();
 
@@ -754,7 +796,7 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
       await fixture.whenStable();
 
       const alerta = html.querySelector('.alerta--parcial') as HTMLElement;
-      expect(alerta.textContent).toContain('Carlos Ruiz quedó registrado');
+      expect(alerta.textContent).toContain('Carlos Andrés Ruiz Pérez quedó registrado');
       expect(alerta.textContent).toContain('la matrícula no se realizó');
       expect(alerta.textContent).toContain('El semestre no está activo');
       // El estudiante ya existe: la vista lo muestra como registrado.
@@ -795,8 +837,10 @@ describe('MatriculaFormDialog sin estudiante fijado', () => {
       expect(html.querySelector('[role="alert"]')?.textContent).toContain(
         'El estudiante ya está registrado',
       );
-      const nombre = html.querySelector('#matricula-nuevo-nombre') as HTMLInputElement;
-      expect(nombre.value).toBe('Carlos Ruiz');
+      const nombre = html.querySelector('#matricula-nuevo-primer-nombre') as HTMLInputElement;
+      expect(nombre.value).toBe('Carlos');
+      const apellido = html.querySelector('#matricula-nuevo-primer-apellido') as HTMLInputElement;
+      expect(apellido.value).toBe('Ruiz');
 
       // Sin volver a teclear: pasa a buscar con el mismo documento y lo matricula.
       boton('Buscar ese estudiante y matricularlo').click();

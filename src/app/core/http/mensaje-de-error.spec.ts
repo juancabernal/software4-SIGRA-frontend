@@ -34,6 +34,19 @@ describe('mensajeDeError', () => {
     expect(resultado.detalles).toEqual(['El nombre es obligatorio', 'sin prefijo']);
   });
 
+  it('acepta los detalles como objeto { campo: motivo } y muestra solo los motivos', () => {
+    const resultado = mensajeDeError(
+      errorHttp(400, {
+        mensaje: 'Los datos de entrada no cumplen con las validaciones requeridas',
+        detalles: { nombre: 'El nombre es obligatorio', facultadId: 'La facultad es obligatoria', otro: 7 },
+      }),
+    );
+    expect(resultado).toEqual({
+      mensaje: 'Los datos de entrada no cumplen con las validaciones requeridas',
+      detalles: ['El nombre es obligatorio', 'La facultad es obligatoria'],
+    });
+  });
+
   it('un 4xx sin mensaje legible usa el mensaje genérico', () => {
     expect(mensajeDeError(errorHttp(404, 'texto plano')).mensaje).toBe(INESPERADO);
   });

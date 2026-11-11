@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -8,13 +9,14 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
-import { catchError, forkJoin, map, of, switchMap, tap } from 'rxjs';
+import { Subject, catchError, map, of, switchMap, tap } from 'rxjs';
 
 import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
 import { MatriculaFormDialog } from '../matricula-form-dialog/matricula-form-dialog';
-import { ConfettiService } from '../../../../shared/ui/confetti/confetti.service';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
+import { Paginador } from '../../../../shared/ui/paginador/paginador';
+import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 import {
   EstudianteMatriculado,
   OpcionAsignatura,
@@ -42,7 +44,7 @@ const DURACION_AVISO_MS = 6000;
  */
 @Component({
   selector: 'app-matriculados-page',
-  imports: [ChipEstado, DialogoConfirmacion, Icono, MatriculaFormDialog],
+  imports: [ChipEstado, DialogoConfirmacion, Icono, MatriculaFormDialog, Paginador],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './matriculados-page.html',
   styleUrl: './matriculados-page.scss',
@@ -52,7 +54,6 @@ export class MatriculadosPage {
   private readonly service = inject(MatriculaService);
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly destroyRef = inject(DestroyRef);
-  private readonly confetti = inject(ConfettiService);
   private temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
   private readonly asignaturaInicial =
     this.route?.snapshot.queryParamMap.get('asignaturaId') ?? null;
@@ -71,6 +72,8 @@ export class MatriculadosPage {
   protected readonly semestreId = signal('');
   protected readonly incluirInactivas = signal(false);
   private readonly recargas = signal(0);
+  private readonly cambiosSemestre = new Subject<string>();
+  protected readonly cargandoAsignaturas = signal(false);
 
   protected readonly ambosElegidos = computed(() => !!this.asignaturaId() && !!this.semestreId());
 
@@ -78,6 +81,8 @@ export class MatriculadosPage {
   protected readonly cargando = signal(false);
   protected readonly errorCarga = signal<MensajeError | null>(null);
   protected readonly matriculados = signal<EstudianteMatriculado[]>([]);
+  /** Paginación en cliente, igual que en «Materias». */
+  protected readonly paginacion = paginarEnCliente(this.matriculados);
 
   /**
    * La columna de fecha solo existe si el servidor la manda en alguna fila (D13). Hoy nunca la
@@ -95,6 +100,13 @@ export class MatriculadosPage {
   protected readonly aDesvincular = signal<EstudianteMatriculado | null>(null);
   protected readonly desvinculando = signal(false);
   protected readonly errorDesvincular = signal<string | null>(null);
+  /** 409 de confirmación (calificaciones): segundo diálogo con mensaje del servidor. */
+  protected readonly conflictoDesvincular = signal<{
+    matricula: EstudianteMatriculado;
+    mensaje: string;
+  } | null>(null);
+  protected readonly confirmandoConflicto = signal(false);
+  protected readonly errorConflicto = signal<string | null>(null);
 
   protected readonly tituloDesvincular = computed(() => {
     const matricula = this.aDesvincular();
@@ -124,6 +136,15 @@ export class MatriculadosPage {
   constructor() {
     this.destroyRef.onDestroy(() => clearTimeout(this.temporizadorAviso));
     this.cargarCatalogos();
+    this.cambiosSemestre.pipe(
+      tap(() => { this.asignaturas.set([]); this.cargandoAsignaturas.set(true); this.errorCatalogos.set(false); }),
+      switchMap(id => id ? this.catalogos.listarAsignaturas(id).pipe(catchError(() => of(null))) : of([])),
+      takeUntilDestroyed(),
+    ).subscribe(lista => {
+      this.cargandoAsignaturas.set(false);
+      this.errorCatalogos.set(lista === null);
+      this.asignaturas.set(lista ?? []);
+    });
 
     const consulta = computed(() => ({
       asignaturaId: this.asignaturaId(),
@@ -163,14 +184,22 @@ export class MatriculadosPage {
 
   // ── Filtros ───────────────────────────────────────────────────────
   protected alCambiarAsignatura(evento: Event): void {
+    this.paginacion.reiniciar();
     this.asignaturaId.set((evento.target as HTMLSelectElement).value);
   }
 
   protected alCambiarSemestre(evento: Event): void {
+    this.paginacion.reiniciar();
+    this.asignaturaId.set('');
+    this.matriculados.set([]);
+    this.matriculaAbierta.set(false);
+    this.aDesvincular.set(null);
     this.semestreId.set((evento.target as HTMLSelectElement).value);
+    this.cambiosSemestre.next(this.semestreId());
   }
 
   protected alCambiarIncluirInactivas(evento: Event): void {
+    this.paginacion.reiniciar();
     this.incluirInactivas.set((evento.target as HTMLInputElement).checked);
   }
 
@@ -195,7 +224,6 @@ export class MatriculadosPage {
   protected alMatricular(texto: string): void {
     this.matriculaAbierta.set(false);
     this.mostrarAviso({ texto, tono: 'ok' });
-    this.confetti.celebrar();
     this.recargar();
   }
 
@@ -210,6 +238,11 @@ export class MatriculadosPage {
     this.errorDesvincular.set(null);
   }
 
+  protected cancelarConflictoDesvincular(): void {
+    this.conflictoDesvincular.set(null);
+    this.errorConflicto.set(null);
+  }
+
   protected confirmarDesvincular(): void {
     const matricula = this.aDesvincular();
     if (!matricula || this.desvinculando()) {
@@ -217,8 +250,9 @@ export class MatriculadosPage {
     }
     this.desvinculando.set(true);
     this.errorDesvincular.set(null);
+    const confirmar = matricula.tieneCalificaciones === true;
     this.service
-      .desvincular(matricula.matriculaId)
+      .desvincular(matricula.matriculaId, confirmar)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -232,10 +266,54 @@ export class MatriculadosPage {
         },
         error: (error: unknown) => {
           this.desvinculando.set(false);
-          this.errorDesvincular.set(mensajeDeError(error).mensaje);
+          const mensaje = mensajeDeError(error).mensaje;
+          if (
+            !confirmar &&
+            error instanceof HttpErrorResponse &&
+            error.status === 409 &&
+            this.esConfirmacionDesvinculacion(mensaje)
+          ) {
+            this.aDesvincular.set(null);
+            this.conflictoDesvincular.set({ matricula, mensaje });
+            return;
+          }
+          this.errorDesvincular.set(mensaje);
           this.recargar();
         },
       });
+  }
+
+  protected confirmarConflictoDesvincular(): void {
+    const conflicto = this.conflictoDesvincular();
+    if (!conflicto || this.confirmandoConflicto()) {
+      return;
+    }
+    this.confirmandoConflicto.set(true);
+    this.errorConflicto.set(null);
+    this.service
+      .desvincular(conflicto.matricula.matriculaId, true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.confirmandoConflicto.set(false);
+          this.conflictoDesvincular.set(null);
+          this.mostrarAviso({
+            texto: `Desvinculado: ${conflicto.matricula.nombreCompleto}.`,
+            tono: 'ok',
+          });
+          this.recargar();
+        },
+        error: (error: unknown) => {
+          this.confirmandoConflicto.set(false);
+          this.errorConflicto.set(mensajeDeError(error).mensaje);
+          this.recargar();
+        },
+      });
+  }
+
+  private esConfirmacionDesvinculacion(mensaje: string): boolean {
+    const texto = mensaje.toLowerCase();
+    return texto.includes('confirmar') && texto.includes('calificaci');
   }
 
   // ── Avisos ────────────────────────────────────────────────────────
@@ -253,28 +331,15 @@ export class MatriculadosPage {
   private cargarCatalogos(): void {
     this.cargandoCatalogos.set(true);
     this.errorCatalogos.set(false);
-    forkJoin({
-      asignaturas: this.catalogos.listarAsignaturas().pipe(catchError(() => of(null))),
-      semestres: this.catalogos.listarSemestres().pipe(catchError(() => of(null))),
-    })
+    this.catalogos.listarSemestres()
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(({ asignaturas, semestres }) => {
-        this.cargandoCatalogos.set(false);
-        if (asignaturas === null || semestres === null) {
-          this.errorCatalogos.set(true);
-          this.asignaturas.set([]);
-          this.semestres.set([]);
-          return;
-        }
-        this.asignaturas.set(asignaturas);
-        this.semestres.set(semestres);
-        if (
-          this.asignaturaId() === '' &&
-          this.asignaturaInicial !== null &&
-          asignaturas.some(({ id }) => id === this.asignaturaInicial)
-        ) {
-          this.asignaturaId.set(this.asignaturaInicial);
-        }
+      .subscribe({
+        next: semestres => {
+          this.semestres.set(semestres);
+          this.cargandoCatalogos.set(false);
+          if (this.semestreId()) this.cambiosSemestre.next(this.semestreId());
+        },
+        error: () => { this.errorCatalogos.set(true); this.cargandoCatalogos.set(false); },
       });
   }
 }

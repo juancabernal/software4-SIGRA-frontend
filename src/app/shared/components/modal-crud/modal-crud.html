@@ -36,9 +36,15 @@
     </div>
 
     <footer class="modal__acciones">
+      @if (procesando()) {
+        <span class="accion-estado" role="status" aria-live="polite" style="margin-right: auto">
+          <span class="accion-estado__spinner" aria-hidden="true"></span>
+          Procesando…
+        </span>
+      }
       <button
         type="button"
-        class="modal__cancelar"
+        class="btn btn--cancelar"
         [disabled]="procesando()"
         (click)="alCancelar()"
       >
@@ -46,10 +52,10 @@
       </button>
       <button
         type="submit"
-        class="modal__enviar"
+        class="btn btn--primario"
         [attr.aria-disabled]="bloqueado() ? 'true' : null"
       >
-        {{ procesando() ? 'Procesando…' : etiquetaEnviar() }}
+        {{ etiquetaEnviar() }}
       </button>
     </footer>
   </form>

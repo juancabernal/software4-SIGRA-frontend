@@ -4,7 +4,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../../../environments/environment';
 import { EstudianteMatriculado } from '../../models/matricula.model';
-import { ConfettiService } from '../../../../shared/ui/confetti/confetti.service';
 import { MatriculadosPage } from './matriculados-page';
 
 const URL_ASIGNATURAS = `${environment.apiUrl}/v1/asignaturas`;
@@ -25,7 +24,6 @@ describe('MatriculadosPage', () => {
   let fixture: ComponentFixture<MatriculadosPage>;
   let http: HttpTestingController;
   let html: HTMLElement;
-  let confettiSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -33,9 +31,6 @@ describe('MatriculadosPage', () => {
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     http = TestBed.inject(HttpTestingController);
-    confettiSpy = vi
-      .spyOn(TestBed.inject(ConfettiService), 'celebrar')
-      .mockImplementation(() => {});
     fixture = TestBed.createComponent(MatriculadosPage);
     html = fixture.nativeElement as HTMLElement;
     document.body.appendChild(html);
@@ -54,7 +49,7 @@ describe('MatriculadosPage', () => {
 
   async function iniciar(): Promise<void> {
     await fixture.whenStable();
-    http.expectOne((r) => r.url === URL_ASIGNATURAS).flush(ASIGNATURAS);
+    http.expectNone((r) => r.url === URL_ASIGNATURAS);
     http.expectOne((r) => r.url === URL_SEMESTRES).flush(SEMESTRES);
     await fixture.whenStable();
   }
@@ -73,9 +68,11 @@ describe('MatriculadosPage', () => {
 
   async function elegirAmbos(): Promise<void> {
     await iniciar();
-    elegirAsignatura();
-    await fixture.whenStable();
     elegirSemestre();
+    await fixture.whenStable();
+    http.expectOne(`${URL_ASIGNATURAS}?semestreId=s1`).flush(ASIGNATURAS);
+    await fixture.whenStable();
+    elegirAsignatura();
     await fixture.whenStable();
   }
 
@@ -83,11 +80,48 @@ describe('MatriculadosPage', () => {
     await iniciar();
     expect(html.textContent).toContain('Elige una asignatura y un semestre');
 
-    elegirAsignatura();
+    expect((html.querySelector('#filtro-asignatura') as HTMLSelectElement).disabled).toBe(true);
+    elegirSemestre();
+    await fixture.whenStable();
+    http.expectOne(`${URL_ASIGNATURAS}?semestreId=s1`).flush(ASIGNATURAS);
     await fixture.whenStable();
 
     http.expectNone(URL_MATRICULAS);
     expect(html.textContent).toContain('Elige una asignatura y un semestre');
+  });
+
+  it('limpia la selección y cancela la carga del semestre anterior', async () => {
+    await iniciar();
+    const semestre = html.querySelector('#filtro-semestre') as HTMLSelectElement;
+    semestre.add(new Option('2026-2', 's2'));
+    elegirSemestre();
+    await fixture.whenStable();
+    const anterior = http.expectOne(`${URL_ASIGNATURAS}?semestreId=s1`);
+    semestre.value = 's2';
+    semestre.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    expect(anterior.cancelled).toBe(true);
+    http.expectOne(`${URL_ASIGNATURAS}?semestreId=s2`).flush([]);
+    await fixture.whenStable();
+    expect((html.querySelector('#filtro-asignatura') as HTMLSelectElement).value).toBe('');
+    expect(html.textContent).toContain('Sin asignaturas en este semestre');
+    http.expectNone(URL_MATRICULAS);
+  });
+
+  it('al cambiar semestre elimina la asignatura y las filas anteriores', async () => {
+    await elegirAmbos();
+    consultaMatriculados().flush([ANA]);
+    await fixture.whenStable();
+    const semestre = html.querySelector('#filtro-semestre') as HTMLSelectElement;
+    semestre.add(new Option('2026-2', 's2'));
+    semestre.value = 's2';
+    semestre.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    http.expectOne(`${URL_ASIGNATURAS}?semestreId=s2`).flush([]);
+    await fixture.whenStable();
+    expect((html.querySelector('#filtro-asignatura') as HTMLSelectElement).value).toBe('');
+    expect(html.textContent).not.toContain('Ana María Gómez');
+    http.expectNone(URL_MATRICULAS);
   });
 
   it('consulta al completar ambos filtros', async () => {
@@ -143,12 +177,12 @@ describe('MatriculadosPage', () => {
     http
       .expectOne(`${URL_MATRICULAS}/m1`)
       .flush(
-        { status: 409, error: 'CONFLICT', mensaje: 'La matrícula ya estaba desvinculada' },
+        { status: 409, error: 'CONFLICT', mensaje: 'La matrícula ya no está activa.' },
         { status: 409, statusText: 'Conflict' },
       );
     await fixture.whenStable();
 
-    expect(dialogo.textContent).toContain('La matrícula ya estaba desvinculada');
+    expect(dialogo.textContent).toContain('La matrícula ya no está activa.');
     expect(dialogo.hasAttribute('open')).toBe(true);
     consultaMatriculados().flush([{ ...ANA, estado: 'DESVINCULADA' }]);
   });
@@ -218,7 +252,12 @@ describe('MatriculadosPage', () => {
       boton(dialogoDesvincular(), 'Desvincular').click();
       await fixture.whenStable();
 
-      http.expectOne(`${URL_MATRICULAS}/m1`).flush(null, { status: 204, statusText: 'No Content' });
+      // Con tieneCalificaciones=true el front ya manda confirmar=true (RF-08b / 0000039).
+      const req = http.expectOne(
+        (r) => r.url === `${URL_MATRICULAS}/m1` && r.params.get('confirmar') === 'true',
+      );
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null, { status: 204, statusText: 'No Content' });
       await fixture.whenStable();
 
       expect(html.textContent).toContain('Desvinculado: Ana María Gómez.');
@@ -362,7 +401,6 @@ describe('MatriculadosPage', () => {
       await fixture.whenStable();
 
       expect(html.textContent).toContain('Estudiante matriculado.');
-      expect(confettiSpy).toHaveBeenCalledTimes(1);
       // Se relee del servidor (D9): la fila nueva llega de la consulta, no de un parche en memoria.
       consultaMatriculados().flush([ANA]);
       await fixture.whenStable();

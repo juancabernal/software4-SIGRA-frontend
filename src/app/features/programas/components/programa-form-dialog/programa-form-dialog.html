@@ -5,8 +5,9 @@
   [procesando]="procesando()"
   [error]="errorApi()?.mensaje ?? null"
   [detalles]="errorApi()?.detalles ?? []"
-  [enviarDeshabilitado]="form.invalid"
+  [enviarDeshabilitado]="enviarDeshabilitado()"
   (enviar)="enviar()"
+  (envioBloqueado)="mostrarErrores()"
   (cancelar)="cancelar.emit()"
 >
   <form [formGroup]="form" class="campos" (ngSubmit)="enviar()">
@@ -43,6 +44,54 @@
         <p class="error-campo" role="alert">
           El código debe tener entre {{ codigoMin }} y {{ codigoMax }} caracteres, solo letras,
           números o guion.
+        </p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="programa-facultad">
+        Facultad <span class="obligatorio" aria-hidden="true">*</span>
+      </label>
+      <select
+        id="programa-facultad"
+        formControlName="facultadId"
+        aria-required="true"
+        [attr.aria-invalid]="
+          (form.controls.facultadId.touched && form.controls.facultadId.invalid) ||
+          errorFacultades() !== null
+        "
+        aria-describedby="programa-facultad-ayuda"
+      >
+        @if (modo() === 'crear') {
+          <option value="">
+            {{ cargandoFacultades() ? 'Cargando facultades…' : 'Selecciona...' }}
+          </option>
+        }
+        @for (opcion of opcionesFacultad(); track opcion.id) {
+          <option [value]="opcion.id">{{ opcion.etiqueta }}</option>
+        }
+      </select>
+      @if (errorFacultades(); as error) {
+        <p class="error-campo" id="programa-facultad-ayuda" role="alert">
+          {{ error }}
+          @if (modo() === 'editar') {
+            El programa conservará su facultad actual.
+          }
+        </p>
+      } @else if (form.controls.facultadId.touched && form.controls.facultadId.invalid) {
+        <p class="error-campo" id="programa-facultad-ayuda">Selecciona una facultad activa.</p>
+      } @else if (sinFacultadesElegibles()) {
+        <p class="ayuda" id="programa-facultad-ayuda">
+          No hay facultades activas disponibles para asociar el programa.
+        </p>
+      } @else if (sinFacultadAsignada()) {
+        <p class="aviso-reasignar" id="programa-facultad-ayuda">
+          Este programa aún no tiene una facultad real. Selecciona la facultad a la que pertenece.
+        </p>
+      } @else if (modo() === 'editar') {
+        <p class="ayuda" id="programa-facultad-ayuda">
+          Solo puedes elegir facultades activas. Si conservas la actual, no cambia aunque esté
+          inactiva.
         </p>
       }
     </div>

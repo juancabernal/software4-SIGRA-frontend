@@ -153,50 +153,11 @@ dialog::backdrop {
   padding: 0 1.5rem 1.5rem;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.625rem 1rem;
-  border: 1px solid transparent;
-  border-radius: var(--sem-radius-control);
-  background: transparent;
-  color: var(--sem-muted);
-  font-family: var(--sem-font-titulo);
-  font-size: 0.875rem;
-  font-weight: 600;
-  line-height: 1.2;
-  cursor: pointer;
-  transition:
-    background var(--sem-t),
-    transform var(--sem-t);
-}
-
-.btn:hover:not(:disabled) {
-  background: var(--sem-hover);
-}
-
-.btn:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.btn:disabled,
 .cerrar:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
 
-.btn--primario {
-  border-color: var(--sem-navy);
-  background: var(--sem-navy);
-  color: #fff;
-}
-
-.btn--primario:hover:not(:disabled) {
-  background: var(--sem-navy-hover);
-}
-
-.btn:focus-visible,
 .cerrar:focus-visible {
   outline: 2px solid var(--sem-navy);
   outline-offset: 2px;

@@ -40,29 +40,3 @@
   white-space: nowrap;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.35rem 0.75rem;
-  border: 1px solid var(--sg-border);
-  border-radius: var(--sg-radius-control);
-  background: var(--sg-card);
-  color: var(--sg-ink-body);
-  font: inherit;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background var(--sg-transition),
-    border-color var(--sg-transition);
-
-  &:hover:not([aria-disabled='true']) {
-    background: var(--sg-field);
-  }
-
-  &[aria-disabled='true'] {
-    color: var(--sg-ink-muted);
-    cursor: default;
-  }
-}

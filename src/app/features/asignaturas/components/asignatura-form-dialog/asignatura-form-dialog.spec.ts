@@ -14,8 +14,22 @@ const URL = `${environment.apiUrl}/v1/asignaturas`;
 const URL_PROGRAMAS = `${environment.apiUrl}/v1/programas`;
 
 const PROGRAMAS: ProgramaOpcion[] = [
-  { id: 'p1', codigo: 'ISIS', nombre: 'Ingeniería de Sistemas', estado: 'ACTIVO' },
-  { id: 'p2', codigo: 'ICIV', nombre: 'Ingeniería Civil', estado: 'ACTIVO' },
+  {
+    id: 'p1',
+    codigo: 'ISIS',
+    nombre: 'Ingeniería de Sistemas',
+    facultadId: 'f1',
+    facultadNombre: 'Facultad de Ingeniería',
+    estado: 'ACTIVO',
+  },
+  {
+    id: 'p2',
+    codigo: 'ICIV',
+    nombre: 'Ingeniería Civil',
+    facultadId: 'f2',
+    facultadNombre: 'Facultad de Ingeniería',
+    estado: 'ACTIVO',
+  },
 ];
 
 const EXISTENTE: Asignatura = {
@@ -214,7 +228,7 @@ describe('AsignaturaFormDialog', () => {
       expect(enviarBoton().hasAttribute('aria-disabled')).toBe(false);
 
       await enviar();
-      expect(enviarBoton().textContent?.trim()).toBe('Procesando…');
+      expect(enviarBoton().textContent?.trim()).toBe('Registrar');
       const req = http.expectOne(URL);
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({

@@ -1,0 +1,148 @@
+<div class="panel-reporte" aria-label="Riesgo académico">
+  <p class="panel-reporte__sub">Estudiantes con RA no alcanzados (nivel Bajo o Medio), para seguimiento</p>
+
+  <form class="filtros" (submit)="$event.preventDefault()" aria-label="Filtros del reporte de riesgo">
+    <div class="campo">
+      <label for="filtro-semestre-r6">Semestre</label>
+      <select id="filtro-semestre-r6" [value]="semestreId()" (change)="cambiarSemestre($any($event.target).value)">
+        <option value="">Semestre activo</option>
+        @for (semestre of semestres(); track semestre.id) {
+          <option [value]="semestre.id" [selected]="semestre.id === semestreId()">{{ semestre.codigo }}</option>
+        }
+      </select>
+    </div>
+    <div class="campo">
+      <label for="filtro-programa-r6">Programa</label>
+      <select id="filtro-programa-r6" (change)="cambiarPrograma($any($event.target).value)">
+        <option value="">Todos los programas</option>
+        @for (programa of programas(); track programa.id) {
+          <option [value]="programa.id" [selected]="programa.id === programaId()">{{ programa.nombre }}</option>
+        }
+      </select>
+    </div>
+    <div class="campo">
+      <label for="filtro-asignatura-r6">Asignatura</label>
+      <select id="filtro-asignatura-r6" (change)="cambiarAsignatura($any($event.target).value)">
+        <option value="">Todas las asignaturas</option>
+        @for (asignatura of asignaturasDelPrograma(); track asignatura.id) {
+          <option [value]="asignatura.id" [selected]="asignatura.id === asignaturaId()">
+            {{ asignatura.codigo }} · {{ asignatura.nombre }}
+          </option>
+        }
+      </select>
+    </div>
+    <div class="campo">
+      <label for="filtro-umbral-r6">Umbral</label>
+      <select id="filtro-umbral-r6" (change)="cambiarUmbral($any($event.target).value)">
+        @for (u of umbrales; track u.valor) {
+          <option [value]="u.valor" [selected]="u.valor === minRaNoAlcanzados()">{{ u.etiqueta }}</option>
+        }
+      </select>
+    </div>
+    @if (hayFiltros()) {
+      <button type="button" class="btn" (click)="limpiarFiltros()">Limpiar filtros</button>
+    }
+  </form>
+
+  <div class="resultado" aria-live="polite" [attr.aria-busy]="carga().estado === 'cargando'">
+    @switch (carga().estado) {
+      @case ('cargando') {
+        <p class="estado-vista" role="status">Cargando reporte…</p>
+      }
+      @case ('error') {
+        @if (carga(); as c) {
+          @if (c.estado === 'error') {
+            <div class="estado-vista estado-vista--error" role="alert">
+              <p>{{ c.error.mensaje }}</p>
+              <button type="button" class="btn" (click)="reintentar()">Reintentar</button>
+            </div>
+          }
+        }
+      }
+      @case ('listo') {
+        @if (carga(); as c) {
+          @if (c.estado === 'listo') {
+            <p class="meta">
+              @if (c.reporte.semestreCodigo) {
+                Semestre: <strong>{{ c.reporte.semestreCodigo }}</strong>
+                ·
+              }
+              Estudiantes en riesgo: <strong>{{ c.reporte.totalEstudiantesEnRiesgo }}</strong>
+            </p>
+
+            @if (c.reporte.estudiantes.length === 0) {
+              <div class="estado-vista">
+                <p class="estado-vista__titulo">{{ c.reporte.mensaje ?? 'Sin datos disponibles' }}</p>
+                @if (hayFiltros()) {
+                  <p>Ningún estudiante coincide con los filtros aplicados.</p>
+                }
+              </div>
+            } @else {
+              <section class="tarjeta" aria-labelledby="titulo-riesgo">
+                <h2 class="tarjeta__titulo" id="titulo-riesgo">
+                  Estudiantes con RA no alcanzados
+                  <span class="tarjeta__programa">Solo lectura · ordenados por cantidad de RA en riesgo</span>
+                </h2>
+                <div class="tabla-scroll">
+                  <table>
+                    <caption class="solo-lectores">Estudiantes con RA no alcanzados en el semestre</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Estudiante</th>
+                        <th scope="col">Documento</th>
+                        <th scope="col">Asignatura</th>
+                        <th scope="col" class="num">RA no alcanzados</th>
+                        <th scope="col">Detalle</th>
+                        <th scope="col">Severidad</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (fila of c.reporte.estudiantes; track fila.estudianteId + '-' + fila.asignaturaId) {
+                        <tr>
+                          <th scope="row" class="est">
+                            <span class="est__nombre">{{ fila.nombreCompleto }}</span>
+                            <span class="est__correo">{{ fila.correoInstitucional }}</span>
+                          </th>
+                          <td>{{ fila.numeroDocumento }}</td>
+                          <td>
+                            <span class="est__nombre">{{ fila.asignaturaCodigo }}</span>
+                            <span class="est__correo">{{ fila.asignaturaNombre }}</span>
+                          </td>
+                          <td class="num"><strong>{{ fila.cantidadRaNoAlcanzados }}</strong></td>
+                          <td>
+                            <div class="chips">
+                              @for (ra of fila.ras; track ra.resultadoAprendizajeId) {
+                                <span class="chip-ra" [title]="ra.descripcion">
+                                  <app-badge-nivel-logro [nivel]="badgeDeRaInsuficiente(ra.nivelLogro)" />
+                                  <span class="chip-ra__txt">
+                                    {{ ra.codigo }}
+                                    @if (ra.promedio !== null) {
+                                      · {{ formatearNota(ra.promedio) }}
+                                    }
+                                  </span>
+                                </span>
+                              }
+                            </div>
+                          </td>
+                          <td>
+                            @if (chipSeveridad(fila.severidad); as chip) {
+                              <app-chip-estado
+                                [etiqueta]="chip.etiqueta"
+                                [variante]="chip.variante"
+                                [icono]="chip.icono"
+                              />
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            }
+          }
+        }
+      }
+    }
+  </div>
+</div>

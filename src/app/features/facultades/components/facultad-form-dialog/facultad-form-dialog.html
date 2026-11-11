@@ -1,0 +1,31 @@
+<app-modal-crud
+  [abierto]="abierto()"
+  [titulo]="modo() === 'crear' ? 'Registrar facultad' : 'Modificar facultad'"
+  [etiquetaEnviar]="modo() === 'crear' ? 'Registrar' : 'Guardar cambios'"
+  [procesando]="procesando()"
+  [error]="errorApi()?.mensaje ?? null"
+  [detalles]="errorApi()?.detalles ?? []"
+  [enviarDeshabilitado]="form.invalid"
+  (enviar)="enviar()"
+  (envioBloqueado)="form.markAllAsTouched()"
+  (cancelar)="cancelar.emit()"
+>
+  <form [formGroup]="form" class="campos" (ngSubmit)="enviar()">
+    <div class="campo">
+      <label for="facultad-nombre">Nombre</label>
+      <input
+        id="facultad-nombre"
+        type="text"
+        placeholder="Ej. Facultad de Ingeniería"
+        formControlName="nombre"
+        autocomplete="off"
+        [attr.maxlength]="nombreMax"
+      />
+      @if (form.controls.nombre.touched && form.controls.nombre.invalid) {
+        <p class="error-campo" role="alert">
+          El nombre es obligatorio y puede tener hasta {{ nombreMax }} caracteres.
+        </p>
+      }
+    </div>
+  </form>
+</app-modal-crud>

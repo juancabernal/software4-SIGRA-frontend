@@ -22,7 +22,11 @@ const ANA: Estudiante = {
   id: 'e1',
   tipoDocumentoNombre: 'Cédula de ciudadanía',
   numeroDocumento: '1234567890',
-  nombreCompleto: 'Ana María Gómez',
+  primerNombre: 'Ana',
+  segundoNombre: 'María',
+  primerApellido: 'Gómez',
+  segundoApellido: 'Ruiz',
+  nombreCompleto: 'Ana María Gómez Ruiz',
   correoInstitucional: 'ana@uco.net.co',
   estado: 'ACTIVO',
 };

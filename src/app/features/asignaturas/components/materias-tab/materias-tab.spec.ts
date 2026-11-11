@@ -17,6 +17,8 @@ const PROGRAMA: ProgramaOpcion = {
   id: 'p1',
   codigo: 'ISIS',
   nombre: 'Ingeniería de Sistemas',
+  facultadId: 'f1',
+  facultadNombre: 'Facultad de Ingeniería',
   estado: 'ACTIVO',
 };
 
@@ -245,7 +247,7 @@ describe('MateriasTab', () => {
   it('sin materias y sin filtros invita a registrar', async () => {
     await iniciar([]);
     expect(html.textContent).toContain('Aún no hay materias registradas');
-    expect(boton(html.querySelector('.estado-vista')!, 'Registrar')).toBeDefined();
+    expect(boton(html.querySelector('.estado-vista')!, 'Registrar materia')).toBeDefined();
   });
 
   it('sin resultados con filtros permite limpiarlos', async () => {
@@ -454,17 +456,16 @@ describe('MateriasTab', () => {
     expect(fila('BRU10').textContent).toContain('Activa');
   });
 
-  it('una materia INACTIVA ofrece Reactivar (siempre habilitado) y no Activar ni Inactivar', async () => {
+  it('una materia INACTIVA ofrece Activar (siempre habilitado) y no Inactivar', async () => {
     await iniciar([INACTIVA]);
     const acciones = fila('BRU11');
-    expect(boton(acciones, 'Activar')).toBeUndefined();
     expect(boton(acciones, 'Inactivar')).toBeUndefined();
-    expect(boton(acciones, 'Reactivar').hasAttribute('aria-disabled')).toBe(false);
+    expect(boton(acciones, 'Activar').hasAttribute('aria-disabled')).toBe(false);
   });
 
-  it('Reactivar exitoso actualiza la fila y avisa que se restauraron los RA', async () => {
+  it('reactivar (Activar) exitoso actualiza la fila y avisa que se restauraron los RA', async () => {
     await iniciar([INACTIVA]);
-    boton(fila('BRU11'), 'Reactivar').click();
+    boton(fila('BRU11'), 'Activar').click();
     await fixture.whenStable();
 
     const req = http.expectOne(`${URL}/in/activar`);
@@ -480,7 +481,7 @@ describe('MateriasTab', () => {
 
   it('un error al reactivar muestra el mensaje del backend y recarga el listado', async () => {
     await iniciar([INACTIVA]);
-    boton(fila('BRU11'), 'Reactivar').click();
+    boton(fila('BRU11'), 'Activar').click();
     await fixture.whenStable();
 
     http.expectOne(`${URL}/in/activar`).flush(
@@ -536,7 +537,7 @@ describe('MateriasTab', () => {
 
     it('Registrar abre el modal en modo crear y Cancelar lo cierra sin recargar', async () => {
       await iniciar([BORRADOR_5]);
-      boton(html.querySelector('.barra')!, 'Registrar').click();
+      boton(html.querySelector('.barra')!, 'Registrar materia').click();
       await fixture.whenStable();
       programasActivos().flush([PROGRAMA]);
       await fixture.whenStable();
@@ -552,7 +553,7 @@ describe('MateriasTab', () => {
 
     it('registrar con éxito cierra el modal, avisa y recarga la lista', async () => {
       await iniciar([]);
-      boton(html.querySelector('.estado-vista')!, 'Registrar').click();
+      boton(html.querySelector('.estado-vista')!, 'Registrar materia').click();
       await fixture.whenStable();
       programasActivos().flush([PROGRAMA]);
       await fixture.whenStable();
@@ -668,7 +669,7 @@ describe('MateriasTab', () => {
       boton(html, 'Siguiente').click();
       await fixture.whenStable();
 
-      const select = html.querySelector('#paginador-tamano') as HTMLSelectElement;
+      const select = html.querySelector('[id^="paginador-tamano"]') as HTMLSelectElement;
       select.value = '25';
       select.dispatchEvent(new Event('change'));
       await fixture.whenStable();

@@ -68,6 +68,47 @@ h1 {
   line-height: 1.55;
 }
 
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+}
+
+.campo {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 11rem;
+}
+
+.campo--busqueda {
+  flex: 1 1 16rem;
+  max-width: 24rem;
+}
+
+.campo label {
+  color: var(--sem-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.campo input,
+.campo select {
+  min-height: 2.5rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--sem-line);
+  border-radius: var(--sem-radius-control);
+  background: var(--sem-field);
+  color: var(--sem-ink);
+  font: inherit;
+}
+
+.campo input:focus-visible,
+.campo select:focus-visible {
+  outline: 2px solid var(--sem-navy);
+  outline-offset: 2px;
+}
+
 .hoy {
   display: flex;
   align-items: center;
@@ -225,57 +266,6 @@ td {
   background: rgba(22, 184, 160, 0.12);
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  padding: 0.625rem 1rem;
-  border: 1px solid rgba(27, 58, 92, 0.2);
-  border-radius: var(--sem-radius-control);
-  background: var(--sem-surface);
-  color: var(--sem-navy);
-  font-family: var(--sem-font-titulo);
-  font-size: 0.875rem;
-  font-weight: 600;
-  line-height: 1.2;
-  cursor: pointer;
-  transition:
-    background var(--sem-t),
-    border-color var(--sem-t),
-    transform var(--sem-t);
-}
-
-.btn:hover {
-  background: var(--sem-hover);
-  border-color: rgba(27, 58, 92, 0.35);
-}
-
-.btn:active {
-  transform: scale(0.98);
-}
-
-.btn--primario {
-  border-color: var(--sem-navy);
-  background: var(--sem-navy);
-  color: #fff;
-}
-
-.btn--primario:hover {
-  border-color: var(--sem-navy-hover);
-  background: var(--sem-navy-hover);
-}
-
-.btn--pequeno {
-  padding: 0.4rem 0.75rem;
-  font-size: 0.8125rem;
-}
-
-.btn:focus-visible,
-.aviso__cerrar:focus-visible {
-  outline: 2px solid var(--sem-navy);
-  outline-offset: 2px;
-}
 
 @media (prefers-reduced-motion: no-preference) {
   .aviso {

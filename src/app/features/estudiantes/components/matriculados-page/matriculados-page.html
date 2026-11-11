@@ -30,25 +30,6 @@
   <div class="tarjeta">
     <div class="barra">
       <label class="campo-filtro">
-        <span>Asignatura</span>
-        <select
-          id="filtro-asignatura"
-          class="selector"
-          [value]="asignaturaId()"
-          (change)="alCambiarAsignatura($event)"
-        >
-          <option value="" disabled>
-            {{ cargandoCatalogos() ? 'Cargando…' : 'Selecciona una asignatura' }}
-          </option>
-          @for (a of asignaturas(); track a.id) {
-            <option [value]="a.id">
-              {{ a.nombre }}{{ a.estado !== 'ACTIVA' ? ' (inactiva)' : '' }}
-            </option>
-          }
-        </select>
-      </label>
-
-      <label class="campo-filtro">
         <span>Semestre</span>
         <select
           id="filtro-semestre"
@@ -62,6 +43,26 @@
           @for (s of semestres(); track s.id) {
             <option [value]="s.id">
               {{ s.codigo }}{{ s.estado !== 'ACTIVO' ? ' (inactivo)' : '' }}
+            </option>
+          }
+        </select>
+      </label>
+
+      <label class="campo-filtro">
+        <span>Asignatura</span>
+        <select
+          id="filtro-asignatura"
+          [disabled]="!semestreId() || cargandoAsignaturas()"
+          class="selector"
+          [value]="asignaturaId()"
+          (change)="alCambiarAsignatura($event)"
+        >
+          <option value="" disabled>
+            {{ !semestreId() ? 'Elige primero un semestre' : cargandoAsignaturas() ? 'Cargando…' : asignaturas().length === 0 ? 'Sin asignaturas en este semestre' : 'Selecciona una asignatura' }}
+          </option>
+          @for (a of asignaturas(); track a.id) {
+            <option [value]="a.id">
+              {{ a.nombre }}{{ a.estado !== 'ACTIVA' ? ' (inactiva)' : '' }}
             </option>
           }
         </select>
@@ -124,7 +125,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (m of matriculados(); track m.matriculaId) {
+            @for (m of paginacion.filas(); track m.matriculaId) {
               <tr>
                 <th scope="row" class="codigo">{{ m.numeroDocumento }}</th>
                 <td class="nombre">{{ m.nombreCompleto }}</td>
@@ -157,6 +158,13 @@
           </tbody>
         </table>
       </div>
+      <app-paginador
+        [total]="paginacion.total()"
+        [pagina]="paginacion.pagina()"
+        [tamanoPagina]="paginacion.tamanoPagina()"
+        (cambioPagina)="paginacion.irA($event)"
+        (cambioTamano)="paginacion.cambiarTamano($event)"
+      />
     }
   </div>
 </section>
@@ -172,6 +180,19 @@
   [error]="errorDesvincular()"
   (confirmar)="confirmarDesvincular()"
   (cancelar)="cancelarDesvincular()"
+/>
+
+<app-dialogo-confirmacion
+  [abierto]="conflictoDesvincular() !== null"
+  titulo="Confirmación requerida"
+  [descripcion]="conflictoDesvincular()?.mensaje ?? ''"
+  gestoRequerido="Entiendo que las calificaciones se conservan y confirmo la desvinculación."
+  etiquetaConfirmar="Desvincular de todos modos"
+  tono="peligro"
+  [procesando]="confirmandoConflicto()"
+  [error]="errorConflicto()"
+  (confirmar)="confirmarConflictoDesvincular()"
+  (cancelar)="cancelarConflictoDesvincular()"
 />
 
 @if (matriculaAbierta()) {

@@ -31,7 +31,32 @@
     }
   </div>
 
-  @if (!cargando() && !errorCarga()) {
+  <form class="filtros" role="search" aria-label="Buscar semestres" (submit)="$event.preventDefault()">
+    <div class="campo campo--busqueda">
+      <label for="filtro-codigo">Buscar por código</label>
+      <input
+        id="filtro-codigo"
+        type="search"
+        placeholder="Ej. 2026 o 2026-1"
+        autocomplete="off"
+        [value]="codigo()"
+        (input)="alEscribirCodigo($event)"
+      />
+    </div>
+    <div class="campo">
+      <label for="filtro-estado">Estado</label>
+      <select id="filtro-estado" (change)="alCambiarEstado($event)">
+        <option value="" [selected]="estado() === ''">Todos los estados</option>
+        <option value="ACTIVO" [selected]="estado() === 'ACTIVO'">Activos</option>
+        <option value="INACTIVO" [selected]="estado() === 'INACTIVO'">Inactivos</option>
+      </select>
+    </div>
+    @if (hayFiltros()) {
+      <button type="button" class="btn" (click)="limpiarFiltros()">Limpiar filtros</button>
+    }
+  </form>
+
+  @if (!cargando() && !errorCarga() && !hayFiltros()) {
     <p class="hoy">
       <app-semestre-icono nombre="calendar" />
       @if (filaActiva(); as activa) {
@@ -56,6 +81,12 @@
           <app-semestre-icono nombre="rotate-ccw" [tamano]="14" />
           Reintentar
         </button>
+      </div>
+    } @else if (filas().length === 0 && hayFiltros()) {
+      <div class="estado-vista">
+        <p class="estado-vista__titulo">Sin resultados</p>
+        <p>Ningún semestre coincide con la búsqueda y los filtros aplicados.</p>
+        <button type="button" class="btn" (click)="limpiarFiltros()">Limpiar filtros</button>
       </div>
     } @else if (filas().length === 0) {
       <div class="estado-vista">
@@ -83,7 +114,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (fila of filas(); track fila.semestre.id) {
+            @for (fila of paginacion.filas(); track fila.semestre.id) {
               <tr [class.fila--terminada]="fila.terminado">
                 <th scope="row" class="codigo">{{ fila.semestre.codigo }}</th>
                 <td data-etiqueta="Inicio">{{ fila.inicio }}</td>
@@ -114,6 +145,13 @@
           </tbody>
         </table>
       </div>
+      <app-paginador
+        [total]="paginacion.total()"
+        [pagina]="paginacion.pagina()"
+        [tamanoPagina]="paginacion.tamanoPagina()"
+        (cambioPagina)="paginacion.irA($event)"
+        (cambioTamano)="paginacion.cambiarTamano($event)"
+      />
     }
   </div>
 </section>

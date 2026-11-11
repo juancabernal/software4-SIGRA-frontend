@@ -66,17 +66,86 @@
     </div>
 
     <div class="campo">
-      <label for="profesor-nombre">Nombre completo</label>
+      <label for="profesor-primer-nombre">Primer nombre</label>
       <input
-        id="profesor-nombre"
-        formControlName="nombreCompleto"
-        placeholder="Jean Paul Ortiz Restrepo"
+        id="profesor-primer-nombre"
+        formControlName="primerNombre"
+        placeholder="Jean"
         autocomplete="off"
-        [attr.aria-invalid]="mostrarError('nombreCompleto')"
-        aria-describedby="profesor-nombre-error"
+        maxlength="50"
+        [attr.aria-invalid]="mostrarError('primerNombre')"
+        aria-describedby="profesor-primer-nombre-error"
       />
-      @if (mostrarError('nombreCompleto')) {
-        <p class="error-campo" id="profesor-nombre-error">Escribe el nombre completo.</p>
+      @if (mostrarError('primerNombre')) {
+        <p class="error-campo" id="profesor-primer-nombre-error">
+          @if (form.controls.primerNombre.hasError('required')) {
+            Escribe el primer nombre.
+          } @else {
+            Usa solo letras, sin espacios, números ni símbolos (máximo 50).
+          }
+        </p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="profesor-segundo-nombre">Segundo nombre (opcional)</label>
+      <input
+        id="profesor-segundo-nombre"
+        formControlName="segundoNombre"
+        placeholder="Paul"
+        autocomplete="off"
+        maxlength="50"
+        [attr.aria-invalid]="mostrarError('segundoNombre')"
+        aria-describedby="profesor-segundo-nombre-error"
+      />
+      @if (mostrarError('segundoNombre')) {
+        <p class="error-campo" id="profesor-segundo-nombre-error">
+          Usa solo letras, sin espacios, números ni símbolos (máximo 50).
+        </p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="profesor-primer-apellido">Primer apellido</label>
+      <input
+        id="profesor-primer-apellido"
+        formControlName="primerApellido"
+        placeholder="Ortiz"
+        autocomplete="off"
+        maxlength="50"
+        [attr.aria-invalid]="mostrarError('primerApellido')"
+        aria-describedby="profesor-primer-apellido-error"
+      />
+      @if (mostrarError('primerApellido')) {
+        <p class="error-campo" id="profesor-primer-apellido-error">
+          @if (form.controls.primerApellido.hasError('required')) {
+            Escribe el primer apellido.
+          } @else {
+            Usa solo letras, sin espacios, números ni símbolos (máximo 50).
+          }
+        </p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="profesor-segundo-apellido">Segundo apellido</label>
+      <input
+        id="profesor-segundo-apellido"
+        formControlName="segundoApellido"
+        placeholder="Restrepo"
+        autocomplete="off"
+        maxlength="50"
+        [attr.aria-invalid]="mostrarError('segundoApellido')"
+        aria-describedby="profesor-segundo-apellido-error"
+      />
+      @if (mostrarError('segundoApellido')) {
+        <p class="error-campo" id="profesor-segundo-apellido-error">
+          @if (form.controls.segundoApellido.hasError('required')) {
+            Escribe el segundo apellido.
+          } @else {
+            Usa solo letras, sin espacios, números ni símbolos (máximo 50).
+          }
+        </p>
       }
     </div>
 
@@ -102,8 +171,14 @@
       }
     </div>
 
+    @if (guardando()) {
+      <span class="accion-estado" role="status" aria-live="polite">
+        <span class="accion-estado__spinner" aria-hidden="true"></span>
+        {{ etiquetaGuardando() }}
+      </span>
+    }
     <div class="acciones">
-      <button type="button" class="btn" (click)="cancelar()" [disabled]="guardando()">
+      <button type="button" class="btn btn--cancelar" (click)="cancelar()" [disabled]="guardando()">
         Cancelar
       </button>
       <button type="submit" class="btn btn--primario" [disabled]="guardando()">

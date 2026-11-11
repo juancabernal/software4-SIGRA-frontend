@@ -1,0 +1,133 @@
+<div class="panel-reporte" aria-label="Rendimiento académico por RA">
+  <p class="panel-reporte__sub">Nivel de logro por resultado de aprendizaje, agrupado por asignatura</p>
+
+  <form class="filtros" (submit)="$event.preventDefault()" aria-label="Filtros del reporte">
+    <div class="campo">
+      <label for="filtro-semestre-r1">Semestre</label>
+      <select id="filtro-semestre-r1" [value]="semestreId()" (change)="cambiarSemestre($any($event.target).value)">
+        <option value="">Semestre activo</option>
+        @for (semestre of semestres(); track semestre.id) {
+          <option [value]="semestre.id" [selected]="semestre.id === semestreId()">{{ semestre.codigo }}</option>
+        }
+      </select>
+    </div>
+    <div class="campo">
+      <label for="filtro-programa-r1">Programa</label>
+      <select id="filtro-programa-r1" (change)="cambiarPrograma($any($event.target).value)">
+        <option value="">Todos los programas</option>
+        @for (programa of programas(); track programa.id) {
+          <option [value]="programa.id" [selected]="programa.id === programaId()">{{ programa.nombre }}</option>
+        }
+      </select>
+    </div>
+    <div class="campo">
+      <label for="filtro-asignatura-r1">Asignatura</label>
+      <select id="filtro-asignatura-r1" (change)="cambiarAsignatura($any($event.target).value)">
+        <option value="">Todas las asignaturas</option>
+        @for (asignatura of asignaturasDelPrograma(); track asignatura.id) {
+          <option [value]="asignatura.id" [selected]="asignatura.id === asignaturaId()">
+            {{ asignatura.codigo }} · {{ asignatura.nombre }}
+          </option>
+        }
+      </select>
+    </div>
+    @if (hayFiltros()) {
+      <button type="button" class="btn" (click)="limpiarFiltros()">Limpiar filtros</button>
+    }
+  </form>
+
+  <div class="resultado" aria-live="polite" [attr.aria-busy]="carga().estado === 'cargando'">
+    @switch (carga().estado) {
+      @case ('cargando') {
+        <p class="estado-vista" role="status">Cargando reporte…</p>
+      }
+      @case ('error') {
+        @if (carga(); as c) {
+          @if (c.estado === 'error') {
+            <div class="estado-vista estado-vista--error" role="alert">
+              <p>{{ c.error.mensaje }}</p>
+              <button type="button" class="btn" (click)="reintentar()">Reintentar</button>
+            </div>
+          }
+        }
+      }
+      @case ('listo') {
+        @if (carga(); as c) {
+          @if (c.estado === 'listo') {
+            @if (c.reporte.semestreCodigo) {
+              <p class="semestre">Semestre: <strong>{{ c.reporte.semestreCodigo }}</strong></p>
+            }
+            @if (c.reporte.asignaturas.length === 0) {
+              <div class="estado-vista">
+                <p class="estado-vista__titulo">{{ c.reporte.mensaje ?? 'Sin datos disponibles' }}</p>
+                @if (hayFiltros()) {
+                  <p>Ninguna asignatura coincide con los filtros aplicados.</p>
+                }
+              </div>
+            }
+            @for (asignatura of c.reporte.asignaturas; track asignatura.asignaturaId) {
+              <section class="tarjeta" [attr.aria-labelledby]="'asig-' + asignatura.asignaturaId">
+                <h2 class="tarjeta__titulo" [id]="'asig-' + asignatura.asignaturaId">
+                  {{ asignatura.codigo }} · {{ asignatura.nombre }}
+                  <span class="tarjeta__programa">{{ asignatura.programaNombre }}</span>
+                </h2>
+                <div class="tabla-scroll">
+                  <table>
+                    <caption class="solo-lectores">
+                      Rendimiento por resultado de aprendizaje de {{ asignatura.nombre }}
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Resultado de aprendizaje</th>
+                        <th scope="col" class="num">Calificaciones</th>
+                        <th scope="col" class="num">Promedio</th>
+                        <th scope="col">Nivel de logro</th>
+                        @for (nivel of niveles; track nivel) {
+                          <th scope="col" class="num">
+                            {{
+                              nivel === 'SOBRESALIENTE'
+                                ? 'Sobresaliente'
+                                : nivel === 'ALTO'
+                                  ? 'Alto'
+                                  : nivel === 'MEDIO'
+                                    ? 'Medio'
+                                    : 'Bajo'
+                            }}
+                          </th>
+                        }
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (ra of asignatura.resultados; track ra.resultadoAprendizajeId) {
+                        <tr>
+                          <th scope="row" class="ra">
+                            <span class="ra__codigo">{{ ra.codigo }}</span>
+                            <span class="ra__descripcion">{{ ra.descripcion }}</span>
+                          </th>
+                          <td class="num">{{ ra.cantidadCalificaciones }}</td>
+                          <td class="num">{{ ra.promedioNota === null ? '—' : formatearNota(ra.promedioNota) }}</td>
+                          <td>
+                            <app-badge-nivel-logro [nivel]="badgeDeRa(ra)" />
+                          </td>
+                          @for (nivel of niveles; track nivel) {
+                            <td class="num">
+                              @if (ra.estado === 'CON_NIVEL' && distribucionDe(ra.distribucion, nivel); as d) {
+                                {{ d.cantidad }} <span class="nota">({{ formatearPorcentaje(d.porcentaje) }})</span>
+                              } @else {
+                                —
+                              }
+                            </td>
+                          }
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            }
+          }
+        }
+      }
+    }
+  </div>
+</div>

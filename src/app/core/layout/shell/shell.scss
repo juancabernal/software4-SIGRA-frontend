@@ -263,6 +263,8 @@
   background: var(--sg-card);
 }
 
+/* Icono siempre con fondo visible (0000050): nunca transparente en reposo, aunque sea
+ * solo-ícono — si no, no se distingue que es clickeable. */
 .hamburguesa,
 .campana {
   display: grid;
@@ -270,7 +272,7 @@
   padding: 0.45rem;
   border: 0;
   border-radius: var(--sg-radius-micro);
-  background: transparent;
+  background: var(--sg-field);
   color: var(--sg-ink-muted);
   cursor: pointer;
 }
@@ -315,38 +317,6 @@
 
 /* Acá va solo la salida. Quién está dentro lo dice el bloque de usuario del sidebar (§6.1):
  * repetir el nombre en los dos lugares no agrega información y se come el ancho del header. */
-.btn-salir,
-.btn-entrar {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.75rem;
-  border: 1px solid var(--sg-border);
-  border-radius: var(--sg-radius-control);
-  background: var(--sg-card);
-  color: var(--sg-ink-muted);
-  font: 600 0.75rem var(--sg-font-titulo);
-  text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
-
-  &:hover {
-    background: var(--sg-secondary-hover);
-    color: var(--sg-navy);
-    border-color: var(--sg-navy);
-  }
-}
-
-.btn-entrar {
-  border-color: var(--sg-navy);
-  background: var(--sg-navy);
-  color: #fff;
-
-  &:hover {
-    background: var(--sg-navy-hover);
-    color: #fff;
-  }
-}
 
 .contenido {
   flex: 1;

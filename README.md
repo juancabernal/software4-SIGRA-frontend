@@ -274,6 +274,20 @@ Los nombres coinciden con los módulos del backend —`resultadosaprendizaje` en
 La matriz completa, decisiones de seguridad y pendientes de integración están en
 [`docs/security/`](docs/security/).
 
+### Reportes (0000041) — shell con pestañas
+
+| Elemento | Implementación |
+| --- | --- |
+| Rutas | `/admin/reportes` y `/profesor/reportes` → `ReportesPage` (`features/reportes/components/reportes-page/`) con pestañas ARIA |
+| Pestañas | **Rendimiento por RA** (R1) y **Riesgo académico** (R6) |
+| R1 Backend | `GET /api/v1/reportes/rendimiento-ra` (`semestreId`, `programaId`, `asignaturaId`) |
+| R1 UI | Filtros en cascada; tarjeta por asignatura; nivel con `app-badge-nivel-logro` |
+| R6 Backend | `GET /api/v1/reportes/riesgo-academico` (+ `minRaNoAlcanzados`); nivel BAJO/MEDIO |
+| R6 UI | Tabla estudiante×asignatura, detalle de RA, severidad con `app-chip-estado` |
+| Estados | Cargando, error con reintento (RNF-17) y vacío («Sin datos disponibles») |
+
+El Estudiante no tiene acceso: el backend responde 403 y la ruta no existe en su menú.
+
 ---
 
 ## 6. Cómo ejecutar el proyecto
