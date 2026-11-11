@@ -60,6 +60,12 @@
                 <th scope="row" class="nombre">{{ a.nombreAsignatura }}</th>
                 <td class="codigo">{{ a.codigoAsignatura }}</td>
                 <td>
+                  @if (desasignandoId() === a.asignacionId) {
+                    <span class="accion-estado" role="status" aria-live="polite">
+                      <span class="accion-estado__spinner" aria-hidden="true"></span>
+                      Desasignando…
+                    </span>
+                  }
                   <button
                     type="button"
                     class="btn btn--peligro btn--pequeno"
@@ -67,7 +73,7 @@
                     [attr.aria-disabled]="desasignandoId() === a.asignacionId ? 'true' : null"
                     (click)="desasignar(a.asignacionId)"
                   >
-                    {{ desasignandoId() === a.asignacionId ? 'Desasignando…' : 'Desasignar' }}
+                    Desasignar
                   </button>
                 </td>
               </tr>

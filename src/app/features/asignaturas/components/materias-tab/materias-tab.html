@@ -155,6 +155,12 @@
                       @case ('BORRADOR') {
                         @let habilitado = puedeActivarse(a);
                         <span class="con-tooltip">
+                          @if (activandoId() === a.id) {
+                            <span class="accion-estado" role="status" aria-live="polite">
+                              <span class="accion-estado__spinner" aria-hidden="true"></span>
+                              Activando…
+                            </span>
+                          }
                           <button
                             type="button"
                             class="btn btn--secundario btn--pequeno"
@@ -165,7 +171,7 @@
                             [attr.aria-describedby]="habilitado ? null : 'tooltip-activar-' + a.id"
                             (click)="activar(a)"
                           >
-                            {{ activandoId() === a.id ? 'Activando…' : 'Activar' }}
+                            Activar
                           </button>
                           @if (!habilitado) {
                             <span class="tooltip" role="tooltip" [id]="'tooltip-activar-' + a.id">
@@ -185,6 +191,12 @@
                         </button>
                       }
                       @case ('INACTIVA') {
+                        @if (activandoId() === a.id) {
+                          <span class="accion-estado" role="status" aria-live="polite">
+                            <span class="accion-estado__spinner" aria-hidden="true"></span>
+                            Reactivando…
+                          </span>
+                        }
                         <button
                           type="button"
                           class="btn btn--secundario btn--pequeno"
@@ -192,7 +204,7 @@
                           [attr.aria-disabled]="activandoId() === a.id ? 'true' : null"
                           (click)="reactivar(a)"
                         >
-                          {{ activandoId() === a.id ? 'Reactivando…' : 'Reactivar' }}
+                          Reactivar
                         </button>
                       }
                     }
