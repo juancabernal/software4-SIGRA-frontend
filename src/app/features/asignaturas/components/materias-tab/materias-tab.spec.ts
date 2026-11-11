@@ -17,6 +17,8 @@ const PROGRAMA: ProgramaOpcion = {
   id: 'p1',
   codigo: 'ISIS',
   nombre: 'Ingeniería de Sistemas',
+  facultadId: 'f1',
+  facultadNombre: 'Facultad de Ingeniería',
   estado: 'ACTIVO',
 };
 

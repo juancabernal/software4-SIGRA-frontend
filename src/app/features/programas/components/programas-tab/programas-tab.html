@@ -18,6 +18,7 @@
         type="search"
         placeholder="Buscar por nombre..."
         aria-label="Buscar programas por nombre"
+        [value]="textoNombre()"
         (input)="alEscribirNombre($event)"
       />
     </div>
@@ -27,13 +28,28 @@
       class="selector"
       placeholder="Código"
       aria-label="Filtrar programas por código"
+      [value]="textoCodigo()"
       (input)="alEscribirCodigo($event)"
     />
 
+    <select
+      id="filtro-facultad"
+      class="selector"
+      aria-label="Filtrar programas por facultad"
+      (change)="alCambiarFacultad($event)"
+    >
+      <option value="" [selected]="facultadId() === ''">Todas las facultades</option>
+      @for (f of facultades(); track f.id) {
+        <option [value]="f.id" [selected]="facultadId() === f.id">
+          {{ f.nombre }}{{ f.estado === 'INACTIVO' ? ' (inactiva)' : '' }}
+        </option>
+      }
+    </select>
+
     <select class="selector" aria-label="Filtrar programas por estado" (change)="alCambiarEstado($event)">
-      <option value="">Todos los estados</option>
-      <option value="ACTIVO">Activos</option>
-      <option value="INACTIVO">Inactivos</option>
+      <option value="" [selected]="estado() === ''">Todos los estados</option>
+      <option value="ACTIVO" [selected]="estado() === 'ACTIVO'">Activos</option>
+      <option value="INACTIVO" [selected]="estado() === 'INACTIVO'">Inactivos</option>
     </select>
 
     <button type="button" class="btn btn--primario barra__registrar" (click)="abrirRegistro()">
@@ -70,6 +86,17 @@
       </div>
     }
   } @else {
+    @if (cantidadSinAsignar() > 0) {
+      <p class="reasignar" role="note">
+        <app-icono nombre="advertencia" [tamano]="16" />
+        <span>
+          {{ cantidadSinAsignar() === 1
+            ? '1 programa está en «Facultad sin asignar».'
+            : cantidadSinAsignar() + ' programas están en «Facultad sin asignar».' }}
+          Modifícalos para asociarlos a su facultad.
+        </span>
+      </p>
+    }
     <div class="tabla-contenedor">
       <table>
         <caption class="solo-lectores">Programas académicos</caption>
@@ -77,15 +104,27 @@
           <tr>
             <th scope="col">Nombre</th>
             <th scope="col">Código</th>
+            <th scope="col">Facultad</th>
             <th scope="col">Estado</th>
             <th scope="col">Acciones</th>
           </tr>
         </thead>
         <tbody>
           @for (p of programas(); track p.id) {
-            <tr>
+            <tr [class.fila--sin-facultad]="sinFacultad(p)">
               <th scope="row" class="nombre">{{ p.nombre }}</th>
               <td class="codigo">{{ p.codigo }}</td>
+              <td class="facultad">
+                @if (sinFacultad(p)) {
+                  <app-chip-estado
+                    etiqueta="Sin asignar · reasignar"
+                    variante="advertencia"
+                    icono="advertencia"
+                  />
+                } @else {
+                  {{ p.facultadNombre }}
+                }
+              </td>
               <td>
                 <app-chip-estado
                   [etiqueta]="presentacion[p.estado].etiqueta"

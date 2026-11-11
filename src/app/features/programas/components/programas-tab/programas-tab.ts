@@ -8,15 +8,18 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subscription } from 'rxjs';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { Subscription, catchError, of } from 'rxjs';
 
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
 import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
 import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
+import { Facultad } from '../../../facultades/models/facultad.model';
+import { FacultadService } from '../../../facultades/services/facultad.service';
 import {
   EstadoPrograma,
+  FACULTAD_SIN_ASIGNAR_ID,
   FiltrosProgramas,
   Programa,
 } from '../../models/programa.model';
@@ -44,8 +47,9 @@ interface Aviso {
 }
 
 /**
- * Pestaña «Programas académicos» del Catálogo (RF-02): listado con filtros por nombre, código y
- * estado; registro y modificación del nombre en un modal; e inactivación con confirmación.
+ * Pestaña «Programas académicos» del Catálogo (RF-02): listado con filtros por nombre, código,
+ * facultad y estado; registro y modificación (nombre y facultad) en un modal; e inactivación con
+ * confirmación. Los programas que siguen en «Facultad sin asignar» se resaltan para reasignarlos.
  *
  * No hay acción de reactivar: el backend de RF-02 no la ofrece. Un programa inactivo se muestra
  * con su estado y sin acciones.
@@ -62,6 +66,7 @@ interface Aviso {
 })
 export class ProgramasTab {
   private readonly service = inject(ProgramaService);
+  private readonly facultadService = inject(FacultadService);
   private readonly destroyRef = inject(DestroyRef);
   private consulta: Subscription | undefined;
   private temporizadorBusqueda: ReturnType<typeof setTimeout> | undefined;
@@ -70,25 +75,45 @@ export class ProgramasTab {
   protected readonly presentacion = PRESENTACION_ESTADO;
 
   // ── Filtros ───────────────────────────────────────────────────────
+  /** Texto tal como está en los buscadores; `nombre` y `codigo` lo reciben tras el retardo. */
+  protected readonly textoNombre = signal('');
+  protected readonly textoCodigo = signal('');
   protected readonly nombre = signal('');
   protected readonly codigo = signal('');
+  protected readonly facultadId = signal('');
   protected readonly estado = signal<EstadoPrograma | ''>('');
   private readonly recargas = signal(0);
 
   private readonly filtros = computed<FiltrosProgramas>(() => ({
     nombre: this.nombre().trim() || undefined,
     codigo: this.codigo().trim() || undefined,
+    facultadId: this.facultadId() || undefined,
     estado: this.estado() || undefined,
   }));
+
+  /** Todas las facultades, activas e inactivas, para el filtro. Si fallan, el filtro no se ofrece. */
+  protected readonly facultades = toSignal(
+    this.facultadService.listar().pipe(catchError(() => of<Facultad[]>([]))),
+    { initialValue: [] as Facultad[] },
+  );
 
   // ── Datos y estado de la vista ────────────────────────────────────
   protected readonly programas = signal<Programa[]>([]);
   protected readonly cargando = signal(true);
   protected readonly errorCarga = signal<MensajeError | null>(null);
   protected readonly hayFiltros = computed(
-    () => this.nombre().trim() !== '' || this.codigo().trim() !== '' || this.estado() !== '',
+    () =>
+      this.nombre().trim() !== '' ||
+      this.codigo().trim() !== '' ||
+      this.facultadId() !== '' ||
+      this.estado() !== '',
   );
   protected readonly aviso = signal<Aviso | null>(null);
+
+  /** Programas del listado que siguen en «Facultad sin asignar» y deben reasignarse. */
+  protected readonly cantidadSinAsignar = computed(
+    () => this.programas().filter((p) => this.sinFacultad(p)).length,
+  );
 
   // ── Formulario y confirmación ─────────────────────────────────────
   protected readonly formularioAbierto = signal(false);
@@ -136,14 +161,20 @@ export class ProgramasTab {
   /** El buscador espera 300 ms sin teclear antes de consultar. */
   protected alEscribirNombre(evento: Event): void {
     const valor = (evento.target as HTMLInputElement).value;
+    this.textoNombre.set(valor);
     clearTimeout(this.temporizadorBusqueda);
     this.temporizadorBusqueda = setTimeout(() => this.nombre.set(valor), RETARDO_BUSQUEDA_MS);
   }
 
   protected alEscribirCodigo(evento: Event): void {
     const valor = (evento.target as HTMLInputElement).value;
+    this.textoCodigo.set(valor);
     clearTimeout(this.temporizadorBusqueda);
     this.temporizadorBusqueda = setTimeout(() => this.codigo.set(valor), RETARDO_BUSQUEDA_MS);
+  }
+
+  protected alCambiarFacultad(evento: Event): void {
+    this.facultadId.set((evento.target as HTMLSelectElement).value);
   }
 
   protected alCambiarEstado(evento: Event): void {
@@ -152,9 +183,16 @@ export class ProgramasTab {
 
   protected limpiarFiltros(): void {
     clearTimeout(this.temporizadorBusqueda);
+    this.textoNombre.set('');
+    this.textoCodigo.set('');
     this.nombre.set('');
     this.codigo.set('');
+    this.facultadId.set('');
     this.estado.set('');
+  }
+
+  protected sinFacultad(programa: Programa): boolean {
+    return programa.facultadId === FACULTAD_SIN_ASIGNAR_ID;
   }
 
   // ── Registro y modificación ───────────────────────────────────────

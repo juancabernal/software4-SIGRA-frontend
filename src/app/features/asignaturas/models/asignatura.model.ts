@@ -61,6 +61,8 @@ export interface ProgramaOpcion {
   id: string;
   codigo: string;
   nombre: string;
+  facultadId: string;
+  facultadNombre: string;
   estado: 'ACTIVO' | 'INACTIVO';
 }
 
