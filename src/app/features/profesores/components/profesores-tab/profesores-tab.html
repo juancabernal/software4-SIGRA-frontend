@@ -118,7 +118,8 @@
                         "
                         (click)="pedirInactivar(p)"
                       >
-                        Inactivar
+                        <app-icono nombre="prohibido" [tamano]="16" />
+                        <span>Inactivar</span>
                       </button>
                       @if (p.tieneAsignacionesActivas) {
                         <span class="tooltip" role="tooltip" [id]="'tooltip-inactivar-' + p.id">

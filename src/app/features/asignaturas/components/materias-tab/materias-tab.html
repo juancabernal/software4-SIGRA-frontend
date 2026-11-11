@@ -187,7 +187,8 @@
                           [attr.aria-label]="'Inactivar ' + a.nombre"
                           (click)="pedirInactivar(a)"
                         >
-                          Inactivar
+                          <app-icono nombre="prohibido" [tamano]="16" />
+                          <span>Inactivar</span>
                         </button>
                       }
                       @case ('INACTIVA') {
