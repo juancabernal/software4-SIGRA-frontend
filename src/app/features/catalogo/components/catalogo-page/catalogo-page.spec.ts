@@ -31,11 +31,12 @@ describe('CatalogoPage', () => {
     await fixture.whenStable();
   }
 
-  it('muestra el título, el subtítulo y las tres pestañas en orden', () => {
+  it('muestra el título, el subtítulo y las cuatro pestañas en orden', () => {
     expect(html.querySelector('h1')?.textContent).toContain('Catálogo académico');
-    expect(html.textContent).toContain('Gestión de profesores, programas y materias');
+    expect(html.textContent).toContain('Gestión de profesores, facultades, programas y materias');
     expect(pestanas().map((p) => p.textContent?.trim())).toEqual([
       'Profesores',
+      'Facultades',
       'Programas académicos',
       'Materias',
     ]);
@@ -45,7 +46,7 @@ describe('CatalogoPage', () => {
     const activa = seleccionada()!;
     expect(activa.textContent?.trim()).toBe('Materias');
     expect(activa.getAttribute('tabindex')).toBe('0');
-    expect(pestanas().filter((p) => p.getAttribute('tabindex') === '-1').length).toBe(2);
+    expect(pestanas().filter((p) => p.getAttribute('tabindex') === '-1').length).toBe(3);
 
     const panel = html.querySelector('[role="tabpanel"]') as HTMLElement;
     expect(activa.getAttribute('aria-controls')).toBe(panel.id);
@@ -60,15 +61,21 @@ describe('CatalogoPage', () => {
     expect(html.querySelector('app-materias-tab')).toBeNull();
     expect(html.querySelector('app-modulo-pendiente')).toBeNull();
 
-    pestanas()[1].click(); // Programas académicos (RF-02)
+    pestanas()[1].click(); // Facultades
+    await fixture.whenStable();
+    expect(html.querySelector('app-facultades-tab')).not.toBeNull();
+
+    pestanas()[2].click(); // Programas académicos (RF-02)
     await fixture.whenStable();
     expect(html.querySelector('app-programas-tab')).not.toBeNull();
+    expect(html.querySelector('app-facultades-tab')).toBeNull();
     expect(html.querySelector('app-profesores-tab')).toBeNull();
 
-    pestanas()[2].click(); // Materias (RF-03)
+    pestanas()[3].click(); // Materias (RF-03)
     await fixture.whenStable();
     expect(html.querySelector('app-materias-tab')).not.toBeNull();
     expect(html.querySelector('app-programas-tab')).toBeNull();
+    expect(html.querySelector('app-facultades-tab')).toBeNull();
   });
 
   it('las flechas, Inicio y Fin mueven la selección y el foco', async () => {

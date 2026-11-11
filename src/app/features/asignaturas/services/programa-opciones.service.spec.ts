@@ -12,6 +12,8 @@ const PROGRAMA: ProgramaOpcion = {
   id: '00000000-0000-4000-a000-0000000000a1',
   codigo: 'BRU-ACT',
   nombre: 'Programa Bruno Activo',
+  facultadId: '00000000-0000-4000-a000-0000000000f1',
+  facultadNombre: 'Facultad de Humanidades',
   estado: 'ACTIVO',
 };
 

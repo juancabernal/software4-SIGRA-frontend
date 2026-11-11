@@ -1,7 +1,7 @@
 <section class="pagina" aria-labelledby="titulo-catalogo">
   <header class="cabecera">
     <h1 id="titulo-catalogo">Catálogo académico</h1>
-    <p class="cabecera__sub">Gestión de profesores, programas y materias</p>
+    <p class="cabecera__sub">Gestión de profesores, facultades, programas y materias</p>
   </header>
 
   <div class="pestanas" role="tablist" aria-label="Secciones del catálogo">
@@ -36,6 +36,9 @@
       }
       @case ('profesores') {
         <app-profesores-tab />
+      }
+      @case ('facultades') {
+        <app-facultades-tab />
       }
       @case ('programas') {
         <app-programas-tab />
