@@ -77,38 +77,6 @@
   cursor: pointer;
 }
 
-// ── Botones ──────────────────────────────────────────────────────────
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 1rem;
-  border: 1px solid var(--sg-border);
-  border-radius: var(--sg-radius-control);
-  background: var(--sg-card);
-  color: var(--sg-ink-body);
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-
-  &:hover {
-    background: var(--sg-field);
-  }
-}
-
-.btn--pequeno {
-  padding: 0.35rem 0.75rem;
-  font-size: 0.8125rem;
-}
-
-.btn--peligro {
-  border-color: var(--sg-error-fg);
-  background: var(--sg-error-bg);
-  color: var(--sg-error-fg);
-}
-
 [aria-disabled='true'] {
   cursor: not-allowed;
   opacity: 0.5;

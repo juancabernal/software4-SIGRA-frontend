@@ -250,7 +250,7 @@ describe('MatriculaFormDialog', () => {
     http.expectNone(URL_MATRICULAS);
   });
 
-  it('mientras se matricula, el botón de envío queda deshabilitado y muestra "Matriculando…"', async () => {
+  it('mientras se matricula, el botón de envío queda deshabilitado, no cambia de texto, y se avisa aparte con "Matriculando…"', async () => {
     await abrirConCatalogos();
 
     const selectAsignatura = html.querySelector('#matricula-asignatura') as HTMLSelectElement;
@@ -265,8 +265,9 @@ describe('MatriculaFormDialog', () => {
     await fixture.whenStable();
 
     const submit = html.querySelector('button[type="submit"]') as HTMLButtonElement;
-    expect(submit.textContent?.trim()).toBe('Matriculando…');
+    expect(submit.textContent?.trim()).toBe('Matricular');
     expect(submit.disabled).toBe(true);
+    expect(html.querySelector('[role="status"]')?.textContent?.trim()).toBe('Matriculando…');
 
     http
       .expectOne(URL_MATRICULAS)

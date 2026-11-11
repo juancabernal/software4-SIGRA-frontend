@@ -89,7 +89,7 @@ describe('DialogoConfirmacion', () => {
     expect(fixture.componentInstance.cancelaciones).toBe(1);
   });
 
-  it('mientras procesa deshabilita ambos botones, muestra «Procesando…» e ignora Esc', async () => {
+  it('mientras procesa deshabilita ambos botones, el texto no cambia y se avisa aparte con «Procesando…», e ignora Esc', async () => {
     await abrir();
     fixture.componentInstance.procesando.set(true);
     await fixture.whenStable();
@@ -97,7 +97,8 @@ describe('DialogoConfirmacion', () => {
     const [cancelar, confirmar] = botones();
     expect(cancelar.disabled).toBe(true);
     expect(confirmar.disabled).toBe(true);
-    expect(confirmar.textContent?.trim()).toBe('Procesando…');
+    expect(confirmar.textContent?.trim()).toBe('Inactivar');
+    expect(html.querySelector('[role="status"]')?.textContent?.trim()).toBe('Procesando…');
 
     dialogo().dispatchEvent(new Event('cancel', { cancelable: true }));
     expect(fixture.componentInstance.cancelaciones).toBe(0);

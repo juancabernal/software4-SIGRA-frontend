@@ -194,12 +194,12 @@ export class MatriculaFormDialog implements OnInit {
 
   /**
    * El alta y la matrícula son una sola acción para el usuario (RF-09a), así que el botón lo dice:
-   * en el modo «estudiante nuevo» registra y matricula de una vez.
+   * en el modo «estudiante nuevo» registra y matricula de una vez. El texto se decide al abrir el
+   * diálogo y no cambia mientras está abierto (0000051); si un reintento ya no necesita registrar
+   * (el alta quedó hecha y solo falló la matrícula), eso se explica en `altaParcial`, no en el botón.
    */
   protected readonly etiquetaConfirmar = computed(() =>
-    this.modo() === 'nuevo' && !this.creado() && !this.estudianteFijadoPorPadre()
-      ? 'Registrar y matricular'
-      : 'Matricular',
+    this.modo() === 'nuevo' && !this.estudianteFijadoPorPadre() ? 'Registrar y matricular' : 'Matricular',
   );
 
   /** Sin estudiante identificado no se puede matricular (D18). */

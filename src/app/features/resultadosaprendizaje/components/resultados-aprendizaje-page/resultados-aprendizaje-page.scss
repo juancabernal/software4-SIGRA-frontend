@@ -140,11 +140,6 @@ h1 {
   font-size: 0.8125rem;
 }
 
-.btn--pequeno {
-  padding: 0.35rem 0.75rem;
-  font-size: 0.8125rem;
-}
-
 .resumen__conteo {
   color: var(--sg-ink-body);
   font-size: 0.875rem;
@@ -197,55 +192,6 @@ h1 {
 }
 
 // ── Botones ──
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 1rem;
-  border: 1px solid var(--sg-border);
-  border-radius: var(--sg-radius-control);
-  background: var(--sg-card);
-  color: var(--sg-ink-body);
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover:not([aria-disabled='true']) {
-    background: var(--sg-field);
-  }
-}
-
-.btn--primario {
-  border-color: var(--sg-navy);
-  background: var(--sg-navy);
-  color: #fff;
-
-  &:hover:not([aria-disabled='true']) {
-    background: var(--sg-navy-hover);
-  }
-}
-
-.btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.55rem;
-  border: 0;
-  border-radius: var(--sg-radius-micro);
-  background: transparent;
-  color: var(--sg-ink-muted);
-  font: inherit;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  cursor: pointer;
-
-  &:hover:not([aria-disabled='true']) {
-    background: var(--sg-divider);
-    color: var(--sg-navy);
-  }
-}
-
 .btn-ghost--peligro:hover:not([aria-disabled='true']) {
   background: var(--sg-error-bg);
   color: var(--sg-error-fg);

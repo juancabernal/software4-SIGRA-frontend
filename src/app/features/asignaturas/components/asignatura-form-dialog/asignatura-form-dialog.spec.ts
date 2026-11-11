@@ -228,7 +228,7 @@ describe('AsignaturaFormDialog', () => {
       expect(enviarBoton().hasAttribute('aria-disabled')).toBe(false);
 
       await enviar();
-      expect(enviarBoton().textContent?.trim()).toBe('Procesando…');
+      expect(enviarBoton().textContent?.trim()).toBe('Registrar');
       const req = http.expectOne(URL);
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({

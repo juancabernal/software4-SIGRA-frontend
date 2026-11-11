@@ -109,7 +109,7 @@
 
                     <button
                       type="button"
-                      class="btn-ghost"
+                      class="btn btn--secundario btn--pequeno"
                       [attr.aria-label]="'Modificar ' + e.nombreCompleto"
                       (click)="abrirModificacion(e)"
                     >
@@ -123,7 +123,8 @@
                       [attr.aria-label]="'Inactivar ' + e.nombreCompleto"
                       (click)="pedirInactivar(e)"
                     >
-                      Inactivar
+                      <app-icono nombre="prohibido" [tamano]="16" />
+                      <span>Inactivar</span>
                     </button>
                   </div>
                 </td>

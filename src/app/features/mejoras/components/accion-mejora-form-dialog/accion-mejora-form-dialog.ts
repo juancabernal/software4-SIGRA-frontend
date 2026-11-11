@@ -81,7 +81,9 @@ export class AccionMejoraFormDialog {
   protected readonly titulo = computed(() =>
     this.accion() ? 'Editar acción de mejora' : 'Registrar acción de mejora',
   );
-  protected readonly etiquetaEnviar = computed(() => (this.accion() ? 'Guardar cambios' : 'Registrar'));
+  protected readonly etiquetaEnviar = computed(() =>
+    this.accion() ? 'Guardar cambios' : 'Registrar',
+  );
 
   constructor() {
     effect(() => {

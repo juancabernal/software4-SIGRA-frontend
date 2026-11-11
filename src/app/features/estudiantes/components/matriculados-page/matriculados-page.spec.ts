@@ -4,7 +4,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../../../environments/environment';
 import { EstudianteMatriculado } from '../../models/matricula.model';
-import { ConfettiService } from '../../../../shared/ui/confetti/confetti.service';
 import { MatriculadosPage } from './matriculados-page';
 
 const URL_ASIGNATURAS = `${environment.apiUrl}/v1/asignaturas`;
@@ -25,7 +24,6 @@ describe('MatriculadosPage', () => {
   let fixture: ComponentFixture<MatriculadosPage>;
   let http: HttpTestingController;
   let html: HTMLElement;
-  let confettiSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -33,9 +31,6 @@ describe('MatriculadosPage', () => {
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     http = TestBed.inject(HttpTestingController);
-    confettiSpy = vi
-      .spyOn(TestBed.inject(ConfettiService), 'celebrar')
-      .mockImplementation(() => {});
     fixture = TestBed.createComponent(MatriculadosPage);
     html = fixture.nativeElement as HTMLElement;
     document.body.appendChild(html);
@@ -367,7 +362,6 @@ describe('MatriculadosPage', () => {
       await fixture.whenStable();
 
       expect(html.textContent).toContain('Estudiante matriculado.');
-      expect(confettiSpy).toHaveBeenCalledTimes(1);
       // Se relee del servidor (D9): la fila nueva llega de la consulta, no de un parche en memoria.
       consultaMatriculados().flush([ANA]);
       await fixture.whenStable();

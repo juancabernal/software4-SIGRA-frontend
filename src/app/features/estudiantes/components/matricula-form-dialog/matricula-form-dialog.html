@@ -76,7 +76,7 @@
                 aria-describedby="matricula-buscar-criterio-error"
               />
               <button type="button" class="btn" [disabled]="buscando()" (click)="buscar()">
-                {{ buscando() ? 'Buscando…' : 'Buscar' }}
+                Buscar
               </button>
             </div>
             @if (mostrarErrorCriterio()) {
@@ -371,12 +371,18 @@
       }
     </div>
 
+    @if (guardando()) {
+      <span class="accion-estado" role="status" aria-live="polite">
+        <span class="accion-estado__spinner" aria-hidden="true"></span>
+        Matriculando…
+      </span>
+    }
     <div class="acciones">
-      <button type="button" class="btn" (click)="cancelar()" [disabled]="guardando()">
+      <button type="button" class="btn btn--cancelar" (click)="cancelar()" [disabled]="guardando()">
         Cancelar
       </button>
       <button type="submit" class="btn btn--primario" [disabled]="!puedeConfirmar()">
-        {{ guardando() ? 'Matriculando…' : etiquetaConfirmar() }}
+        {{ etiquetaConfirmar() }}
       </button>
     </div>
   </form>

@@ -117,17 +117,22 @@
       </div>
 
       <div class="barra barra--acciones">
+        @if (recalculando()) {
+          <span class="accion-estado" role="status" aria-live="polite">
+            <span class="accion-estado__spinner" aria-hidden="true"></span>
+            Recalculando…
+          </span>
+        }
         <button
           type="button"
           class="btn"
           title="Vuelve a calcular el nivel de logro con las calificaciones actuales"
           [disabled]="!puedeConsultar() || recalculando()"
           [attr.aria-disabled]="puedeConsultar() && !recalculando() ? null : 'true'"
-          [attr.aria-busy]="recalculando() ? 'true' : null"
           (click)="recalcular()"
         >
           <app-icono nombre="recargar" [tamano]="16" />
-          {{ recalculando() ? 'Recalculando…' : 'Recalcular' }}
+          Recalcular
         </button>
         <button
           type="button"

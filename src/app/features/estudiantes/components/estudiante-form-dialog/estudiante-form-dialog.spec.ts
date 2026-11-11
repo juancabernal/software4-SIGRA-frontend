@@ -329,25 +329,27 @@ describe('EstudianteFormDialog', () => {
     http.expectNone(URL);
   });
 
-  it('mientras se registra, el botón de envío muestra "Registrando…" y queda deshabilitado', async () => {
+  it('mientras se registra, el botón de envío no cambia de texto, se avisa aparte con "Registrando…", y queda deshabilitado', async () => {
     await llenarValido();
     await enviar();
 
     const submit = html.querySelector('button[type="submit"]') as HTMLButtonElement;
-    expect(submit.textContent?.trim()).toBe('Registrando…');
+    expect(submit.textContent?.trim()).toBe('Registrar');
     expect(submit.disabled).toBe(true);
+    expect(html.querySelector('[role="status"]')?.textContent?.trim()).toBe('Registrando…');
 
     http.expectOne(URL).flush(ESTUDIANTE, { status: 201, statusText: 'Created' });
   });
 
-  it('mientras se modifica, el botón de envío muestra "Guardando…" y queda deshabilitado', async () => {
+  it('mientras se modifica, el botón de envío no cambia de texto, se avisa aparte con "Guardando…", y queda deshabilitado', async () => {
     await abrirEditar();
     escribir('estudiante-primer-apellido', 'Actualizado');
     await enviar();
 
     const submit = html.querySelector('button[type="submit"]') as HTMLButtonElement;
-    expect(submit.textContent?.trim()).toBe('Guardando…');
+    expect(submit.textContent?.trim()).toBe('Guardar cambios');
     expect(submit.disabled).toBe(true);
+    expect(html.querySelector('[role="status"]')?.textContent?.trim()).toBe('Guardando…');
 
     http.expectOne(`${URL}/${ESTUDIANTE.id}`).flush(ESTUDIANTE, { status: 200, statusText: 'OK' });
   });

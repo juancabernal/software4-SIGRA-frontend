@@ -264,25 +264,6 @@ tbody tr:hover {
 }
 
 // ── Botones ──
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 1rem;
-  border: 1px solid var(--sg-border);
-  border-radius: var(--sg-radius-control);
-  background: var(--sg-card);
-  color: var(--sg-ink-body);
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover:not([aria-disabled='true']) {
-    background: var(--sg-field);
-  }
-}
-
 .btn--fila {
   padding: 0.35rem 0.75rem;
   font-size: 0.8125rem;

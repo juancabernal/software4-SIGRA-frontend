@@ -194,30 +194,6 @@
   font-weight: 700;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 1rem;
-  border: 1px solid var(--sg-navy);
-  border-radius: var(--sg-radius-control);
-  background: var(--sg-navy);
-  color: #fff;
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover:not([aria-disabled='true']) {
-    background: var(--sg-navy-hover);
-  }
-
-  &[aria-disabled='true'] {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
-}
-
 @media (max-width: 640px) {
   .distribucion__fila {
     grid-template-columns: 1fr auto;

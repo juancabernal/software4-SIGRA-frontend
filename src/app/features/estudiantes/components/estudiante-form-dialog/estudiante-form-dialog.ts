@@ -73,12 +73,13 @@ export class EstudianteFormDialog implements OnInit {
   protected readonly titulo = computed(() =>
     this.esModificar() ? 'Modificar estudiante' : 'Registrar estudiante',
   );
-  protected readonly etiquetaGuardar = computed(() => {
-    if (this.guardando()) {
-      return this.esModificar() ? 'Guardando…' : 'Registrando…';
-    }
-    return this.esModificar() ? 'Guardar cambios' : 'Registrar estudiante';
-  });
+  // El texto del botón nunca cambia al guardar (0000051): el estado de carga se avisa aparte.
+  protected readonly etiquetaGuardar = computed(() =>
+    this.esModificar() ? 'Guardar cambios' : 'Registrar',
+  );
+  protected readonly etiquetaGuardando = computed(() =>
+    this.esModificar() ? 'Guardando…' : 'Registrando…',
+  );
 
   protected readonly guardando = signal(false);
   protected readonly errorApi = signal<MensajeError | null>(null);

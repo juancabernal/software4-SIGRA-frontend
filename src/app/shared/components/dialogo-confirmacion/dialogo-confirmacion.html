@@ -28,11 +28,17 @@
       </div>
     }
 
+    @if (procesando()) {
+      <span class="accion-estado" role="status" aria-live="polite">
+        <span class="accion-estado__spinner" aria-hidden="true"></span>
+        Procesando…
+      </span>
+    }
     <div class="dialogo__acciones">
       <button
         #botonCancelar
         type="button"
-        class="btn"
+        class="btn btn--cancelar"
         [disabled]="procesando()"
         (click)="alCancelar()"
       >
@@ -46,7 +52,7 @@
         [disabled]="confirmarBloqueado()"
         (click)="alConfirmar()"
       >
-        {{ procesando() ? 'Procesando…' : etiquetaConfirmar() }}
+        {{ etiquetaConfirmar() }}
       </button>
     </div>
 

@@ -7,14 +7,20 @@
       Se calcula automáticamente al registrar calificaciones. Si ya hay notas de
       {{ e.codigoResultadoAprendizaje }} en {{ e.codigoSemestre }}, puedes calcularlo ahora.
     </p>
+    @if (recalculando()) {
+      <span class="accion-estado" role="status" aria-live="polite">
+        <span class="accion-estado__spinner" aria-hidden="true"></span>
+        Calculando…
+      </span>
+    }
     <button
       type="button"
-      class="btn"
+      class="btn btn--primario"
       [attr.aria-disabled]="recalculando() ? 'true' : null"
       (click)="pedirRecalculo()"
     >
       <app-icono nombre="recargar" [tamano]="16" />
-      {{ recalculando() ? 'Calculando…' : 'Calcular ahora' }}
+      Calcular ahora
     </button>
   </div>
 } @else {

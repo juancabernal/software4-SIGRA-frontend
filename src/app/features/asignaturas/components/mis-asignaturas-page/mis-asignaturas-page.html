@@ -89,6 +89,12 @@
             <div>
               <p class="codigo">{{ asignatura.codigo }}</p>
               <h2>{{ asignatura.nombre }}</h2>
+              @if (seleccionada()?.id === asignatura.id) {
+                <p class="tarjeta__seleccionada">
+                  <app-icono nombre="check" [tamano]="14" />
+                  Seleccionada
+                </p>
+              }
             </div>
             <app-chip-estado
               [etiqueta]="presentacionEstado[asignatura.estado].etiqueta"
@@ -120,7 +126,7 @@
             @if (esProfesor()) {
               <button type="button" class="btn btn--secundario" (click)="seleccionar(asignatura)">
                 <app-icono nombre="lista" [tamano]="16" />
-                {{ seleccionada()?.id === asignatura.id ? 'Resultados seleccionados' : 'Ver resultados de aprendizaje' }}
+                Ver resultados de aprendizaje
               </button>
               <button type="button" class="btn btn--primario" (click)="irAMatricula(asignatura)">
                 <app-icono nombre="personas" [tamano]="16" />

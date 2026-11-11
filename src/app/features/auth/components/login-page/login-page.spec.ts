@@ -193,18 +193,20 @@ describe('LoginPage', () => {
       http.expectOne(URL).flush(RESPUESTA);
     });
 
-    it('durante la petición bloquea el botón y muestra el texto de carga', () => {
+    it('durante la petición bloquea el botón y avisa el estado de carga aparte, sin cambiar su texto', () => {
       llenarFormularioValido();
       enviar();
 
       const boton = html.querySelector('button[type="submit"]') as HTMLButtonElement;
       expect(boton.disabled).toBe(true);
-      expect(boton.textContent).toContain('Iniciando sesión…');
+      expect(boton.textContent).toContain('Iniciar sesión');
+      expect(html.querySelector('[role="status"]')?.textContent).toContain('Iniciando sesión…');
 
       http.expectOne(URL).flush(null, { status: 401, statusText: 'Unauthorized' });
       fixture.detectChanges();
       expect(boton.disabled).toBe(false);
       expect(boton.textContent).toContain('Iniciar sesión');
+      expect(html.querySelector('[role="status"]')).toBeNull();
     });
 
     it('impide un doble envío mientras la petición está en curso', () => {

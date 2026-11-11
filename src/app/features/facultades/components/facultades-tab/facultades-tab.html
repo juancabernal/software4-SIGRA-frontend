@@ -31,7 +31,7 @@
 
     <button type="button" class="btn btn--primario barra__registrar" (click)="abrirRegistro()">
       <app-icono nombre="mas" [tamano]="16" />
-      Registrar
+      Registrar facultad
     </button>
   </div>
 
@@ -58,7 +58,7 @@
         <p>Registra la primera facultad.</p>
         <button type="button" class="btn btn--primario" (click)="abrirRegistro()">
           <app-icono nombre="mas" [tamano]="16" />
-          Registrar
+          Registrar facultad
         </button>
       </div>
     }
@@ -88,7 +88,7 @@
                 <div class="acciones">
                   <button
                     type="button"
-                    class="btn-ghost"
+                    class="btn btn--secundario btn--pequeno"
                     [attr.aria-label]="'Modificar ' + f.nombre"
                     (click)="abrirEdicion(f)"
                   >
@@ -102,7 +102,8 @@
                       [attr.aria-label]="'Inactivar ' + f.nombre"
                       (click)="pedirInactivar(f)"
                     >
-                      Inactivar
+                      <app-icono nombre="prohibido" [tamano]="16" />
+                      <span>Inactivar</span>
                     </button>
                   }
                 </div>

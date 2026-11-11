@@ -33,34 +33,12 @@ h1 {
   margin: 0.5rem 0;
 }
 
-.btn-primario {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+// El estilo del botón vive en el global .btn/.btn--primario/.btn--secundario (styles.scss);
+// aquí solo queda el espaciado respecto al resto de la tarjeta.
+.tarjeta .btn {
   margin-top: 1rem;
-  padding: 0.7rem 1rem;
-  border: 0;
-  border-radius: 0.6rem;
-  background: #164e63;
-  color: #fff;
-  font: inherit;
-  font-weight: 700;
-  text-decoration: none;
-  cursor: pointer;
 }
 
-.btn-secundario {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 1rem;
+.tarjeta .btn + .btn {
   margin-left: 0.5rem;
-  padding: 0.7rem 1rem;
-  border: 1px solid #164e63;
-  border-radius: 0.6rem;
-  background: #fff;
-  color: #164e63;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
 }

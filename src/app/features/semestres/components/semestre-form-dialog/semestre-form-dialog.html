@@ -97,12 +97,18 @@
       </div>
     </div>
 
+    @if (guardando()) {
+      <span class="accion-estado" role="status" aria-live="polite">
+        <span class="accion-estado__spinner" aria-hidden="true"></span>
+        Registrando…
+      </span>
+    }
     <div class="acciones">
-      <button type="button" class="btn" (click)="cancelar()" [disabled]="guardando()">
+      <button type="button" class="btn btn--cancelar" (click)="cancelar()" [disabled]="guardando()">
         Cancelar
       </button>
       <button type="submit" class="btn btn--primario" [disabled]="guardando()">
-        {{ guardando() ? 'Registrando…' : 'Registrar semestre' }}
+        Registrar
       </button>
     </div>
   </form>
