@@ -41,6 +41,16 @@ describe('SemestreService', () => {
     expect(resultado).toEqual([SEMESTRE]);
   });
 
+  it('lista los semestres del profesor con GET /v1/semestres/mios (Mantis 0000045)', () => {
+    let resultado: Semestre[] | undefined;
+    service.listarMios().subscribe((r) => (resultado = r));
+
+    const req = http.expectOne(`${URL}/mios`);
+    expect(req.request.method).toBe('GET');
+    req.flush([SEMESTRE]);
+    expect(resultado).toEqual([SEMESTRE]);
+  });
+
   it('lista sin parámetros cuando no hay filtros', () => {
     service.listar().subscribe();
 

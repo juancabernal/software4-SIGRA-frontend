@@ -43,6 +43,31 @@
       </div>
     } @else {
       <div class="barra">
+        <label for="selector-semestre">Semestre</label>
+        @if (cargandoSemestres()) {
+          <p class="estado-inline" role="status">Cargando semestres…</p>
+        } @else if (errorSemestres(); as error) {
+          <div class="estado-inline estado-inline--error" role="alert">
+            <p>{{ error.mensaje }}</p>
+          </div>
+        } @else {
+          <select
+            id="selector-semestre"
+            class="selector"
+            [value]="semestreId()"
+            (change)="alCambiarSemestre($event)"
+          >
+            <option value="">Selecciona un semestre</option>
+            @for (s of semestres(); track s.id) {
+              <option [value]="s.id" [selected]="s.id === semestreId()">
+                {{ s.codigo }}{{ s.estado === 'ACTIVO' ? ' (activo)' : '' }}
+              </option>
+            }
+          </select>
+        }
+      </div>
+
+      <div class="barra">
         <label for="selector-materia">Materia</label>
         <select
           id="selector-materia"
@@ -91,31 +116,6 @@
         }
       </div>
 
-      <div class="barra">
-        <label for="selector-semestre">Semestre</label>
-        @if (cargandoSemestres()) {
-          <p class="estado-inline" role="status">Cargando semestres…</p>
-        } @else if (errorSemestres(); as error) {
-          <div class="estado-inline estado-inline--error" role="alert">
-            <p>{{ error.mensaje }}</p>
-          </div>
-        } @else {
-          <select
-            id="selector-semestre"
-            class="selector"
-            [value]="semestreId()"
-            (change)="alCambiarSemestre($event)"
-          >
-            <option value="">Selecciona un semestre</option>
-            @for (s of semestres(); track s.id) {
-              <option [value]="s.id" [selected]="s.id === semestreId()">
-                {{ s.codigo }}{{ s.estado === 'ACTIVO' ? ' (activo)' : '' }}
-              </option>
-            }
-          </select>
-        }
-      </div>
-
       <div class="barra barra--acciones">
         <button
           type="button"
@@ -139,6 +139,13 @@
           Consultar
         </button>
       </div>
+
+      @if (!cargandoSemestres() && !errorSemestres() && semestres().length === 0) {
+        <div class="estado-vista" role="status">
+          <p class="estado-vista__titulo">No tienes semestres con asignaturas</p>
+          <p>Aparecen aquí los semestres en los que tienes asignaturas asignadas.</p>
+        </div>
+      }
 
       @if (mostrarRendimiento()) {
         <section class="seccion seccion--rendimiento" aria-labelledby="titulo-rendimiento">
