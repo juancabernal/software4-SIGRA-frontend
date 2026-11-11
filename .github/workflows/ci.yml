@@ -74,12 +74,12 @@ jobs:
 
       - name: Logs SSR
         if: always()
-        run: |
+        run: ubuntu-24.04
           if [ -f ssr.log ]; then cat ssr.log; fi
 
   e2e-integrada:
     name: E2E integrada (backend release y PostgreSQL efímero)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu
     timeout-minutes: 45
     env:
       DB_URL: jdbc:postgresql://127.0.0.1:5432/postgres?currentSchema=sigra
