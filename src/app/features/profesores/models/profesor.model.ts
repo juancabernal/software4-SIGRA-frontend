@@ -6,6 +6,11 @@ export interface Profesor {
   tipoDocumentoId: string;
   tipoDocumentoNombre: string;
   numeroDocumento: string;
+  primerNombre: string;
+  segundoNombre?: string | null;
+  primerApellido: string;
+  segundoApellido: string;
+  /** Derivado por el backend, solo para mostrar. */
   nombreCompleto: string;
   correoInstitucional: string;
   estado: string;
@@ -16,7 +21,11 @@ export interface Profesor {
 export interface ProfesorRequest {
   tipoDocumentoId: string;
   numeroDocumento: string;
-  nombreCompleto: string;
+  primerNombre: string;
+  /** Opcional. */
+  segundoNombre?: string;
+  primerApellido: string;
+  segundoApellido: string;
   correoInstitucional: string;
 }
 

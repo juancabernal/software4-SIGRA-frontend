@@ -29,7 +29,11 @@ export const PRESENTACION_ESTADO_ESTUDIANTE: Readonly<
 export interface EstudianteRequest {
   tipoDocumentoId: string;
   numeroDocumento: string;
-  nombreCompleto: string;
+  primerNombre: string;
+  /** Opcional. */
+  segundoNombre?: string;
+  primerApellido: string;
+  segundoApellido: string;
   correoInstitucional: string;
 }
 
@@ -43,6 +47,11 @@ export interface Estudiante {
   id: string;
   tipoDocumentoNombre: string;
   numeroDocumento: string;
+  primerNombre: string;
+  segundoNombre?: string | null;
+  primerApellido: string;
+  segundoApellido: string;
+  /** Derivado por el backend, solo para mostrar en listados y fichas. */
   nombreCompleto: string;
   correoInstitucional: string;
   estado: EstadoEstudiante;

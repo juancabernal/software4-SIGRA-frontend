@@ -86,26 +86,84 @@
     </div>
 
     <div class="campo">
-      <label for="estudiante-nombre">Nombre completo</label>
+      <label for="estudiante-primer-nombre">Primer nombre</label>
       <input
-        id="estudiante-nombre"
-        formControlName="nombreCompleto"
-        placeholder="Ana María Gómez"
+        id="estudiante-primer-nombre"
+        formControlName="primerNombre"
+        placeholder="Ana"
         autocomplete="off"
-        [attr.aria-invalid]="mostrarError('nombreCompleto')"
-        aria-describedby="estudiante-nombre-error"
+        maxlength="50"
+        [attr.aria-invalid]="mostrarError('primerNombre')"
+        aria-describedby="estudiante-primer-nombre-error"
       />
-      @if (mostrarError('nombreCompleto')) {
-        <p class="error-campo" id="estudiante-nombre-error">
-          @if (form.controls.nombreCompleto.hasError('required')) {
-            Escribe el nombre completo.
-          } @else if (
-            form.controls.nombreCompleto.hasError('minlength') ||
-            form.controls.nombreCompleto.hasError('maxlength')
-          ) {
-            El nombre completo debe tener entre 3 y 150 caracteres.
+      @if (mostrarError('primerNombre')) {
+        <p class="error-campo" id="estudiante-primer-nombre-error">
+          @if (form.controls.primerNombre.hasError('required')) {
+            Escribe el primer nombre.
           } @else {
-            Usa solo letras y un único espacio entre cada palabra, sin números ni símbolos.
+            Usa solo letras, sin espacios, números ni símbolos (máximo 50).
+          }
+        </p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="estudiante-segundo-nombre">Segundo nombre (opcional)</label>
+      <input
+        id="estudiante-segundo-nombre"
+        formControlName="segundoNombre"
+        placeholder="María"
+        autocomplete="off"
+        maxlength="50"
+        [attr.aria-invalid]="mostrarError('segundoNombre')"
+        aria-describedby="estudiante-segundo-nombre-error"
+      />
+      @if (mostrarError('segundoNombre')) {
+        <p class="error-campo" id="estudiante-segundo-nombre-error">
+          Usa solo letras, sin espacios, números ni símbolos (máximo 50).
+        </p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="estudiante-primer-apellido">Primer apellido</label>
+      <input
+        id="estudiante-primer-apellido"
+        formControlName="primerApellido"
+        placeholder="Gómez"
+        autocomplete="off"
+        maxlength="50"
+        [attr.aria-invalid]="mostrarError('primerApellido')"
+        aria-describedby="estudiante-primer-apellido-error"
+      />
+      @if (mostrarError('primerApellido')) {
+        <p class="error-campo" id="estudiante-primer-apellido-error">
+          @if (form.controls.primerApellido.hasError('required')) {
+            Escribe el primer apellido.
+          } @else {
+            Usa solo letras, sin espacios, números ni símbolos (máximo 50).
+          }
+        </p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="estudiante-segundo-apellido">Segundo apellido</label>
+      <input
+        id="estudiante-segundo-apellido"
+        formControlName="segundoApellido"
+        placeholder="Ruiz"
+        autocomplete="off"
+        maxlength="50"
+        [attr.aria-invalid]="mostrarError('segundoApellido')"
+        aria-describedby="estudiante-segundo-apellido-error"
+      />
+      @if (mostrarError('segundoApellido')) {
+        <p class="error-campo" id="estudiante-segundo-apellido-error">
+          @if (form.controls.segundoApellido.hasError('required')) {
+            Escribe el segundo apellido.
+          } @else {
+            Usa solo letras, sin espacios, números ni símbolos (máximo 50).
           }
         </p>
       }

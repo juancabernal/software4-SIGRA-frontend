@@ -29,7 +29,11 @@ function estudiante(parcial: Partial<Estudiante>): Estudiante {
     id: 'e1',
     tipoDocumentoNombre: TIPOS_DOCUMENTO[0].nombre,
     numeroDocumento: '1234567890',
-    nombreCompleto: 'Ana María Gómez',
+    primerNombre: 'Ana',
+    segundoNombre: 'María',
+    primerApellido: 'Gómez',
+    segundoApellido: 'Ruiz',
+    nombreCompleto: 'Ana María Gómez Ruiz',
     correoInstitucional: 'ana@uco.net.co',
     estado: 'ACTIVO',
     ...parcial,
@@ -40,7 +44,11 @@ const ANA = estudiante({});
 const LUIS = estudiante({
   id: 'e2',
   numeroDocumento: '1122334455',
-  nombreCompleto: 'Luis Fernando Ortiz',
+  primerNombre: 'Luis',
+  segundoNombre: 'Fernando',
+  primerApellido: 'Ortiz',
+  segundoApellido: 'Mora',
+  nombreCompleto: 'Luis Fernando Ortiz Mora',
   correoInstitucional: 'luis@uco.net.co',
 });
 
@@ -111,7 +119,10 @@ describe('EstudiantesPage (integración con EstudianteFormDialog)', () => {
 
     escribir(dialogo, 'estudiante-tipo-documento', TIPOS_DOCUMENTO[0].id);
     escribir(dialogo, 'estudiante-numero-documento', LUIS.numeroDocumento);
-    escribir(dialogo, 'estudiante-nombre', LUIS.nombreCompleto);
+    escribir(dialogo, 'estudiante-primer-nombre', LUIS.primerNombre);
+    escribir(dialogo, 'estudiante-segundo-nombre', LUIS.segundoNombre ?? '');
+    escribir(dialogo, 'estudiante-primer-apellido', LUIS.primerApellido);
+    escribir(dialogo, 'estudiante-segundo-apellido', LUIS.segundoApellido);
     escribir(dialogo, 'estudiante-correo', LUIS.correoInstitucional);
     await fixture.whenStable();
 
@@ -122,7 +133,10 @@ describe('EstudiantesPage (integración con EstudianteFormDialog)', () => {
     const cuerpoEsperado: EstudianteRequest = {
       tipoDocumentoId: TIPOS_DOCUMENTO[0].id,
       numeroDocumento: LUIS.numeroDocumento,
-      nombreCompleto: LUIS.nombreCompleto,
+      primerNombre: LUIS.primerNombre,
+      segundoNombre: LUIS.segundoNombre ?? undefined,
+      primerApellido: LUIS.primerApellido,
+      segundoApellido: LUIS.segundoApellido,
       correoInstitucional: LUIS.correoInstitucional,
     };
     expect(registro.request.body).toEqual(cuerpoEsperado);
@@ -153,19 +167,23 @@ describe('EstudiantesPage (integración con EstudianteFormDialog)', () => {
     const dialogo = html.querySelector('app-estudiante-form-dialog dialog') as HTMLDialogElement;
     expect(dialogo.querySelector('h2')?.textContent).toContain('Modificar estudiante');
 
-    const nombreActualizado = 'Ana María Gómez Pérez';
-    escribir(dialogo, 'estudiante-nombre', nombreActualizado);
+    const apellidoActualizado = 'Pérez';
+    const nombreActualizado = 'Ana María Pérez Ruiz';
+    escribir(dialogo, 'estudiante-primer-apellido', apellidoActualizado);
     await fixture.whenStable();
 
     (dialogo.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
     await fixture.whenStable();
 
-    const modificado = estudiante({ nombreCompleto: nombreActualizado });
+    const modificado = estudiante({ primerApellido: apellidoActualizado, nombreCompleto: nombreActualizado });
     const peticion = http.expectOne((r) => r.url === `${URL}/${ANA.id}` && r.method === 'PUT');
     const cuerpoEsperado: EstudianteRequest = {
       tipoDocumentoId: TIPOS_DOCUMENTO[0].id,
       numeroDocumento: ANA.numeroDocumento,
-      nombreCompleto: nombreActualizado,
+      primerNombre: ANA.primerNombre,
+      segundoNombre: ANA.segundoNombre ?? undefined,
+      primerApellido: apellidoActualizado,
+      segundoApellido: ANA.segundoApellido,
       correoInstitucional: ANA.correoInstitucional,
     };
     expect(peticion.request.body).toEqual(cuerpoEsperado);

@@ -224,25 +224,84 @@
           </div>
 
           <div class="campo">
-            <label for="matricula-nuevo-nombre">Nombre completo</label>
+            <label for="matricula-nuevo-primer-nombre">Primer nombre</label>
             <input
-              id="matricula-nuevo-nombre"
+              id="matricula-nuevo-primer-nombre"
               type="text"
-              formControlName="nombreCompleto"
-              [attr.aria-invalid]="mostrarErrorNuevo('nombreCompleto')"
-              aria-describedby="matricula-nuevo-nombre-error"
+              formControlName="primerNombre"
+              autocomplete="off"
+              maxlength="50"
+              [attr.aria-invalid]="mostrarErrorNuevo('primerNombre')"
+              aria-describedby="matricula-nuevo-primer-nombre-error"
             />
-            @if (mostrarErrorNuevo('nombreCompleto')) {
-              <p class="error-campo" id="matricula-nuevo-nombre-error">
-                @if (formNuevo.controls.nombreCompleto.hasError('required')) {
-                  Escribe el nombre completo.
-                } @else if (
-                  formNuevo.controls.nombreCompleto.hasError('minlength') ||
-                  formNuevo.controls.nombreCompleto.hasError('maxlength')
-                ) {
-                  El nombre completo debe tener entre 3 y 150 caracteres.
+            @if (mostrarErrorNuevo('primerNombre')) {
+              <p class="error-campo" id="matricula-nuevo-primer-nombre-error">
+                @if (formNuevo.controls.primerNombre.hasError('required')) {
+                  Escribe el primer nombre.
                 } @else {
-                  Usa solo letras y un único espacio entre cada palabra, sin números ni símbolos.
+                  Usa solo letras, sin espacios, números ni símbolos (máximo 50).
+                }
+              </p>
+            }
+          </div>
+
+          <div class="campo">
+            <label for="matricula-nuevo-segundo-nombre">Segundo nombre (opcional)</label>
+            <input
+              id="matricula-nuevo-segundo-nombre"
+              type="text"
+              formControlName="segundoNombre"
+              autocomplete="off"
+              maxlength="50"
+              [attr.aria-invalid]="mostrarErrorNuevo('segundoNombre')"
+              aria-describedby="matricula-nuevo-segundo-nombre-error"
+            />
+            @if (mostrarErrorNuevo('segundoNombre')) {
+              <p class="error-campo" id="matricula-nuevo-segundo-nombre-error">
+                Usa solo letras, sin espacios, números ni símbolos (máximo 50).
+              </p>
+            }
+          </div>
+
+          <div class="campo">
+            <label for="matricula-nuevo-primer-apellido">Primer apellido</label>
+            <input
+              id="matricula-nuevo-primer-apellido"
+              type="text"
+              formControlName="primerApellido"
+              autocomplete="off"
+              maxlength="50"
+              [attr.aria-invalid]="mostrarErrorNuevo('primerApellido')"
+              aria-describedby="matricula-nuevo-primer-apellido-error"
+            />
+            @if (mostrarErrorNuevo('primerApellido')) {
+              <p class="error-campo" id="matricula-nuevo-primer-apellido-error">
+                @if (formNuevo.controls.primerApellido.hasError('required')) {
+                  Escribe el primer apellido.
+                } @else {
+                  Usa solo letras, sin espacios, números ni símbolos (máximo 50).
+                }
+              </p>
+            }
+          </div>
+
+          <div class="campo">
+            <label for="matricula-nuevo-segundo-apellido">Segundo apellido</label>
+            <input
+              id="matricula-nuevo-segundo-apellido"
+              type="text"
+              formControlName="segundoApellido"
+              autocomplete="off"
+              maxlength="50"
+              [attr.aria-invalid]="mostrarErrorNuevo('segundoApellido')"
+              aria-describedby="matricula-nuevo-segundo-apellido-error"
+            />
+            @if (mostrarErrorNuevo('segundoApellido')) {
+              <p class="error-campo" id="matricula-nuevo-segundo-apellido-error">
+                @if (formNuevo.controls.segundoApellido.hasError('required')) {
+                  Escribe el segundo apellido.
+                } @else {
+                  Usa solo letras, sin espacios, números ni símbolos (máximo 50).
                 }
               </p>
             }
