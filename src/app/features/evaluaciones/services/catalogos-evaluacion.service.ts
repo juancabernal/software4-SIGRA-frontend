@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
+import { SesionService } from '../../../core/services/sesion';
 import { AsignaturaOpcion, SemestreOpcion } from '../models/evaluacion.model';
 
 /**
@@ -13,6 +14,7 @@ import { AsignaturaOpcion, SemestreOpcion } from '../models/evaluacion.model';
 @Injectable({ providedIn: 'root' })
 export class CatalogosEvaluacionService {
   private readonly http = inject(HttpClient);
+  private readonly sesion = inject(SesionService);
   private readonly apiUrl = `${environment.apiUrl}/v1`;
 
   /**
@@ -26,10 +28,15 @@ export class CatalogosEvaluacionService {
       .pipe(map((lista) => [...lista].sort((a, b) => a.codigo.localeCompare(b.codigo))));
   }
 
-  /** Semestres del más reciente al más antiguo. */
+  /**
+   * Semestres del más reciente al más antiguo. El Profesor solo recibe aquellos en los que tiene
+   * asignaturas (Mantis 0000045); el resto de roles, todos.
+   */
   listarSemestres(): Observable<SemestreOpcion[]> {
+    const url =
+      this.sesion.rol() === 'profesor' ? `${this.apiUrl}/semestres/mios` : `${this.apiUrl}/semestres`;
     return this.http
-      .get<SemestreOpcion[]>(`${this.apiUrl}/semestres`)
+      .get<SemestreOpcion[]>(url)
       .pipe(map((lista) => [...lista].sort((a, b) => b.fechaInicio.localeCompare(a.fechaInicio))));
   }
 }

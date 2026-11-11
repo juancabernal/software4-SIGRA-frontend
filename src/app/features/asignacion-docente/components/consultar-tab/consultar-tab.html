@@ -55,7 +55,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (a of asignaciones(); track a.asignacionId) {
+            @for (a of paginacion.filas(); track a.asignacionId) {
               <tr>
                 <th scope="row" class="nombre">{{ a.nombreAsignatura }}</th>
                 <td class="codigo">{{ a.codigoAsignatura }}</td>
@@ -75,6 +75,13 @@
           </tbody>
         </table>
       </div>
+      <app-paginador
+        [total]="paginacion.total()"
+        [pagina]="paginacion.pagina()"
+        [tamanoPagina]="paginacion.tamanoPagina()"
+        (cambioPagina)="paginacion.irA($event)"
+        (cambioTamano)="paginacion.cambiarTamano($event)"
+      />
     }
   }
 </div>

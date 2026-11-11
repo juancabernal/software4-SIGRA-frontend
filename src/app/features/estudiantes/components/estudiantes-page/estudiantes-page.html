@@ -84,7 +84,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (e of estudiantes(); track e.id) {
+            @for (e of paginacion.filas(); track e.id) {
               <tr>
                 <th scope="row" class="codigo">{{ e.tipoDocumentoNombre }} {{ e.numeroDocumento }}</th>
                 <td class="nombre">{{ e.nombreCompleto }}</td>
@@ -132,6 +132,13 @@
           </tbody>
         </table>
       </div>
+      <app-paginador
+        [total]="paginacion.total()"
+        [pagina]="paginacion.pagina()"
+        [tamanoPagina]="paginacion.tamanoPagina()"
+        (cambioPagina)="paginacion.irA($event)"
+        (cambioTamano)="paginacion.cambiarTamano($event)"
+      />
     }
   </div>
 </section>

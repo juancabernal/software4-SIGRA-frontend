@@ -209,7 +209,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  @for (ra of resultadosPagina(); track ra.id) {
+                  @for (ra of paginacion.filas(); track ra.id) {
                     <tr [class.fila--inactiva]="ra.estado === 'INACTIVO'">
                       <th scope="row" class="codigo tabular">{{ ra.codigo }}</th>
                       <td class="descripcion">{{ ra.descripcion }}</td>
@@ -311,32 +311,13 @@
               </table>
             </div>
 
-            <nav class="paginacion" aria-label="Paginación de resultados de aprendizaje">
-              <span class="paginacion__rango tabular">{{ rangoPagina() }}</span>
-              @if (totalPaginas() > 1) {
-                <div class="paginacion__controles">
-                  <button
-                    type="button"
-                    class="btn btn--pequeno"
-                    [attr.aria-disabled]="paginaActual() === 1 ? 'true' : null"
-                    (click)="paginaAnterior()"
-                  >
-                    Anterior
-                  </button>
-                  <span class="tabular" aria-live="polite">
-                    Página {{ paginaActual() }} de {{ totalPaginas() }}
-                  </span>
-                  <button
-                    type="button"
-                    class="btn btn--pequeno"
-                    [attr.aria-disabled]="paginaActual() === totalPaginas() ? 'true' : null"
-                    (click)="paginaSiguiente()"
-                  >
-                    Siguiente
-                  </button>
-                </div>
-              }
-            </nav>
+            <app-paginador
+              [total]="paginacion.total()"
+              [pagina]="paginacion.pagina()"
+              [tamanoPagina]="paginacion.tamanoPagina()"
+              (cambioPagina)="paginacion.irA($event)"
+              (cambioTamano)="paginacion.cambiarTamano($event)"
+            />
           }
         }
 

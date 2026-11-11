@@ -16,6 +16,8 @@ import { SemestreIcono } from '../semestre-icono/semestre-icono';
 import { EstadoSemestreBadge } from '../estado-semestre-badge/estado-semestre-badge';
 import { SemestreExtenderDialog } from '../semestre-extender-dialog/semestre-extender-dialog';
 import { SemestreFormDialog } from '../semestre-form-dialog/semestre-form-dialog';
+import { Paginador } from '../../../../shared/ui/paginador/paginador';
+import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 
 /** Fila de la tabla con los textos ya preparados para la vista. */
 interface FilaSemestre {
@@ -39,7 +41,7 @@ const ESPERA_BUSQUEDA_MS = 300;
  */
 @Component({
   selector: 'app-semestres-page',
-  imports: [EstadoSemestreBadge, SemestreFormDialog, SemestreExtenderDialog, SemestreIcono],
+  imports: [EstadoSemestreBadge, Paginador, SemestreFormDialog, SemestreExtenderDialog, SemestreIcono],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './semestres-page.html',
   styleUrl: './semestres-page.scss',
@@ -82,6 +84,9 @@ export class SemestresPage {
     });
   });
 
+  /** Paginación en cliente, igual que en «Materias». */
+  protected readonly paginacion = paginarEnCliente(this.filas);
+
   protected readonly filaActiva = computed(
     () => this.filas().find((fila) => fila.semestre.estado === 'ACTIVO') ?? null,
   );
@@ -116,12 +121,14 @@ export class SemestresPage {
   /** Espera a que la persona deje de teclear y vuelve a consultar con el filtro vigente. */
   protected alEscribirCodigo(evento: Event): void {
     this.codigo.set((evento.target as HTMLInputElement).value);
+    this.paginacion.reiniciar();
     clearTimeout(this.temporizadorBusqueda);
     this.temporizadorBusqueda = setTimeout(() => this.cargar(), ESPERA_BUSQUEDA_MS);
   }
 
   protected alCambiarEstado(evento: Event): void {
     this.estado.set((evento.target as HTMLSelectElement).value as EstadoSemestre | '');
+    this.paginacion.reiniciar();
     clearTimeout(this.temporizadorBusqueda);
     this.cargar();
   }
@@ -129,6 +136,7 @@ export class SemestresPage {
   protected limpiarFiltros(): void {
     this.codigo.set('');
     this.estado.set('');
+    this.paginacion.reiniciar();
     clearTimeout(this.temporizadorBusqueda);
     this.cargar();
   }
