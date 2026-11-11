@@ -146,15 +146,18 @@
  * El texto NUNCA cambia (0000051). El estado "procesando" tampoco va dentro
  * del botón: se anuncia aparte con .accion-estado (WCAG 4.1.3 / Nielsen
  * Norman "visibilidad del estado del sistema"). El botón solo se deshabilita. */
+/* El gris plano se leía débil (0000050): la acción "neutra" ahora usa el mismo azul que
+ * Secundario. Quedan 3 colores de verdad en todo el sistema: azul (acción normal), navy
+ * sólido (principal) y rojo (peligro) — más el gris de Ghost, reservado para Consultar. */
 .btn {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
   padding: 0.55rem 1rem;
-  border: 1px solid var(--sg-border);
+  border: 1px solid var(--sg-navy);
   border-radius: var(--sg-radius-control);
-  background: var(--sg-neutral-bg);
-  color: var(--sg-ink-body);
+  background: var(--sg-secondary-hover);
+  color: var(--sg-navy);
   font: inherit;
   font-size: 0.875rem;
   font-weight: 600;
@@ -165,7 +168,7 @@
     border-color var(--sg-transition);
 
   &:hover:not(:disabled):not([aria-disabled='true']) {
-    background: var(--sg-border);
+    background: color-mix(in srgb, var(--sg-secondary-hover) 40%, var(--sg-navy));
   }
 
   &:disabled,
@@ -216,11 +219,11 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.35rem 0.65rem;
-  border: 1px solid var(--sg-ink-muted);
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--sg-ink-body);
   border-radius: var(--sg-radius-control);
   background: var(--sg-field);
-  color: var(--sg-ink-muted);
+  color: var(--sg-ink-body);
   font: inherit;
   font-size: 0.8125rem;
   font-weight: 600;
