@@ -181,6 +181,19 @@
   (cancelar)="cancelarDesvincular()"
 />
 
+<app-dialogo-confirmacion
+  [abierto]="conflictoDesvincular() !== null"
+  titulo="Confirmación requerida"
+  [descripcion]="conflictoDesvincular()?.mensaje ?? ''"
+  gestoRequerido="Entiendo que las calificaciones se conservan y confirmo la desvinculación."
+  etiquetaConfirmar="Desvincular de todos modos"
+  tono="peligro"
+  [procesando]="confirmandoConflicto()"
+  [error]="errorConflicto()"
+  (confirmar)="confirmarConflictoDesvincular()"
+  (cancelar)="cancelarConflictoDesvincular()"
+/>
+
 @if (matriculaAbierta()) {
   <!-- Sin `estudianteId`: el diálogo identifica al estudiante por documento o lo registra (D18). -->
   <app-matricula-form-dialog

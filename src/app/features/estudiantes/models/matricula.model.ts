@@ -81,7 +81,11 @@ export interface MatriculaRequest {
 export interface MatriculaConEstudianteNuevo {
   tipoDocumentoId: string;
   numeroDocumento: string;
-  nombreCompleto: string;
+  primerNombre: string;
+  /** Opcional. */
+  segundoNombre?: string;
+  primerApellido: string;
+  segundoApellido: string;
   correoInstitucional: string;
   asignaturaId: string;
   semestreId: string;

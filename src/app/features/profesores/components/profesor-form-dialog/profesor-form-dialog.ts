@@ -17,7 +17,11 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { catchError, of } from 'rxjs';
 
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
-import { Profesor, TipoDocumentoOpcion } from '../../models/profesor.model';
+import {
+  partesNombreParaPeticion,
+  validadoresPartesNombre,
+} from '../../../estudiantes/models/validadores-estudiante';
+import { Profesor, ProfesorRequest, TipoDocumentoOpcion } from '../../models/profesor.model';
 import { ProfesorService } from '../../services/profesor.service';
 import { TipoDocumentoOpcionesService } from '../../services/tipo-documento-opciones.service';
 
@@ -67,13 +71,18 @@ export class ProfesorFormDialog implements OnInit {
   protected readonly tiposDocumento = signal<TipoDocumentoOpcion[]>([]);
   protected readonly cargandoTiposDocumento = signal(true);
 
+  /** Mismas reglas de las partes del nombre que el estudiante: solo letras, sin espacios, máx. 50. */
+  private readonly validadoresNombre = validadoresPartesNombre();
   protected readonly form = inject(FormBuilder).nonNullable.group({
     tipoDocumentoId: ['', Validators.required],
     numeroDocumento: [
       '',
       [Validators.required, Validators.pattern(PATRON_NUMERO_DOCUMENTO)],
     ],
-    nombreCompleto: ['', Validators.required],
+    primerNombre: ['', this.validadoresNombre.primerNombre],
+    segundoNombre: ['', this.validadoresNombre.segundoNombre],
+    primerApellido: ['', this.validadoresNombre.primerApellido],
+    segundoApellido: ['', this.validadoresNombre.segundoApellido],
     correoInstitucional: [
       '',
       [Validators.required, Validators.pattern(PATRON_CORREO_INSTITUCIONAL)],
@@ -106,7 +115,10 @@ export class ProfesorFormDialog implements OnInit {
       this.form.patchValue({
         tipoDocumentoId: profesor.tipoDocumentoId ?? '',
         numeroDocumento: profesor.numeroDocumento,
-        nombreCompleto: profesor.nombreCompleto,
+        primerNombre: profesor.primerNombre,
+        segundoNombre: profesor.segundoNombre ?? '',
+        primerApellido: profesor.primerApellido,
+        segundoApellido: profesor.segundoApellido,
         correoInstitucional: profesor.correoInstitucional,
       });
 
@@ -116,7 +128,14 @@ export class ProfesorFormDialog implements OnInit {
   }
 
   protected mostrarError(
-    campo: 'tipoDocumentoId' | 'numeroDocumento' | 'nombreCompleto' | 'correoInstitucional',
+    campo:
+      | 'tipoDocumentoId'
+      | 'numeroDocumento'
+      | 'primerNombre'
+      | 'segundoNombre'
+      | 'primerApellido'
+      | 'segundoApellido'
+      | 'correoInstitucional',
   ): boolean {
     const control = this.form.controls[campo];
     return control.invalid && (control.touched || control.dirty);
@@ -131,8 +150,14 @@ export class ProfesorFormDialog implements OnInit {
     this.guardando.set(true);
     
     // getRawValue() captura todos los campos, incluyendo los que deshabilitamos con disable()
-    const dto = this.form.getRawValue(); 
-    
+    const valores = this.form.getRawValue();
+    const dto: ProfesorRequest = {
+      tipoDocumentoId: valores.tipoDocumentoId,
+      numeroDocumento: valores.numeroDocumento,
+      ...partesNombreParaPeticion(valores),
+      correoInstitucional: valores.correoInstitucional.trim(),
+    };
+
     const profesor = this.profesor();
     const peticion = profesor
       ? this.service.modificar(profesor.id, dto)

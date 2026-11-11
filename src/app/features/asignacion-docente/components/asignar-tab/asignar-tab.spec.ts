@@ -17,6 +17,9 @@ const PROFESOR_ACTIVO: Profesor = {
   tipoDocumentoId: 'td-cc',
   tipoDocumentoNombre: 'CC',
   numeroDocumento: '123456',
+  primerNombre: 'Ana',
+  primerApellido: 'Activa',
+  segundoApellido: 'Prueba',
   nombreCompleto: 'Ana Activa',
   correoInstitucional: 'ana.activa@uco.net.co',
   estado: 'ACTIVO',
@@ -26,6 +29,8 @@ const PROFESOR_ACTIVO: Profesor = {
 const PROFESOR_INACTIVO: Profesor = {
   ...PROFESOR_ACTIVO,
   id: 'prof-inactivo',
+  primerNombre: 'Beto',
+  primerApellido: 'Inactivo',
   nombreCompleto: 'Beto Inactivo',
   estado: 'INACTIVO',
 };

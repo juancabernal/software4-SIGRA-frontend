@@ -84,6 +84,12 @@ export class EstudianteDetallePage {
   protected readonly aDesvincular = signal<AsignaturaDeEstudiante | null>(null);
   protected readonly desvinculando = signal(false);
   protected readonly errorDesvincular = signal<string | null>(null);
+  protected readonly conflictoDesvincular = signal<{
+    matricula: AsignaturaDeEstudiante;
+    mensaje: string;
+  } | null>(null);
+  protected readonly confirmandoConflicto = signal(false);
+  protected readonly errorConflicto = signal<string | null>(null);
 
   protected readonly tituloDesvincular = computed(() => {
     const matricula = this.aDesvincular();
@@ -151,6 +157,11 @@ export class EstudianteDetallePage {
     this.errorDesvincular.set(null);
   }
 
+  protected cancelarConflictoDesvincular(): void {
+    this.conflictoDesvincular.set(null);
+    this.errorConflicto.set(null);
+  }
+
   protected confirmarDesvincular(): void {
     const matricula = this.aDesvincular();
     if (!matricula || this.desvinculando()) {
@@ -158,8 +169,9 @@ export class EstudianteDetallePage {
     }
     this.desvinculando.set(true);
     this.errorDesvincular.set(null);
+    const confirmar = matricula.tieneCalificaciones === true;
     this.matriculaService
-      .desvincular(matricula.matriculaId)
+      .desvincular(matricula.matriculaId, confirmar)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -173,9 +185,52 @@ export class EstudianteDetallePage {
         },
         error: (error: unknown) => {
           this.desvinculando.set(false);
-          this.errorDesvincular.set(mensajeDeError(error).mensaje);
+          const mensaje = mensajeDeError(error).mensaje;
+          if (
+            !confirmar &&
+            error instanceof HttpErrorResponse &&
+            error.status === 409 &&
+            this.esConfirmacionDesvinculacion(mensaje)
+          ) {
+            this.aDesvincular.set(null);
+            this.conflictoDesvincular.set({ matricula, mensaje });
+            return;
+          }
+          this.errorDesvincular.set(mensaje);
         },
       });
+  }
+
+  protected confirmarConflictoDesvincular(): void {
+    const conflicto = this.conflictoDesvincular();
+    if (!conflicto || this.confirmandoConflicto()) {
+      return;
+    }
+    this.confirmandoConflicto.set(true);
+    this.errorConflicto.set(null);
+    this.matriculaService
+      .desvincular(conflicto.matricula.matriculaId, true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.confirmandoConflicto.set(false);
+          this.conflictoDesvincular.set(null);
+          this.mostrarAviso({
+            texto: `Desvinculado de «${conflicto.matricula.asignaturaNombre}».`,
+            tono: 'ok',
+          });
+          this.cargarHistorial(this.id());
+        },
+        error: (error: unknown) => {
+          this.confirmandoConflicto.set(false);
+          this.errorConflicto.set(mensajeDeError(error).mensaje);
+        },
+      });
+  }
+
+  private esConfirmacionDesvinculacion(mensaje: string): boolean {
+    const texto = mensaje.toLowerCase();
+    return texto.includes('confirmar') && texto.includes('calificaci');
   }
 
   // ── Avisos ────────────────────────────────────────────────────────

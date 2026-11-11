@@ -70,6 +70,18 @@ describe('MatriculaService', () => {
 
     const req = http.expectOne(`${URL}/${MATRICULA.id}`);
     expect(req.request.method).toBe('DELETE');
+    expect(req.request.params.has('confirmar')).toBe(false);
+    req.flush(null, { status: 204, statusText: 'No Content' });
+  });
+
+  it('desvincula confirmando con DELETE /v1/matriculas/{matriculaId}?confirmar=true', () => {
+    service.desvincular(MATRICULA.id, true).subscribe();
+
+    const req = http.expectOne(
+      (r) => r.urlWithParams === `${URL}/${MATRICULA.id}?confirmar=true`,
+    );
+    expect(req.request.method).toBe('DELETE');
+    expect(req.request.params.get('confirmar')).toBe('true');
     req.flush(null, { status: 204, statusText: 'No Content' });
   });
 
