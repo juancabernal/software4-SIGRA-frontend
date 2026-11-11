@@ -170,8 +170,15 @@ describe('EstudianteDetallePage (integración con MatriculaFormDialog)', () => {
     document.body.appendChild(htmlMatriculados);
 
     await fixtureMatriculados.whenStable();
-    http.expectOne((r) => r.url === URL_ASIGNATURAS).flush(ASIGNATURAS);
+    http.expectNone((r) => r.url === URL_ASIGNATURAS);
     http.expectOne((r) => r.url === URL_SEMESTRES).flush(SEMESTRES);
+    await fixtureMatriculados.whenStable();
+
+    const selectSemestre = htmlMatriculados.querySelector('#filtro-semestre') as HTMLSelectElement;
+    selectSemestre.value = 's1';
+    selectSemestre.dispatchEvent(new Event('change'));
+    await fixtureMatriculados.whenStable();
+    http.expectOne(`${URL_ASIGNATURAS}?semestreId=s1`).flush(ASIGNATURAS);
     await fixtureMatriculados.whenStable();
 
     const selectAsignatura = htmlMatriculados.querySelector(
@@ -179,11 +186,6 @@ describe('EstudianteDetallePage (integración con MatriculaFormDialog)', () => {
     ) as HTMLSelectElement;
     selectAsignatura.value = 'a1';
     selectAsignatura.dispatchEvent(new Event('change'));
-    await fixtureMatriculados.whenStable();
-
-    const selectSemestre = htmlMatriculados.querySelector('#filtro-semestre') as HTMLSelectElement;
-    selectSemestre.value = 's1';
-    selectSemestre.dispatchEvent(new Event('change'));
     await fixtureMatriculados.whenStable();
 
     const consulta = http.expectOne((r) => r.url === URL_MATRICULAS && r.method === 'GET');

@@ -41,6 +41,14 @@ describe('CatalogosEvaluacionService', () => {
     expect(resultado?.map((a) => a.codigo)).toEqual(['MAT1', 'MAT2']);
   });
 
+  it('combina semestre y estado al consultar materias', () => {
+    service.listarAsignaturasActivas('s1').subscribe();
+    const req = http.expectOne(`${API}/asignaturas?estado=ACTIVA&semestreId=s1`);
+    expect(req.request.params.get('estado')).toBe('ACTIVA');
+    expect(req.request.params.get('semestreId')).toBe('s1');
+    req.flush([]);
+  });
+
   it('lista los semestres del más reciente al más antiguo', () => {
     let resultado: SemestreOpcion[] | undefined;
     service.listarSemestres().subscribe((r) => (resultado = r));

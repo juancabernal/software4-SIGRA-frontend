@@ -9,6 +9,7 @@ import {
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import {
   EMPTY,
+  Subject,
   Observable,
   catchError,
   forkJoin,
@@ -147,6 +148,8 @@ export class EvaluacionesPage {
   protected readonly asignaturaId = signal('');
   protected readonly raId = signal('');
   protected readonly semestreId = signal('');
+  private readonly cambiosSemestre = new Subject<string>();
+  protected readonly cargandoAsignaturas = signal(false);
 
   protected readonly semestreEnCurso = computed(
     () => this.semestres().find((s) => esSemestreEnCurso(s)) ?? null,
@@ -286,6 +289,13 @@ export class EvaluacionesPage {
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.temporizadorAviso));
+    this.cambiosSemestre.pipe(
+      tap(() => { this.asignaturas.set([]); this.cargandoAsignaturas.set(true); this.errorCatalogos.set(null); }),
+      switchMap(id => id ? this.catalogos.listarAsignaturasActivas(id).pipe(
+        catchError((error: unknown) => { this.errorCatalogos.set(mensajeDeError(error)); return of([]); }),
+      ) : of([])),
+      takeUntilDestroyed(),
+    ).subscribe(lista => { this.asignaturas.set(lista); this.cargandoAsignaturas.set(false); });
     this.cargarCatalogos();
 
     // El primer valor es el inicial (0): la carga inicial ya la hace cargarCatalogos().
@@ -312,11 +322,13 @@ export class EvaluacionesPage {
     if (this.cargandoCatalogos() || this.errorCatalogos()) {
       return;
     }
+    const semestreConsultado = this.semestreId();
     forkJoin({
-      asignaturas: this.catalogos.listarAsignaturasActivas(),
+      asignaturas: this.semestreId() ? this.catalogos.listarAsignaturasActivas(this.semestreId()) : of([]),
       semestres: this.catalogos.listarSemestres(),
     }).subscribe({
       next: ({ asignaturas, semestres }) => {
+        if (semestreConsultado !== this.semestreId()) return;
         const elegida = this.asignaturas().find((a) => a.id === this.asignaturaId());
         this.asignaturas.set(asignaturas);
         this.semestres.set(semestres);
@@ -329,7 +341,10 @@ export class EvaluacionesPage {
           );
         }
         if (!semestres.some((s) => s.id === this.semestreId())) {
+          this.asignaturaId.set('');
+          this.raId.set('');
           this.semestreId.set(semestrePorDefecto(semestres)?.id ?? '');
+          this.cambiosSemestre.next(this.semestreId());
         }
       },
       // Un fallo en segundo plano no cambia la pantalla; el próximo refresco lo reintenta.
@@ -352,16 +367,14 @@ export class EvaluacionesPage {
   protected cargarCatalogos(): void {
     this.cargandoCatalogos.set(true);
     this.errorCatalogos.set(null);
-    forkJoin({
-      asignaturas: this.catalogos.listarAsignaturasActivas(),
-      semestres: this.catalogos.listarSemestres(),
-    }).subscribe({
-      next: ({ asignaturas, semestres }) => {
-        this.asignaturas.set(asignaturas);
+    this.catalogos.listarSemestres().subscribe({
+      next: semestres => {
         this.semestres.set(semestres);
-        // Por defecto, el semestre en curso (ver semestrePorDefecto).
+        this.asignaturaId.set('');
+        this.raId.set('');
         this.semestreId.set(semestrePorDefecto(semestres)?.id ?? '');
         this.cargandoCatalogos.set(false);
+        this.cambiosSemestre.next(this.semestreId());
       },
       error: (error: unknown) => {
         this.errorCatalogos.set(mensajeDeError(error));
@@ -382,7 +395,10 @@ export class EvaluacionesPage {
   }
 
   protected alCambiarSemestre(evento: Event): void {
+    this.asignaturaId.set('');
+    this.raId.set('');
     this.semestreId.set((evento.target as HTMLSelectElement).value);
+    this.cambiosSemestre.next(this.semestreId());
     this.pagina.set(1);
   }
 

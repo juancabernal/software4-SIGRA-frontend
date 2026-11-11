@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
-import { catchError, forkJoin, map, of, switchMap, tap } from 'rxjs';
+import { Subject, catchError, map, of, switchMap, tap } from 'rxjs';
 
 import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
 import { MatriculaFormDialog } from '../matricula-form-dialog/matricula-form-dialog';
@@ -72,6 +72,8 @@ export class MatriculadosPage {
   protected readonly semestreId = signal('');
   protected readonly incluirInactivas = signal(false);
   private readonly recargas = signal(0);
+  private readonly cambiosSemestre = new Subject<string>();
+  protected readonly cargandoAsignaturas = signal(false);
 
   protected readonly ambosElegidos = computed(() => !!this.asignaturaId() && !!this.semestreId());
 
@@ -134,6 +136,15 @@ export class MatriculadosPage {
   constructor() {
     this.destroyRef.onDestroy(() => clearTimeout(this.temporizadorAviso));
     this.cargarCatalogos();
+    this.cambiosSemestre.pipe(
+      tap(() => { this.asignaturas.set([]); this.cargandoAsignaturas.set(true); this.errorCatalogos.set(false); }),
+      switchMap(id => id ? this.catalogos.listarAsignaturas(id).pipe(catchError(() => of(null))) : of([])),
+      takeUntilDestroyed(),
+    ).subscribe(lista => {
+      this.cargandoAsignaturas.set(false);
+      this.errorCatalogos.set(lista === null);
+      this.asignaturas.set(lista ?? []);
+    });
 
     const consulta = computed(() => ({
       asignaturaId: this.asignaturaId(),
@@ -179,7 +190,12 @@ export class MatriculadosPage {
 
   protected alCambiarSemestre(evento: Event): void {
     this.paginacion.reiniciar();
+    this.asignaturaId.set('');
+    this.matriculados.set([]);
+    this.matriculaAbierta.set(false);
+    this.aDesvincular.set(null);
     this.semestreId.set((evento.target as HTMLSelectElement).value);
+    this.cambiosSemestre.next(this.semestreId());
   }
 
   protected alCambiarIncluirInactivas(evento: Event): void {
@@ -315,28 +331,15 @@ export class MatriculadosPage {
   private cargarCatalogos(): void {
     this.cargandoCatalogos.set(true);
     this.errorCatalogos.set(false);
-    forkJoin({
-      asignaturas: this.catalogos.listarAsignaturas().pipe(catchError(() => of(null))),
-      semestres: this.catalogos.listarSemestres().pipe(catchError(() => of(null))),
-    })
+    this.catalogos.listarSemestres()
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(({ asignaturas, semestres }) => {
-        this.cargandoCatalogos.set(false);
-        if (asignaturas === null || semestres === null) {
-          this.errorCatalogos.set(true);
-          this.asignaturas.set([]);
-          this.semestres.set([]);
-          return;
-        }
-        this.asignaturas.set(asignaturas);
-        this.semestres.set(semestres);
-        if (
-          this.asignaturaId() === '' &&
-          this.asignaturaInicial !== null &&
-          asignaturas.some(({ id }) => id === this.asignaturaInicial)
-        ) {
-          this.asignaturaId.set(this.asignaturaInicial);
-        }
+      .subscribe({
+        next: semestres => {
+          this.semestres.set(semestres);
+          this.cargandoCatalogos.set(false);
+          if (this.semestreId()) this.cambiosSemestre.next(this.semestreId());
+        },
+        error: () => { this.errorCatalogos.set(true); this.cargandoCatalogos.set(false); },
       });
   }
 }

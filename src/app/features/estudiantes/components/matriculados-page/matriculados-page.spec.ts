@@ -49,7 +49,7 @@ describe('MatriculadosPage', () => {
 
   async function iniciar(): Promise<void> {
     await fixture.whenStable();
-    http.expectOne((r) => r.url === URL_ASIGNATURAS).flush(ASIGNATURAS);
+    http.expectNone((r) => r.url === URL_ASIGNATURAS);
     http.expectOne((r) => r.url === URL_SEMESTRES).flush(SEMESTRES);
     await fixture.whenStable();
   }
@@ -68,9 +68,11 @@ describe('MatriculadosPage', () => {
 
   async function elegirAmbos(): Promise<void> {
     await iniciar();
-    elegirAsignatura();
-    await fixture.whenStable();
     elegirSemestre();
+    await fixture.whenStable();
+    http.expectOne(`${URL_ASIGNATURAS}?semestreId=s1`).flush(ASIGNATURAS);
+    await fixture.whenStable();
+    elegirAsignatura();
     await fixture.whenStable();
   }
 
@@ -78,11 +80,48 @@ describe('MatriculadosPage', () => {
     await iniciar();
     expect(html.textContent).toContain('Elige una asignatura y un semestre');
 
-    elegirAsignatura();
+    expect((html.querySelector('#filtro-asignatura') as HTMLSelectElement).disabled).toBe(true);
+    elegirSemestre();
+    await fixture.whenStable();
+    http.expectOne(`${URL_ASIGNATURAS}?semestreId=s1`).flush(ASIGNATURAS);
     await fixture.whenStable();
 
     http.expectNone(URL_MATRICULAS);
     expect(html.textContent).toContain('Elige una asignatura y un semestre');
+  });
+
+  it('limpia la selección y cancela la carga del semestre anterior', async () => {
+    await iniciar();
+    const semestre = html.querySelector('#filtro-semestre') as HTMLSelectElement;
+    semestre.add(new Option('2026-2', 's2'));
+    elegirSemestre();
+    await fixture.whenStable();
+    const anterior = http.expectOne(`${URL_ASIGNATURAS}?semestreId=s1`);
+    semestre.value = 's2';
+    semestre.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    expect(anterior.cancelled).toBe(true);
+    http.expectOne(`${URL_ASIGNATURAS}?semestreId=s2`).flush([]);
+    await fixture.whenStable();
+    expect((html.querySelector('#filtro-asignatura') as HTMLSelectElement).value).toBe('');
+    expect(html.textContent).toContain('Sin asignaturas en este semestre');
+    http.expectNone(URL_MATRICULAS);
+  });
+
+  it('al cambiar semestre elimina la asignatura y las filas anteriores', async () => {
+    await elegirAmbos();
+    consultaMatriculados().flush([ANA]);
+    await fixture.whenStable();
+    const semestre = html.querySelector('#filtro-semestre') as HTMLSelectElement;
+    semestre.add(new Option('2026-2', 's2'));
+    semestre.value = 's2';
+    semestre.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    http.expectOne(`${URL_ASIGNATURAS}?semestreId=s2`).flush([]);
+    await fixture.whenStable();
+    expect((html.querySelector('#filtro-asignatura') as HTMLSelectElement).value).toBe('');
+    expect(html.textContent).not.toContain('Ana María Gómez');
+    http.expectNone(URL_MATRICULAS);
   });
 
   it('consulta al completar ambos filtros', async () => {
