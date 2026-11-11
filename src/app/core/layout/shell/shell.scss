@@ -263,6 +263,8 @@
   background: var(--sg-card);
 }
 
+/* Icono siempre con fondo visible (0000050): nunca transparente en reposo, aunque sea
+ * solo-ícono — si no, no se distingue que es clickeable. */
 .hamburguesa,
 .campana {
   display: grid;
@@ -270,7 +272,7 @@
   padding: 0.45rem;
   border: 0;
   border-radius: var(--sg-radius-micro);
-  background: transparent;
+  background: var(--sg-field);
   color: var(--sg-ink-muted);
   cursor: pointer;
 }

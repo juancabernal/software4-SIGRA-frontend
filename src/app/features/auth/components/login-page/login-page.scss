@@ -155,6 +155,15 @@ form {
   gap: 1.1rem;
 }
 
+/* El grid estira sus hijos por defecto (0000050): sin esto, el botón quedaba a todo el
+ * ancho del formulario, distinto en tamaño al resto de los .btn--primario del sistema. */
+/* Ancho total del formulario a propósito (es la acción principal de la pantalla): mismo
+ * padding/radio/tipografía que cualquier .btn--primario del sistema, solo más largo. */
+.btn--primario {
+  width: 100%;
+  justify-content: center;
+}
+
 .campo {
   display: grid;
   gap: 0.45rem;

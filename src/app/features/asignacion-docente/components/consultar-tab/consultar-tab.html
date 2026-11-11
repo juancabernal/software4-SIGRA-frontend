@@ -73,7 +73,8 @@
                     [attr.aria-disabled]="desasignandoId() === a.asignacionId ? 'true' : null"
                     (click)="desasignar(a.asignacionId)"
                   >
-                    Desasignar
+                    <app-icono nombre="prohibido" [tamano]="16" />
+                    <span>Desasignar</span>
                   </button>
                 </td>
               </tr>

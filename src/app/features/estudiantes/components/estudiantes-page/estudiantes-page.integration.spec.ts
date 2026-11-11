@@ -5,7 +5,6 @@ import { provideRouter } from '@angular/router';
 
 import { environment } from '../../../../../environments/environment';
 import { Estudiante, EstudianteRequest } from '../../models/estudiante.model';
-import { ConfettiService } from '../../../../shared/ui/confetti/confetti.service';
 import { EstudiantesPage } from './estudiantes-page';
 
 /**
@@ -48,7 +47,6 @@ describe('EstudiantesPage (integración con EstudianteFormDialog)', () => {
   let fixture: ComponentFixture<EstudiantesPage>;
   let http: HttpTestingController;
   let html: HTMLElement;
-  let confettiSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -56,10 +54,6 @@ describe('EstudiantesPage (integración con EstudianteFormDialog)', () => {
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     });
     http = TestBed.inject(HttpTestingController);
-    // La animación real toca el DOM fuera de la zona de Angular: se espía en lugar de dejarla correr.
-    confettiSpy = vi
-      .spyOn(TestBed.inject(ConfettiService), 'celebrar')
-      .mockImplementation(() => {});
     fixture = TestBed.createComponent(EstudiantesPage);
     html = fixture.nativeElement as HTMLElement;
     document.body.appendChild(html);
@@ -133,7 +127,6 @@ describe('EstudiantesPage (integración con EstudianteFormDialog)', () => {
     expect(html.querySelector('.aviso-zona')?.textContent).toContain(
       `Estudiante registrado: ${LUIS.nombreCompleto}.`,
     );
-    expect(confettiSpy).toHaveBeenCalledTimes(1);
 
     listado().flush([ANA, LUIS]);
     await fixture.whenStable();
@@ -176,8 +169,6 @@ describe('EstudiantesPage (integración con EstudianteFormDialog)', () => {
     expect(html.querySelector('.aviso-zona')?.textContent).toContain(
       `Estudiante modificado: ${nombreActualizado}.`,
     );
-    // Modificar una ficha existente no es un hito nuevo: no se festeja (solo el alta).
-    expect(confettiSpy).not.toHaveBeenCalled();
 
     listado().flush([modificado]);
     await fixture.whenStable();

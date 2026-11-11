@@ -56,7 +56,7 @@ export class ProfesorFormDialog implements OnInit {
   );
   // El texto del botón nunca cambia al guardar (0000051): el estado de carga se avisa aparte.
   protected readonly etiquetaGuardar = computed(() =>
-    this.esModificar() ? 'Guardar cambios' : 'Registrar profesor',
+    this.esModificar() ? 'Guardar cambios' : 'Registrar',
   );
   protected readonly etiquetaGuardando = computed(() =>
     this.esModificar() ? 'Guardando…' : 'Registrando…',

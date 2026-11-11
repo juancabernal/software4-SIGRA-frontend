@@ -148,18 +148,23 @@
  * Norman "visibilidad del estado del sistema"). El botón solo se deshabilita. */
 /* El gris plano se leía débil (0000050): la acción "neutra" ahora usa el mismo azul que
  * Secundario. Quedan 3 colores de verdad en todo el sistema: azul (acción normal), navy
- * sólido (principal) y rojo (peligro) — más el gris de Ghost, reservado para Consultar. */
+ * sólido (principal) y rojo (peligro) — más el gris de Ghost, reservado para Consultar.
+ *
+ * UNA sola altura para TODO el sistema (0000050): el padding vertical y el font-size son
+ * los mismos valores que antes solo tenía .btn--pequeno — "Registrar"/"Cancelar" ya no son
+ * más altos que "Consultar"/"Modificar". El ancho sigue libre: un texto más largo ocupa
+ * más espacio, pero la altura nunca cambia. */
 .btn {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.55rem 1rem;
+  padding: 0.35rem 0.75rem;
   border: 1px solid var(--sg-navy);
   border-radius: var(--sg-radius-control);
   background: var(--sg-secondary-hover);
   color: var(--sg-navy);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -178,9 +183,11 @@
   }
 }
 
+/* .btn--pequeno queda igual a la base ahora que toda la altura se unificó; se deja el
+ * modificador (no rompe nada donde ya se usa) pero sin valores propios que repetir. */
 .btn--pequeno {
-  padding: 0.35rem 0.75rem;
-  font-size: 0.8125rem;
+  min-width: 7.5rem;
+  justify-content: center;
 }
 
 .btn--primario {
@@ -203,6 +210,31 @@
   }
 }
 
+/* Cancelar: un rojo MUY clarito — insinúa "descartar", sin la fuerza visual de Peligro
+ * (que es para Inactivar/Desasignar). Contraste texto/fondo verificado en 6.9:1. */
+.btn--cancelar {
+  border-color: #9a2e22;
+  background: #fbf3f2;
+  color: #9a2e22;
+
+  &:hover:not(:disabled):not([aria-disabled='true']) {
+    background: color-mix(in srgb, #fbf3f2 60%, #9a2e22);
+  }
+}
+
+/* Acción constructiva (Activar/Reactivar): distinta de Modificar (azul) e Inactivar (rojo).
+ * --sg-ok-fg (#16b8a0) no pasa 4.5:1 como texto — se usa un verde más oscuro solo aquí,
+ * igual que ya exige el comentario de --sg-teal: "nunca decorativo". */
+.btn--exito {
+  border-color: #0f766e;
+  background: var(--sg-ok-bg);
+  color: #0f766e;
+
+  &:hover:not(:disabled):not([aria-disabled='true']) {
+    background: color-mix(in srgb, var(--sg-ok-bg) 70%, #0f766e);
+  }
+}
+
 .btn--peligro {
   border-color: var(--sg-error-fg);
   background: var(--sg-error-bg);
@@ -218,7 +250,9 @@
 .btn-ghost {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
+  min-width: 7.5rem;
   padding: 0.35rem 0.75rem;
   border: 1px solid var(--sg-ink-body);
   border-radius: var(--sg-radius-control);

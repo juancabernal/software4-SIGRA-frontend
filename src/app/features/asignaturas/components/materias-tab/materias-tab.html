@@ -59,7 +59,7 @@
 
     <button type="button" class="btn btn--primario barra__registrar" (click)="abrirRegistro()">
       <app-icono nombre="mas" [tamano]="16" />
-      Registrar
+      Registrar materia
     </button>
   </div>
 
@@ -86,7 +86,7 @@
         <p>Registra la primera materia del catálogo.</p>
         <button type="button" class="btn btn--primario" (click)="abrirRegistro()">
           <app-icono nombre="mas" [tamano]="16" />
-          Registrar
+          Registrar materia
         </button>
       </div>
     }
@@ -163,7 +163,7 @@
                           }
                           <button
                             type="button"
-                            class="btn btn--secundario btn--pequeno"
+                            class="btn btn--exito btn--pequeno"
                             [attr.aria-label]="'Activar ' + a.nombre"
                             [attr.aria-disabled]="
                               !habilitado || activandoId() === a.id ? 'true' : null
@@ -171,7 +171,8 @@
                             [attr.aria-describedby]="habilitado ? null : 'tooltip-activar-' + a.id"
                             (click)="activar(a)"
                           >
-                            Activar
+                            <app-icono nombre="check" [tamano]="16" />
+                            <span>Activar</span>
                           </button>
                           @if (!habilitado) {
                             <span class="tooltip" role="tooltip" [id]="'tooltip-activar-' + a.id">
@@ -195,17 +196,18 @@
                         @if (activandoId() === a.id) {
                           <span class="accion-estado" role="status" aria-live="polite">
                             <span class="accion-estado__spinner" aria-hidden="true"></span>
-                            Reactivando…
+                            Activando…
                           </span>
                         }
                         <button
                           type="button"
-                          class="btn btn--secundario btn--pequeno"
-                          [attr.aria-label]="'Reactivar ' + a.nombre"
+                          class="btn btn--exito btn--pequeno"
+                          [attr.aria-label]="'Activar ' + a.nombre"
                           [attr.aria-disabled]="activandoId() === a.id ? 'true' : null"
                           (click)="reactivar(a)"
                         >
-                          Reactivar
+                          <app-icono nombre="check" [tamano]="16" />
+                          <span>Activar</span>
                         </button>
                       }
                     }

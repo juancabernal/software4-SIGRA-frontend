@@ -280,7 +280,7 @@ describe('EstudianteFormDialog', () => {
     await enviar();
 
     const submit = html.querySelector('button[type="submit"]') as HTMLButtonElement;
-    expect(submit.textContent?.trim()).toBe('Registrar estudiante');
+    expect(submit.textContent?.trim()).toBe('Registrar');
     expect(submit.disabled).toBe(true);
     expect(html.querySelector('[role="status"]')?.textContent?.trim()).toBe('Registrando…');
 

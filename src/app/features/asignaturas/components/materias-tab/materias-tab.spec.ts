@@ -456,17 +456,16 @@ describe('MateriasTab', () => {
     expect(fila('BRU10').textContent).toContain('Activa');
   });
 
-  it('una materia INACTIVA ofrece Reactivar (siempre habilitado) y no Activar ni Inactivar', async () => {
+  it('una materia INACTIVA ofrece Activar (siempre habilitado) y no Inactivar', async () => {
     await iniciar([INACTIVA]);
     const acciones = fila('BRU11');
-    expect(boton(acciones, 'Activar')).toBeUndefined();
     expect(boton(acciones, 'Inactivar')).toBeUndefined();
-    expect(boton(acciones, 'Reactivar').hasAttribute('aria-disabled')).toBe(false);
+    expect(boton(acciones, 'Activar').hasAttribute('aria-disabled')).toBe(false);
   });
 
-  it('Reactivar exitoso actualiza la fila y avisa que se restauraron los RA', async () => {
+  it('reactivar (Activar) exitoso actualiza la fila y avisa que se restauraron los RA', async () => {
     await iniciar([INACTIVA]);
-    boton(fila('BRU11'), 'Reactivar').click();
+    boton(fila('BRU11'), 'Activar').click();
     await fixture.whenStable();
 
     const req = http.expectOne(`${URL}/in/activar`);
@@ -482,7 +481,7 @@ describe('MateriasTab', () => {
 
   it('un error al reactivar muestra el mensaje del backend y recarga el listado', async () => {
     await iniciar([INACTIVA]);
-    boton(fila('BRU11'), 'Reactivar').click();
+    boton(fila('BRU11'), 'Activar').click();
     await fixture.whenStable();
 
     http.expectOne(`${URL}/in/activar`).flush(
