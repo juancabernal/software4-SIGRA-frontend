@@ -98,13 +98,14 @@
           }
         </div>
 
-        <button
-          type="submit"
-          class="btn-primario"
-          [disabled]="cargando()"
-          [attr.aria-busy]="cargando()"
-        >
-          {{ cargando() ? 'Iniciando sesión…' : 'Iniciar sesión' }}
+        @if (cargando()) {
+          <span class="accion-estado" role="status" aria-live="polite">
+            <span class="accion-estado__spinner" aria-hidden="true"></span>
+            Iniciando sesión…
+          </span>
+        }
+        <button type="submit" class="btn btn--primario" [disabled]="cargando()">
+          Iniciar sesión
           <app-icono [nombre]="'flecha-der'" [tamano]="20" />
         </button>
       </form>

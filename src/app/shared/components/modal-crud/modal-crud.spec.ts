@@ -98,12 +98,14 @@ describe('ModalCrud', () => {
     expect(anfitrion.bloqueos).toBe(1);
   });
 
-  it('mientras procesa muestra «Procesando…», no envía ni cancela', async () => {
+  it('mientras procesa el texto del botón no cambia; se avisa aparte con «Procesando…», y no envía ni cancela', async () => {
     anfitrion.procesando.set(true);
     await abrir();
 
-    expect(enviarBoton().textContent?.trim()).toBe('Procesando…');
+    expect(enviarBoton().textContent?.trim()).toBe('Registrar');
     expect(enviarBoton().getAttribute('aria-disabled')).toBe('true');
+    const estado = html.querySelector('[role="status"]') as HTMLElement;
+    expect(estado.textContent?.trim()).toBe('Procesando…');
     await enviarFormulario();
     dialogo().dispatchEvent(new Event('cancel', { cancelable: true }));
     expect(anfitrion.envios).toBe(0);

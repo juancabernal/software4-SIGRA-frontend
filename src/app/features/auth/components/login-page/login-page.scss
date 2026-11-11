@@ -188,8 +188,7 @@ form {
 }
 
 .campo input:focus-visible,
-.btn-visibilidad:focus-visible,
-.btn-primario:focus-visible {
+.btn-visibilidad:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--sg-teal) 45%, transparent);
   outline-offset: 2px;
 }
@@ -274,33 +273,6 @@ form {
 .exito h1 {
   color: var(--sg-navy);
   font-size: 1.2rem;
-}
-
-.btn-primario {
-  display: inline-flex;
-  min-height: 3.5rem;
-  align-items: center;
-  justify-content: center;
-  gap: 0.65rem;
-  padding: 0.8rem 1.25rem;
-  border: 1px solid var(--sg-navy);
-  border-radius: var(--sg-radius-control);
-  background: var(--sg-navy);
-  color: #fff;
-  font: inherit;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.btn-primario:hover:not(:disabled) {
-  background: var(--sg-navy-hover);
-  border-color: var(--sg-navy-hover);
-}
-
-.btn-primario:disabled {
-  cursor: progress;
-  opacity: 0.7;
 }
 
 .pie-formulario {
