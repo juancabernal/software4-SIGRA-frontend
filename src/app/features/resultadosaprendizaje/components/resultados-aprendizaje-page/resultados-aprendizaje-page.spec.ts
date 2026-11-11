@@ -339,7 +339,6 @@ describe('ResultadosAprendizajePage', () => {
       await iniciar(BORRADOR, [...activos(5), ra(6, 'INACTIVO'), ra(7, 'INACTIVO')]);
 
       expect(html.querySelectorAll('tbody tr').length).toBe(5);
-      expect(html.textContent).toContain('Mostrando 1–5 de 7 RA');
       expect(html.textContent).toContain('Página 1 de 2');
       expect(boton(html, 'Anterior').getAttribute('aria-disabled')).toBe('true');
 
@@ -347,15 +346,16 @@ describe('ResultadosAprendizajePage', () => {
       await fixture.whenStable();
       expect(html.querySelectorAll('tbody tr').length).toBe(2);
       expect(fila('RA6')).toBeDefined();
-      expect(html.textContent).toContain('Mostrando 6–7 de 7 RA');
+      expect(html.textContent).toContain('Página 2 de 2');
       expect(boton(html, 'Siguiente').getAttribute('aria-disabled')).toBe('true');
     });
 
-    it('con una sola página no muestra los controles', async () => {
+    it('con una sola página deja los controles deshabilitados, como en el catálogo', async () => {
       await iniciar(BORRADOR, activos(3));
 
-      expect(html.textContent).toContain('Mostrando 1–3 de 3 RA');
-      expect(boton(html, 'Siguiente')).toBeUndefined();
+      expect(html.textContent).toContain('Página 1 de 1');
+      expect(boton(html, 'Anterior').getAttribute('aria-disabled')).toBe('true');
+      expect(boton(html, 'Siguiente').getAttribute('aria-disabled')).toBe('true');
     });
 
     it('vuelve a la primera página al cambiar de materia', async () => {

@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../../../environments/environment';
+import { SesionService } from '../../../../core/services/sesion';
 import { AccionMejora } from '../../../mejoras/models/accion-mejora.model';
 import { Asignatura } from '../../../asignaturas/models/asignatura.model';
 import {
@@ -252,6 +253,7 @@ describe('EstadisticasPage', () => {
           ?.textContent,
       ).toContain('(activo)');
       expect(selectorSemestre.value).toBe(SEMESTRE_ACTIVO.id);
+      expect(html.textContent).not.toContain('No tienes semestres con asignaturas');
       await fixture.whenStable();
     });
   });
@@ -972,5 +974,114 @@ describe('EstadisticasPage', () => {
       expect(alerta.textContent).toContain('La acción de mejora ya fue convertida.');
       expect(html.querySelector('.accion-mejora')).not.toBeNull();
     });
+  });
+});
+
+describe('EstadisticasPage como Profesor (Mantis 0000045)', () => {
+  it('muestra primero el semestre y solo ofrece los semestres en los que tiene asignaturas', async () => {
+    TestBed.configureTestingModule({
+      imports: [EstadisticasPage],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: SesionService, useValue: { rol: () => 'profesor' } },
+      ],
+    });
+    const http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(EstadisticasPage);
+    const html = fixture.nativeElement as HTMLElement;
+
+    await fixture.whenStable();
+    http.expectOne((r) => r.url === URL_ASIGNATURAS).flush([MATERIA]);
+    http.expectOne((r) => r.url === `${URL_SEMESTRES}/mios`).flush([SEMESTRE_ACTIVO]);
+    http.expectNone((r) => r.url === URL_SEMESTRES);
+    http.expectOne((r) => r.url === URL_CATALOGO_NIVELES).flush(CATALOGO_NIVELES);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const ids = Array.from(html.querySelectorAll('select')).map((s) => s.id);
+    expect(ids.indexOf('selector-semestre')).toBeLessThan(ids.indexOf('selector-materia'));
+    expect(ids.indexOf('selector-materia')).toBeLessThan(ids.indexOf('selector-ra'));
+
+    const semestre = html.querySelector('#selector-semestre') as HTMLSelectElement;
+    expect(Array.from(semestre.options).map((o) => o.value)).toEqual(['', SEMESTRE_ACTIVO.id]);
+    expect(semestre.value).toBe(SEMESTRE_ACTIVO.id);
+
+    fixture.destroy();
+    http.verify();
+  });
+});
+
+describe('EstadisticasPage con un Profesor sin semestres (Mantis 0000045)', () => {
+  let fixture: ComponentFixture<EstadisticasPage>;
+  let http: HttpTestingController;
+  let html: HTMLElement;
+
+  beforeEach(async () => {
+    TestBed.configureTestingModule({
+      imports: [EstadisticasPage],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: SesionService, useValue: { rol: () => 'profesor' } },
+      ],
+    });
+    http = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(EstadisticasPage);
+    html = fixture.nativeElement as HTMLElement;
+    document.body.appendChild(html);
+
+    await fixture.whenStable();
+    http.expectOne((r) => r.url === URL_ASIGNATURAS).flush([MATERIA]);
+    http.expectOne((r) => r.url === `${URL_SEMESTRES}/mios`).flush([]);
+    http.expectNone((r) => r.url === URL_SEMESTRES);
+    http.expectOne((r) => r.url === URL_CATALOGO_NIVELES).flush(CATALOGO_NIVELES);
+    await fixture.whenStable();
+    fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    fixture.destroy();
+    html.remove();
+    http.verify();
+  });
+
+  it('el selector de semestre solo tiene la opción vacía y no queda nada elegido', () => {
+    const semestre = html.querySelector('#selector-semestre') as HTMLSelectElement;
+    expect(Array.from(semestre.options).map((o) => o.value)).toEqual(['']);
+    expect(semestre.value).toBe('');
+    expect(html.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('muestra el aviso de que no tiene semestres con asignaturas', () => {
+    expect(html.textContent).toContain('No tienes semestres con asignaturas');
+    expect(html.textContent).toContain(
+      'Aparecen aquí los semestres en los que tienes asignaturas asignadas.',
+    );
+  });
+
+  it('con materia y RA pero sin semestre no consulta estadísticas, conclusión, acciones ni rendimiento', async () => {
+    const materia = html.querySelector('#selector-materia') as HTMLSelectElement;
+    materia.value = MATERIA.id;
+    materia.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    http.expectOne(urlRa(MATERIA.id)).flush([ra(1)]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const resultado = html.querySelector('#selector-ra') as HTMLSelectElement;
+    resultado.value = 'ra-1';
+    resultado.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    http.expectNone((r) => r.url.includes('/semestres/'));
+    http.expectNone((r) => r.url === URL_ACCIONES_MEJORA);
+    http.expectNone((r) => r.url.endsWith('/rendimiento'));
+
+    const recalcular = Array.from(html.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Recalcular'),
+    ) as HTMLButtonElement;
+    expect(recalcular.disabled).toBe(true);
   });
 });

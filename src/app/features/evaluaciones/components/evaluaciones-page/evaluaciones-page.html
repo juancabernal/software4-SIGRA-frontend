@@ -43,6 +43,21 @@
     } @else {
       <div class="filtros">
         <div class="filtro">
+          <label for="selector-semestre">Semestre</label>
+          <select
+            id="selector-semestre"
+            [value]="semestreId()"
+            (change)="alCambiarSemestre($event)"
+          >
+            @for (s of semestres(); track s.id) {
+              <option [value]="s.id" [selected]="s.id === semestreId()">
+                {{ etiquetaSemestre(s) }}
+              </option>
+            }
+          </select>
+        </div>
+
+        <div class="filtro">
           <label for="selector-materia">Materia</label>
           <select
             id="selector-materia"
@@ -84,21 +99,6 @@
             }
           </select>
         </div>
-
-        <div class="filtro">
-          <label for="selector-semestre">Semestre</label>
-          <select
-            id="selector-semestre"
-            [value]="semestreId()"
-            (change)="alCambiarSemestre($event)"
-          >
-            @for (s of semestres(); track s.id) {
-              <option [value]="s.id" [selected]="s.id === semestreId()">
-                {{ etiquetaSemestre(s) }}
-              </option>
-            }
-          </select>
-        </div>
       </div>
 
       @if (errorRa(); as error) {
@@ -111,8 +111,8 @@
         </div>
       } @else if (semestres().length === 0) {
         <div class="estado-vista">
-          <p class="estado-vista__titulo">No hay semestres registrados</p>
-          <p>Las evaluaciones se crean en el semestre en curso.</p>
+          <p class="estado-vista__titulo">No tienes semestres con asignaturas</p>
+          <p>Aparecen aquí los semestres en los que tienes asignaturas asignadas.</p>
         </div>
       } @else if (!ra()) {
         <div class="estado-vista">

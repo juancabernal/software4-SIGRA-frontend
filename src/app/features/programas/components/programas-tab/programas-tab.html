@@ -110,7 +110,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (p of programas(); track p.id) {
+          @for (p of paginacion.filas(); track p.id) {
             <tr [class.fila--sin-facultad]="sinFacultad(p)">
               <th scope="row" class="nombre">{{ p.nombre }}</th>
               <td class="codigo">{{ p.codigo }}</td>
@@ -160,6 +160,13 @@
         </tbody>
       </table>
     </div>
+    <app-paginador
+      [total]="paginacion.total()"
+      [pagina]="paginacion.pagina()"
+      [tamanoPagina]="paginacion.tamanoPagina()"
+      (cambioPagina)="paginacion.irA($event)"
+      (cambioTamano)="paginacion.cambiarTamano($event)"
+    />
   }
 </div>
 

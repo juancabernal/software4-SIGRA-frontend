@@ -14,6 +14,8 @@ import { refrescoAutomatico } from '../../../../core/util/refresco-automatico';
 import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
 import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
+import { Paginador } from '../../../../shared/ui/paginador/paginador';
+import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 import { SemestreService } from '../../../semestres/services/semestre.service';
 import {
   AsignaturaOpcion,
@@ -140,7 +142,7 @@ interface Aviso {
 
 const DURACION_AVISO_MS = 6000;
 
-/** Filas por página de la tabla de RA. */
+/** Filas por página iniciales de la tabla de RA (el usuario puede cambiarlo en el paginador). */
 export const RA_POR_PAGINA = 5;
 
 export interface ProgramaFiltro {
@@ -180,7 +182,7 @@ type CargaResultados =
  */
 @Component({
   selector: 'app-resultados-aprendizaje-page',
-  imports: [ChipEstado, DialogoConfirmacion, Icono, ResultadoAprendizajeFormDialog],
+  imports: [ChipEstado, DialogoConfirmacion, Icono, Paginador, ResultadoAprendizajeFormDialog],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './resultados-aprendizaje-page.html',
   styleUrl: './resultados-aprendizaje-page.scss',
@@ -390,23 +392,9 @@ export class ResultadosAprendizajePage {
   );
   protected readonly indicador = computed(() => indicadorRango(this.activos()));
 
-  // ── Paginación de la tabla ──────────────────────────────────────────
-  private readonly pagina = signal(1);
-  protected readonly totalPaginas = computed(() =>
-    Math.max(1, Math.ceil(this.resultadosFiltrados().length / RA_POR_PAGINA)),
-  );
+  // ── Paginación de la tabla (mismo paginador que «Materias») ─────────
   /** Si la lista se acorta (p. ej. tras recargar), la página se ajusta a la última que exista. */
-  protected readonly paginaActual = computed(() => Math.min(this.pagina(), this.totalPaginas()));
-  protected readonly resultadosPagina = computed(() => {
-    const inicio = (this.paginaActual() - 1) * RA_POR_PAGINA;
-    return this.resultadosFiltrados().slice(inicio, inicio + RA_POR_PAGINA);
-  });
-  protected readonly rangoPagina = computed(() => {
-    const total = this.resultadosFiltrados().length;
-    const desde = (this.paginaActual() - 1) * RA_POR_PAGINA + 1;
-    const hasta = Math.min(desde + RA_POR_PAGINA - 1, total);
-    return `Mostrando ${desde}–${hasta} de ${total} RA`;
-  });
+  protected readonly paginacion = paginarEnCliente(this.resultadosFiltrados, RA_POR_PAGINA);
 
   // ── Reglas reflejadas en los botones ────────────────────────────────
   /** Registrar y reactivar suman un RA activo: no se permite pasar del máximo. */
@@ -490,7 +478,7 @@ export class ResultadosAprendizajePage {
   protected alCambiarAsignatura(evento: Event): void {
     this.asignaturaId.set((evento.target as HTMLSelectElement).value);
     this.busquedaRa.set('');
-    this.pagina.set(1);
+    this.paginacion.reiniciar();
   }
 
   protected alCambiarPrograma(evento: Event): void {
@@ -499,20 +487,12 @@ export class ResultadosAprendizajePage {
 
   protected alBuscarRa(evento: Event): void {
     this.busquedaRa.set((evento.target as HTMLInputElement).value);
-    this.pagina.set(1);
+    this.paginacion.reiniciar();
   }
 
   protected limpiarBusqueda(): void {
     this.busquedaRa.set('');
-    this.pagina.set(1);
-  }
-
-  protected paginaAnterior(): void {
-    this.pagina.set(Math.max(1, this.paginaActual() - 1));
-  }
-
-  protected paginaSiguiente(): void {
-    this.pagina.set(Math.min(this.totalPaginas(), this.paginaActual() + 1));
+    this.paginacion.reiniciar();
   }
 
   protected recargarResultados(): void {

@@ -29,6 +29,14 @@ export class SemestreService {
     return this.http.get<Semestre[]>(this.baseUrl, { params });
   }
 
+  /**
+   * Semestres en los que el profesor autenticado tiene asignaturas (Mantis 0000045), del más
+   * reciente al más antiguo. Solo para el rol Profesor; el backend lo decide con su asignación docente.
+   */
+  listarMios(): Observable<Semestre[]> {
+    return this.http.get<Semestre[]>(`${this.baseUrl}/mios`);
+  }
+
   consultarPorCodigo(codigo: string): Observable<Semestre> {
     return this.http.get<Semestre>(`${this.baseUrl}/${encodeURIComponent(codigo)}`);
   }

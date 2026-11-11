@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../../../environments/environment';
+import { SesionService } from '../../../../core/services/sesion';
 import { ResultadoAprendizaje } from '../../../resultadosaprendizaje/models/resultado-aprendizaje.model';
 import {
   AsignaturaOpcion,
@@ -157,6 +158,13 @@ describe('EvaluacionesPage', () => {
     );
     expect(opciones).toEqual(['2026-2 · en curso', '2026-1 · solo consulta']);
     expect(html.textContent).toContain('Elige una materia y un resultado de aprendizaje');
+  });
+
+  it('muestra el semestre antes que la materia y el RA (Mantis 0000045)', async () => {
+    await cargarCatalogos();
+
+    const ids = Array.from(html.querySelectorAll('.filtros select')).map((s) => s.id);
+    expect(ids).toEqual(['selector-semestre', 'selector-materia', 'selector-ra']);
   });
 
   it('muestra un estado vacío si no hay materias activas', async () => {
@@ -390,5 +398,79 @@ describe('EvaluacionesPage', () => {
         'La materia ISW4 ya no está activa',
       );
     });
+  });
+});
+
+describe('EvaluacionesPage con un Profesor sin semestres (Mantis 0000045)', () => {
+  let fixture: ComponentFixture<EvaluacionesPage>;
+  let http: HttpTestingController;
+  let html: HTMLElement;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [EvaluacionesPage],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: SesionService, useValue: { rol: () => 'profesor' } },
+      ],
+    });
+    http = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(EvaluacionesPage);
+    html = fixture.nativeElement as HTMLElement;
+    document.body.appendChild(html);
+  });
+
+  afterEach(() => {
+    fixture.destroy();
+    html.remove();
+    http.verify();
+  });
+
+  const selector = (id: string) => html.querySelector(`#${id}`) as HTMLSelectElement;
+
+  async function cargarCatalogos(materias: AsignaturaOpcion[]): Promise<void> {
+    await fixture.whenStable();
+    http.expectOne(`${API}/asignaturas?estado=ACTIVA`).flush(materias);
+    http.expectOne(`${API}/semestres/mios`).flush([]);
+    http.expectNone(`${API}/semestres`);
+    await fixture.whenStable();
+  }
+
+  it('pide solo sus semestres y, sin ninguno, deja el selector vacío y muestra el aviso', async () => {
+    await cargarCatalogos([MATERIA]);
+
+    expect(selector('selector-semestre').options.length).toBe(0);
+    expect(selector('selector-semestre').value).toBe('');
+    expect(html.textContent).toContain('No tienes semestres con asignaturas');
+    expect(html.textContent).not.toContain('No hay semestres registrados');
+  });
+
+  it('aunque elija materia y RA no consulta evaluaciones ni muestra la tabla', async () => {
+    await cargarCatalogos([MATERIA]);
+
+    const materia = selector('selector-materia');
+    materia.value = 'm1';
+    materia.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    http.expectOne(`${API}/asignaturas/m1/resultados-aprendizaje`).flush([ra('RA1')]);
+    await fixture.whenStable();
+
+    const resultado = selector('selector-ra');
+    resultado.value = 'ra-RA1';
+    resultado.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+
+    // Sin semestre no hay consulta de evaluaciones.
+    http.expectNone((r) => r.url.includes('/evaluaciones'));
+    expect(html.textContent).toContain('No tienes semestres con asignaturas');
+    expect(html.querySelector('table')).toBeNull();
+  });
+
+  it('sin materias ni semestres muestra el estado vacío de materias', async () => {
+    await cargarCatalogos([]);
+
+    expect(html.textContent).toContain('No hay materias activas');
+    expect(html.querySelector('#selector-semestre')).toBeNull();
   });
 });

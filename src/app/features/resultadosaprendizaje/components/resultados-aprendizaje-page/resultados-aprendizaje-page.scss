@@ -140,24 +140,6 @@ h1 {
   font-size: 0.8125rem;
 }
 
-.paginacion {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
-  padding: 0.75rem 1.25rem;
-  border-top: 1px solid var(--sg-divider);
-  color: var(--sg-ink-muted);
-  font-size: 0.8125rem;
-}
-
-.paginacion__controles {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
 .btn--pequeno {
   padding: 0.35rem 0.75rem;
   font-size: 0.8125rem;

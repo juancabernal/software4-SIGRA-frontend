@@ -14,6 +14,8 @@ import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confi
 import { ConfettiService } from '../../../../shared/ui/confetti/confetti.service';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
+import { Paginador } from '../../../../shared/ui/paginador/paginador';
+import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 import { Estudiante, PRESENTACION_ESTADO_ESTUDIANTE } from '../../models/estudiante.model';
 import { MensajeError, mensajeDeError } from '../../services/estudiante-error';
 import { EstudianteService } from '../../services/estudiante.service';
@@ -37,7 +39,7 @@ const DURACION_AVISO_MS = 6000;
  */
 @Component({
   selector: 'app-estudiantes-page',
-  imports: [ChipEstado, DialogoConfirmacion, EstudianteFormDialog, Icono, RouterLink],
+  imports: [ChipEstado, DialogoConfirmacion, EstudianteFormDialog, Icono, Paginador, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './estudiantes-page.html',
   styleUrl: './estudiantes-page.scss',
@@ -70,6 +72,8 @@ export class EstudiantesPage {
   protected readonly cargando = signal(true);
   protected readonly errorCarga = signal<MensajeError | null>(null);
   protected readonly estudiantes = signal<Estudiante[]>([]);
+  /** Paginación en cliente, igual que en «Materias». */
+  protected readonly paginacion = paginarEnCliente(this.estudiantes);
   protected readonly aviso = signal<Aviso | null>(null);
 
   protected readonly dialogo = signal<Dialogo>(null);
@@ -113,10 +117,12 @@ export class EstudiantesPage {
 
   // ── Filtro ────────────────────────────────────────────────────────
   protected alEscribir(evento: Event): void {
+    this.paginacion.reiniciar();
     this.texto.set((evento.target as HTMLInputElement).value);
   }
 
   protected limpiarFiltros(): void {
+    this.paginacion.reiniciar();
     this.texto.set('');
   }
 
