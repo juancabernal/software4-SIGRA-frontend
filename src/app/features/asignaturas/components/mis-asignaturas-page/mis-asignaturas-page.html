@@ -21,7 +21,7 @@
         Reintentar
       </button>
     </div>
-  } @else if (asignaturas().length === 0) {
+  } @else if (todas().length === 0) {
     <div class="estado-vista">
       <p class="estado-vista__titulo">{{ tituloVacio() }}</p>
       <p>{{ mensajeVacio() }}</p>
@@ -39,6 +39,21 @@
         />
       </div>
 
+      <label class="solo-lectores" for="filtro-facultad">Facultad</label>
+      <select
+        id="filtro-facultad"
+        class="selector"
+        [value]="facultadId()"
+        (change)="alCambiarFacultad($event)"
+      >
+        <option value="">Todas las facultades</option>
+        @for (facultad of facultades(); track facultad.id) {
+          <option [value]="facultad.id" [selected]="facultad.id === facultadId()">
+            {{ facultad.nombre }}
+          </option>
+        }
+      </select>
+
       <label class="solo-lectores" for="filtro-programa">Programa académico</label>
       <select
         id="filtro-programa"
@@ -48,7 +63,9 @@
       >
         <option value="">Todos los programas</option>
         @for (programa of programas(); track programa.id) {
-          <option [value]="programa.id">{{ programa.nombre }}</option>
+          <option [value]="programa.id" [selected]="programa.id === programaId()">
+            {{ programa.nombre }}
+          </option>
         }
       </select>
 
@@ -104,6 +121,10 @@
           </div>
 
           <dl class="datos">
+            <div>
+              <dt>Facultad</dt>
+              <dd>{{ asignatura.facultadNombre }}</dd>
+            </div>
             <div>
               <dt>Programa académico</dt>
               <dd>{{ asignatura.programaNombre }}</dd>

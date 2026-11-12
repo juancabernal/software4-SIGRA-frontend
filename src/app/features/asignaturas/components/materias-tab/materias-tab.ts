@@ -19,6 +19,8 @@ import { PanelLateral } from '../../../../shared/components/panel-lateral/panel-
 import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
 import { Paginador, TAMANOS_PAGINA } from '../../../../shared/ui/paginador/paginador';
+import { Facultad } from '../../../facultades/models/facultad.model';
+import { FacultadService } from '../../../facultades/services/facultad.service';
 import {
   Asignatura,
   EstadoAsignatura,
@@ -106,6 +108,7 @@ const TAMANO_PAGINA_DEFECTO = 10;
 export class MateriasTab {
   private readonly service = inject(AsignaturaService);
   private readonly programasService = inject(ProgramaOpcionesService);
+  private readonly facultadService = inject(FacultadService);
   private readonly destroyRef = inject(DestroyRef);
   private temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
 
@@ -119,6 +122,7 @@ export class MateriasTab {
 
   // ── Filtros ───────────────────────────────────────────────────────
   protected readonly texto = signal('');
+  protected readonly facultadId = signal('');
   protected readonly programaId = signal('');
   protected readonly estado = signal<EstadoFiltro>('');
   protected readonly rango = signal<RangoRa>('todas');
@@ -138,6 +142,7 @@ export class MateriasTab {
     const rango = RANGOS_RA.find((r) => r.valor === this.rango());
     return {
       texto: this.textoAplicado() || undefined,
+      facultadId: this.facultadId() || undefined,
       programaId: this.programaId() || undefined,
       estado: this.estado() || undefined,
       raMin: rango && 'raMin' in rango ? rango.raMin : undefined,
@@ -147,14 +152,23 @@ export class MateriasTab {
 
   protected readonly hayFiltros = computed(
     () =>
-      !!this.textoAplicado() || !!this.programaId() || !!this.estado() || this.rango() !== 'todas',
+      !!this.textoAplicado() ||
+      !!this.facultadId() ||
+      !!this.programaId() ||
+      !!this.estado() ||
+      this.rango() !== 'todas',
   );
 
-  // ── Agrupación por programa ─────────────────────────────────────────
+  // ── Agrupación por facultad y programa ──────────────────────────────
   /** Con un programa específico solo hay un grupo y no se muestran encabezados. */
   protected readonly agruparPorPrograma = computed(() => this.programaId() === '');
 
-  /** Lista ya cargada: ordenada por programa y nombre cuando se agrupa; igual que llegó si no. */
+  /** Encabezado de grupo: «Facultad · Programa». */
+  private grupoDe(asignatura: Asignatura): string {
+    return `${asignatura.facultadNombre} · ${asignatura.programaNombre}`;
+  }
+
+  /** Lista cargada: ordenada por facultad, programa y nombre cuando se agrupa; igual si no. */
   private readonly listaOrdenada = computed<Asignatura[]>(() => {
     const lista = this.asignaturas();
     if (!this.agruparPorPrograma()) {
@@ -162,16 +176,17 @@ export class MateriasTab {
     }
     return [...lista].sort(
       (a, b) =>
-        a.programaNombre.localeCompare(b.programaNombre, 'es') ||
+        this.grupoDe(a).localeCompare(this.grupoDe(b), 'es') ||
         a.nombre.localeCompare(b.nombre, 'es'),
     );
   });
 
-  /** Cantidad total por programa en la lista filtrada completa (no solo en la página actual). */
+  /** Cantidad total por grupo en la lista filtrada completa (no solo en la página actual). */
   private readonly conteoPorPrograma = computed(() => {
     const conteo = new Map<string, number>();
     for (const a of this.asignaturas()) {
-      conteo.set(a.programaNombre, (conteo.get(a.programaNombre) ?? 0) + 1);
+      const grupo = this.grupoDe(a);
+      conteo.set(grupo, (conteo.get(grupo) ?? 0) + 1);
     }
     return conteo;
   });
@@ -207,15 +222,16 @@ export class MateriasTab {
     }
     const conteo = this.conteoPorPrograma();
     const resultado: FilaTabla[] = [];
-    let programaAnterior: string | null = null;
+    let grupoAnterior: string | null = null;
     for (const asignatura of filas) {
-      if (asignatura.programaNombre !== programaAnterior) {
-        const cantidad = conteo.get(asignatura.programaNombre) ?? 0;
+      const grupo = this.grupoDe(asignatura);
+      if (grupo !== grupoAnterior) {
+        const cantidad = conteo.get(grupo) ?? 0;
         resultado.push({
           tipo: 'encabezado',
-          texto: `${asignatura.programaNombre} · ${cantidad} ${cantidad === 1 ? 'materia' : 'materias'}`,
+          texto: `${grupo} · ${cantidad} ${cantidad === 1 ? 'materia' : 'materias'}`,
         });
-        programaAnterior = asignatura.programaNombre;
+        grupoAnterior = grupo;
       }
       resultado.push({ tipo: 'fila', asignatura });
     }
@@ -227,6 +243,16 @@ export class MateriasTab {
   protected readonly errorCarga = signal<MensajeError | null>(null);
   protected readonly asignaturas = signal<Asignatura[]>([]);
   protected readonly programas = signal<ProgramaOpcion[]>([]);
+  /** Opciones del filtro «Facultad» (GET /facultades). Si fallan, el filtro queda en «Todas». */
+  protected readonly facultades = toSignal(
+    this.facultadService.listar().pipe(catchError(() => of([] as Facultad[]))),
+    { initialValue: [] as Facultad[] },
+  );
+  /** El filtro «Programa» solo ofrece los programas de la facultad elegida. */
+  protected readonly programasDeFacultad = computed(() => {
+    const facultad = this.facultadId();
+    return facultad ? this.programas().filter((p) => p.facultadId === facultad) : this.programas();
+  });
   protected readonly aviso = signal<Aviso | null>(null);
 
   protected readonly activandoId = signal<string | null>(null);
@@ -341,6 +367,16 @@ export class MateriasTab {
     this.texto.set((evento.target as HTMLInputElement).value);
   }
 
+  /** Al cambiar de facultad se descarta el programa elegido si no pertenece a ella. */
+  protected alCambiarFacultad(evento: Event): void {
+    const facultadId = (evento.target as HTMLSelectElement).value;
+    this.facultadId.set(facultadId);
+    const programa = this.programas().find((p) => p.id === this.programaId());
+    if (facultadId && programa && programa.facultadId !== facultadId) {
+      this.programaId.set('');
+    }
+  }
+
   protected alCambiarPrograma(evento: Event): void {
     this.programaId.set((evento.target as HTMLSelectElement).value);
   }
@@ -355,6 +391,7 @@ export class MateriasTab {
 
   protected limpiarFiltros(): void {
     this.texto.set('');
+    this.facultadId.set('');
     this.programaId.set('');
     this.estado.set('');
     this.rango.set('todas');

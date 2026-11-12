@@ -48,7 +48,7 @@
     @if (hayProfesorElegido()) {
       <div class="paso">
         <h2>2. Elige la o las materias</h2>
-        @if (asignaturasActivas().length === 0) {
+        @if (asignaturasActivas().length === 0 && !facultadId() && !programaId() && !cargandoMaterias()) {
           <p class="estado-vista">No hay materias activas.</p>
         } @else {
           <div class="buscador">
@@ -62,8 +62,39 @@
             />
           </div>
 
-          @if (cargandoYaAsignadas()) {
+          @if (facultades().length > 0) {
+            <div class="filtros-materia">
+              <select
+                id="asignar-filtro-facultad"
+                class="selector"
+                aria-label="Filtrar materias por facultad"
+                (change)="alCambiarFacultad($event)"
+              >
+                <option value="" [selected]="facultadId() === ''">Todas las facultades</option>
+                @for (f of facultades(); track f.id) {
+                  <option [value]="f.id" [selected]="f.id === facultadId()">
+                    {{ f.nombre }}{{ f.estado === 'INACTIVO' ? ' (inactiva)' : '' }}
+                  </option>
+                }
+              </select>
+              <select
+                id="asignar-filtro-programa"
+                class="selector"
+                aria-label="Filtrar materias por programa"
+                (change)="alCambiarPrograma($event)"
+              >
+                <option value="" [selected]="programaId() === ''">Todos los programas</option>
+                @for (p of programasDeFacultad(); track p.id) {
+                  <option [value]="p.id" [selected]="p.id === programaId()">{{ p.nombre }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          @if (cargandoYaAsignadas() || cargandoMaterias()) {
             <p class="estado-vista" role="status">Cargando materias disponibles…</p>
+          } @else if (asignaturasActivas().length === 0) {
+            <p class="estado-vista">No hay materias activas en la facultad o el programa elegido.</p>
           } @else if (asignaturasDisponibles().length === 0) {
             <p class="estado-vista">Este profesor ya tiene todas las materias activas asignadas.</p>
           } @else if (asignaturasFiltradas().length === 0) {
@@ -79,7 +110,9 @@
                       (change)="alternarAsignatura(a.id)"
                     />
                     <span>{{ a.nombre }}</span>
-                    <span class="dato-secundario">{{ a.codigo }} · {{ a.programaNombre }}</span>
+                    <span class="dato-secundario">
+                      {{ a.codigo }} · {{ a.programaNombre }} · {{ a.facultadNombre }}
+                    </span>
                   </label>
                 </li>
               }

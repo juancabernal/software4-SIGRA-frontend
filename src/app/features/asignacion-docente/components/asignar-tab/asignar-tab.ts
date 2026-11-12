@@ -1,11 +1,14 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { forkJoin } from 'rxjs';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { catchError, forkJoin, of, skip, switchMap, tap } from 'rxjs';
 
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
 import { Icono } from '../../../../shared/ui/icono/icono';
-import { Asignatura } from '../../../asignaturas/models/asignatura.model';
+import { Asignatura, ProgramaOpcion } from '../../../asignaturas/models/asignatura.model';
 import { AsignaturaService } from '../../../asignaturas/services/asignatura.service';
+import { ProgramaOpcionesService } from '../../../asignaturas/services/programa-opciones.service';
+import { Facultad } from '../../../facultades/models/facultad.model';
+import { FacultadService } from '../../../facultades/services/facultad.service';
 import { Profesor } from '../../../profesores/models/profesor.model';
 import { ProfesorService } from '../../../profesores/services/profesor.service';
 import { ResultadoAsignacionMasiva } from '../../models/asignacion-docente.model';
@@ -38,6 +41,8 @@ export class AsignarTab {
   private readonly asignacionService = inject(AsignacionDocenteService);
   private readonly profesorService = inject(ProfesorService);
   private readonly asignaturaService = inject(AsignaturaService);
+  private readonly programaOpciones = inject(ProgramaOpcionesService);
+  private readonly facultadService = inject(FacultadService);
   private readonly destroyRef = inject(DestroyRef);
   private temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
 
@@ -76,6 +81,32 @@ export class AsignarTab {
 
   // ── Buscador de materias ─────────────────────────────────────────────
   protected readonly filtroMateria = signal('');
+
+  // ── Filtros de facultad y programa (los aplica el backend) ───────────
+  protected readonly facultadId = signal('');
+  protected readonly programaId = signal('');
+  protected readonly cargandoMaterias = signal(false);
+  private readonly filtrosMaterias = computed(() => ({
+    facultadId: this.facultadId() || undefined,
+    programaId: this.programaId() || undefined,
+  }));
+
+  /** Opciones de «Facultad» (GET /facultades). Si fallan, el filtro no se ofrece. */
+  protected readonly facultades = toSignal(
+    this.facultadService.listar().pipe(catchError(() => of([] as Facultad[]))),
+    { initialValue: [] as Facultad[] },
+  );
+  /** Programas con su facultad, para acotar el filtro «Programa» a la facultad elegida. */
+  private readonly programas = toSignal(
+    this.programaOpciones.listar().pipe(catchError(() => of([] as ProgramaOpcion[]))),
+    { initialValue: [] as ProgramaOpcion[] },
+  );
+  protected readonly programasDeFacultad = computed(() => {
+    const facultad = this.facultadId();
+    return facultad ? this.programas().filter((p) => p.facultadId === facultad) : this.programas();
+  });
+
+  /** El buscador de texto filtra en pantalla la lista que ya devolvió el backend. */
   protected readonly asignaturasFiltradas = computed(() => {
     const filtro = this.filtroMateria().trim().toLowerCase();
     const disponibles = this.asignaturasDisponibles();
@@ -94,6 +125,26 @@ export class AsignarTab {
 
   constructor() {
     this.cargarCatalogos();
+
+    // Cada cambio de facultad o programa vuelve a pedir las materias; switchMap descarta la
+    // respuesta anterior. La carga inicial ya la hace cargarCatalogos.
+    toObservable(this.filtrosMaterias)
+      .pipe(
+        skip(1),
+        tap(() => this.cargandoMaterias.set(true)),
+        switchMap((filtros) =>
+          this.asignaturaService.listar(filtros).pipe(catchError((error: unknown) => of(error))),
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe((resultado) => {
+        this.cargandoMaterias.set(false);
+        if (Array.isArray(resultado)) {
+          this.asignaturas.set(resultado);
+        } else {
+          this.mostrarAviso(mensajeDeError(resultado).mensaje, 'error');
+        }
+      });
   }
 
   private cargarCatalogos(): void {
@@ -101,7 +152,7 @@ export class AsignarTab {
     this.errorCatalogos.set(null);
     forkJoin({
       profesores: this.profesorService.listar(),
-      asignaturas: this.asignaturaService.listar(),
+      asignaturas: this.asignaturaService.listar(this.filtrosMaterias()),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -182,6 +233,20 @@ export class AsignarTab {
 
   protected alEscribirFiltroMateria(evento: Event): void {
     this.filtroMateria.set((evento.target as HTMLInputElement).value);
+  }
+
+  /** Al cambiar de facultad se descarta el programa elegido si no pertenece a ella. */
+  protected alCambiarFacultad(evento: Event): void {
+    const facultadId = (evento.target as HTMLSelectElement).value;
+    this.facultadId.set(facultadId);
+    const programa = this.programas().find((p) => p.id === this.programaId());
+    if (facultadId && programa && programa.facultadId !== facultadId) {
+      this.programaId.set('');
+    }
+  }
+
+  protected alCambiarPrograma(evento: Event): void {
+    this.programaId.set((evento.target as HTMLSelectElement).value);
   }
 
   // ── Asignar ────────────────────────────────────────────────────────

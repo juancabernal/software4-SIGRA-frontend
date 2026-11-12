@@ -16,6 +16,8 @@ const ASIGNATURA: MiAsignatura = {
   nombre: 'Álgebra QA',
   programaId: 'p1',
   programaNombre: 'Ingeniería de Sistemas',
+  facultadId: 'f1',
+  facultadNombre: 'Facultad de Ingeniería',
   estado: 'ACTIVA',
   cantidadRa: 5,
   cantidadEstudiantes: 6,
@@ -28,6 +30,8 @@ const ASIGNATURA_FISICA: MiAsignatura = {
   nombre: 'Física I',
   programaId: 'p2',
   programaNombre: 'Ingeniería Electrónica',
+  facultadId: 'f2',
+  facultadNombre: 'Facultad de Ciencias',
   estado: 'ACTIVA',
   cantidadRa: 4,
   cantidadEstudiantes: 10,
@@ -146,6 +150,101 @@ describe('MisAsignaturasPage', () => {
 
     expect(html.textContent).toContain('Física I');
     expect(html.textContent).not.toContain('Álgebra QA');
+  });
+
+  describe('filtro de facultad', () => {
+    const consultaConFacultad = (facultadId: string) =>
+      http.expectOne((r) => r.url === URL_MIAS && r.params.get('facultadId') === facultadId);
+    const selector = (html: HTMLElement) => html.querySelector('#filtro-facultad') as HTMLSelectElement;
+    const elegir = (html: HTMLElement, valor: string) => {
+      selector(html).value = valor;
+      selector(html).dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+    };
+
+    it('ofrece las facultades de las asignaturas, sin duplicados y por nombre, y muestra la facultad', () => {
+      const html = cargar([ASIGNATURA, ASIGNATURA_FISICA, { ...ASIGNATURA, id: 'a3', codigo: 'X-3' }]);
+
+      expect([...selector(html).options].map((o) => o.textContent?.trim())).toEqual([
+        'Todas las facultades',
+        'Facultad de Ciencias',
+        'Facultad de Ingeniería',
+      ]);
+      expect(html.textContent).toContain('Facultad de Ingeniería');
+    });
+
+    it('al elegir una facultad la envía al backend y muestra lo que este devuelve', () => {
+      const html = cargar([ASIGNATURA, ASIGNATURA_FISICA]);
+
+      elegir(html, 'f2');
+      consultaConFacultad('f2').flush([ASIGNATURA_FISICA]);
+      fixture.detectChanges();
+
+      expect(html.textContent).toContain('Física I');
+      expect(html.textContent).not.toContain('Álgebra QA');
+      // Las opciones siguen saliendo de la lista completa.
+      expect(selector(html).options.length).toBe(3);
+      // El programa se acota a la facultad elegida.
+      const programas = [...(html.querySelector('#filtro-programa') as HTMLSelectElement).options];
+      expect(programas.map((o) => o.textContent?.trim())).toEqual([
+        'Todos los programas',
+        'Ingeniería Electrónica',
+      ]);
+    });
+
+    it('al cambiar de facultad descarta el programa elegido si es de otra facultad', () => {
+      const html = cargar([ASIGNATURA, ASIGNATURA_FISICA]);
+      const programa = html.querySelector('#filtro-programa') as HTMLSelectElement;
+      programa.value = 'p1';
+      programa.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+
+      elegir(html, 'f2');
+      consultaConFacultad('f2').flush([ASIGNATURA_FISICA]);
+      fixture.detectChanges();
+
+      expect((html.querySelector('#filtro-programa') as HTMLSelectElement).value).toBe('');
+      expect(html.textContent).toContain('Física I');
+    });
+
+    it('volver a «Todas las facultades» o limpiar filtros no consulta de nuevo y muestra todo', () => {
+      const html = cargar([ASIGNATURA, ASIGNATURA_FISICA]);
+      elegir(html, 'f2');
+      consultaConFacultad('f2').flush([ASIGNATURA_FISICA]);
+      fixture.detectChanges();
+
+      elegir(html, '');
+      http.expectNone((r) => r.url === URL_MIAS);
+      expect(html.textContent).toContain('Álgebra QA');
+      expect(html.textContent).toContain('Física I');
+    });
+
+    it('una facultad sin asignaturas muestra la búsqueda vacía, no el estado de «no tienes asignaturas»', () => {
+      const html = cargar([ASIGNATURA, ASIGNATURA_FISICA]);
+      elegir(html, 'f2');
+      consultaConFacultad('f2').flush([]);
+      fixture.detectChanges();
+
+      expect(html.textContent).toContain('No hay resultados para esta búsqueda');
+      expect(selector(html)).not.toBeNull();
+    });
+
+    it('el refresco de fondo conserva la facultad elegida', () => {
+      const html = cargar([ASIGNATURA, ASIGNATURA_FISICA]);
+      elegir(html, 'f2');
+      consultaConFacultad('f2').flush([ASIGNATURA_FISICA]);
+      fixture.detectChanges();
+
+      document.dispatchEvent(new Event('visibilitychange'));
+      fixture.detectChanges();
+
+      http.expectOne((r) => r.url === URL_MIAS && !r.params.has('facultadId')).flush([ASIGNATURA, ASIGNATURA_FISICA]);
+      consultaConFacultad('f2').flush([ASIGNATURA_FISICA]);
+      fixture.detectChanges();
+
+      expect(selector(html).value).toBe('f2');
+      expect(html.textContent).not.toContain('Álgebra QA');
+    });
   });
 
   it('una combinación sin resultados muestra el mensaje de búsqueda vacía, no el de "no tienes asignaturas"', () => {
