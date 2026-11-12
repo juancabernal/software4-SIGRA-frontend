@@ -11,6 +11,8 @@ import { AsignarTab } from './asignar-tab';
 const URL_PROFESORES = `${environment.apiUrl}/v1/profesores`;
 const URL_ASIGNATURAS = `${environment.apiUrl}/v1/asignaturas`;
 const URL_ASIGNACIONES = `${environment.apiUrl}/v1/asignaciones-docentes`;
+const URL_PROGRAMAS = `${environment.apiUrl}/v1/programas`;
+const URL_FACULTADES = `${environment.apiUrl}/v1/facultades`;
 
 const PROFESOR_ACTIVO: Profesor = {
   id: 'prof-activo',
@@ -41,6 +43,8 @@ const ASIGNATURA_ACTIVA: Asignatura = {
   nombre: 'Cálculo',
   programaId: 'prog-1',
   programaNombre: 'Ingeniería',
+  facultadId: 'fac-ing',
+  facultadNombre: 'Facultad de Ingeniería',
   estado: 'ACTIVA',
   cantidadRa: 5,
 };
@@ -60,6 +64,42 @@ const ASIGNATURA_BORRADOR: Asignatura = {
   estado: 'BORRADOR',
 };
 
+const ASIGNATURA_DERECHO: Asignatura = {
+  ...ASIGNATURA_ACTIVA,
+  id: 'asig-derecho',
+  codigo: 'DER101',
+  nombre: 'Derecho Civil',
+  programaId: 'prog-2',
+  programaNombre: 'Derecho',
+  facultadId: 'fac-der',
+  facultadNombre: 'Facultad de Derecho',
+};
+
+// GET /facultades las devuelve ordenadas por nombre.
+const FACULTADES = [
+  { id: 'fac-der', nombre: 'Facultad de Derecho', estado: 'ACTIVO' },
+  { id: 'fac-ing', nombre: 'Facultad de Ingeniería', estado: 'ACTIVO' },
+];
+
+const PROGRAMAS = [
+  {
+    id: 'prog-1',
+    codigo: 'ING',
+    nombre: 'Ingeniería',
+    facultadId: 'fac-ing',
+    facultadNombre: 'Facultad de Ingeniería',
+    estado: 'ACTIVO',
+  },
+  {
+    id: 'prog-2',
+    codigo: 'DER',
+    nombre: 'Derecho',
+    facultadId: 'fac-der',
+    facultadNombre: 'Facultad de Derecho',
+    estado: 'ACTIVO',
+  },
+];
+
 describe('AsignarTab', () => {
   let fixture: ComponentFixture<AsignarTab>;
   let http: HttpTestingController;
@@ -69,7 +109,9 @@ describe('AsignarTab', () => {
     http.expectOne(URL_PROFESORES).flush([PROFESOR_ACTIVO, PROFESOR_INACTIVO]);
     http
       .expectOne((r) => r.url === URL_ASIGNATURAS)
-      .flush([ASIGNATURA_ACTIVA, ASIGNATURA_ACTIVA_2, ASIGNATURA_BORRADOR]);
+      .flush([ASIGNATURA_ACTIVA, ASIGNATURA_ACTIVA_2, ASIGNATURA_BORRADOR, ASIGNATURA_DERECHO]);
+    http.expectOne(URL_FACULTADES).flush(FACULTADES);
+    http.expectOne(URL_PROGRAMAS).flush(PROGRAMAS);
     await fixture.whenStable();
     fixture.detectChanges();
   }
@@ -152,6 +194,52 @@ describe('AsignarTab', () => {
 
     expect(html.textContent).toContain('Cálculo');
     expect(html.textContent).not.toContain('Física');
+  });
+
+  it('al elegir una facultad pide al backend sus materias y acota los programas', async () => {
+    await elegirProfesor();
+    expect(html.textContent).toContain('Derecho Civil');
+
+    const facultad = html.querySelector('#asignar-filtro-facultad') as HTMLSelectElement;
+    expect([...facultad.options].map((o) => o.textContent?.trim())).toEqual([
+      'Todas las facultades',
+      'Facultad de Derecho',
+      'Facultad de Ingeniería',
+    ]);
+
+    facultad.value = 'fac-der';
+    facultad.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const req = http.expectOne((r) => r.url === URL_ASIGNATURAS);
+    expect(req.request.params.get('facultadId')).toBe('fac-der');
+    expect(req.request.params.has('programaId')).toBe(false);
+    req.flush([ASIGNATURA_DERECHO]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const programa = html.querySelector('#asignar-filtro-programa') as HTMLSelectElement;
+    expect([...programa.options].map((o) => o.textContent?.trim())).toEqual([
+      'Todos los programas',
+      'Derecho',
+    ]);
+    expect(html.textContent).toContain('Derecho Civil');
+    expect(html.textContent).not.toContain('Cálculo');
+  });
+
+  it('una facultad sin materias activas lo indica y mantiene los filtros visibles', async () => {
+    await elegirProfesor();
+    const facultad = html.querySelector('#asignar-filtro-facultad') as HTMLSelectElement;
+    facultad.value = 'fac-der';
+    facultad.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    http.expectOne((r) => r.url === URL_ASIGNATURAS).flush([]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(html.textContent).toContain('No hay materias activas en la facultad o el programa elegido.');
+    expect(html.querySelector('#asignar-filtro-facultad')).not.toBeNull();
   });
 
   it('al deseleccionar el último profesor, las materias desaparecen', async () => {

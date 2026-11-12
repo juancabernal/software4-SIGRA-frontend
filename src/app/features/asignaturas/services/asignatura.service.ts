@@ -23,6 +23,12 @@ export class AsignaturaService {
     if (texto) {
       params = params.set('texto', texto);
     }
+    if (filtros.semestreId) {
+      params = params.set('semestreId', filtros.semestreId);
+    }
+    if (filtros.facultadId) {
+      params = params.set('facultadId', filtros.facultadId);
+    }
     if (filtros.programaId) {
       params = params.set('programaId', filtros.programaId);
     }
@@ -38,9 +44,10 @@ export class AsignaturaService {
     return this.http.get<Asignatura[]>(this.baseUrl, { params });
   }
 
-  /** Lista exclusivamente las asignaturas del usuario autenticado. */
-  misAsignaturas(): Observable<MiAsignatura[]> {
-    return this.http.get<MiAsignatura[]>(`${this.baseUrl}/mias`);
+  /** Lista exclusivamente las asignaturas del usuario autenticado, opcionalmente de una facultad. */
+  misAsignaturas(facultadId?: string): Observable<MiAsignatura[]> {
+    const params = facultadId ? new HttpParams().set('facultadId', facultadId) : new HttpParams();
+    return this.http.get<MiAsignatura[]>(`${this.baseUrl}/mias`, { params });
   }
 
   obtener(id: string): Observable<Asignatura> {

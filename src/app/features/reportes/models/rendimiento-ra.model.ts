@@ -34,6 +34,8 @@ export interface AsignaturaRendimiento {
   nombre: string;
   programaId: string;
   programaNombre: string;
+  facultadId: string;
+  facultadNombre: string;
   resultados: RaRendimiento[];
 }
 
@@ -47,6 +49,7 @@ export interface RendimientoRaReporte {
 /** Filtros opcionales; sin semestre el backend usa el semestre activo. */
 export interface FiltrosRendimientoRa {
   semestreId?: string;
+  facultadId?: string;
   programaId?: string;
   asignaturaId?: string;
 }

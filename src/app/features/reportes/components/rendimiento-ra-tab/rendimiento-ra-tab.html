@@ -12,6 +12,25 @@
       </select>
     </div>
     <div class="campo">
+      <label for="filtro-facultad-r1">Facultad</label>
+      <select
+        id="filtro-facultad-r1"
+        [disabled]="facultades().length === 0"
+        [attr.aria-describedby]="facultades().length === 0 ? 'filtro-facultad-r1-ayuda' : null"
+        (change)="cambiarFacultad($any($event.target).value)"
+      >
+        <option value="" [selected]="facultadId() === ''">Todas las facultades</option>
+        @for (f of facultades(); track f.id) {
+          <option [value]="f.id" [selected]="f.id === facultadId()">{{ f.nombre }}</option>
+        }
+      </select>
+      @if (esProfesor && facultades().length === 0) {
+        <p class="campo__ayuda" id="filtro-facultad-r1-ayuda">
+          No tienes asignaturas asignadas, así que no hay facultades para elegir.
+        </p>
+      }
+    </div>
+    <div class="campo">
       <label for="filtro-programa-r1">Programa</label>
       <select id="filtro-programa-r1" (change)="cambiarPrograma($any($event.target).value)">
         <option value="">Todos los programas</option>
@@ -69,7 +88,9 @@
               <section class="tarjeta" [attr.aria-labelledby]="'asig-' + asignatura.asignaturaId">
                 <h2 class="tarjeta__titulo" [id]="'asig-' + asignatura.asignaturaId">
                   {{ asignatura.codigo }} · {{ asignatura.nombre }}
-                  <span class="tarjeta__programa">{{ asignatura.programaNombre }}</span>
+                  <span class="tarjeta__programa">
+                    {{ asignatura.facultadNombre }} · {{ asignatura.programaNombre }}
+                  </span>
                 </h2>
                 <div class="tabla-scroll">
                   <table>

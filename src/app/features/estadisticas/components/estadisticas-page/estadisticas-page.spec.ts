@@ -39,6 +39,8 @@ const MATERIA: Asignatura = {
   nombre: 'Matemáticas I',
   programaId: 'p1',
   programaNombre: 'Ingeniería de Sistemas',
+  facultadId: 'f1',
+  facultadNombre: 'Facultad de Ingeniería',
   estado: 'ACTIVA',
   cantidadRa: 5,
 };

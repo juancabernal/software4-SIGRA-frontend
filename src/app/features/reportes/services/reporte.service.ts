@@ -18,6 +18,9 @@ export class ReporteService {
     if (filtros.semestreId) {
       params = params.set('semestreId', filtros.semestreId);
     }
+    if (filtros.facultadId) {
+      params = params.set('facultadId', filtros.facultadId);
+    }
     if (filtros.programaId) {
       params = params.set('programaId', filtros.programaId);
     }
@@ -32,6 +35,9 @@ export class ReporteService {
     let params = new HttpParams();
     if (filtros.semestreId) {
       params = params.set('semestreId', filtros.semestreId);
+    }
+    if (filtros.facultadId) {
+      params = params.set('facultadId', filtros.facultadId);
     }
     if (filtros.programaId) {
       params = params.set('programaId', filtros.programaId);

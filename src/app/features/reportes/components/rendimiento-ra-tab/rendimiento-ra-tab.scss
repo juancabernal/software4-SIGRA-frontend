@@ -23,10 +23,22 @@
   gap: 16px;
 }
 
+.campo__ayuda {
+  max-width: 16rem;
+  margin: 0;
+  color: var(--sg-ink-muted, #64748b);
+  font-size: 0.8rem;
+}
+
 .campo {
   display: grid;
   gap: 4px;
   min-width: 13rem;
+
+  select:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
 
   label {
     font-weight: 600;

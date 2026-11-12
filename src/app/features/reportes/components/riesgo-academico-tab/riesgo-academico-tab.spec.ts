@@ -15,9 +15,26 @@ const ASIGNATURA = {
   nombre: 'Programación',
   programaId: 'p1',
   programaNombre: 'Ingeniería de Sistemas',
+  facultadId: 'f1',
+  facultadNombre: 'Facultad de Ingeniería',
   estado: 'ACTIVA',
   cantidadRa: 2,
 };
+const ASIGNATURA_DERECHO = {
+  ...ASIGNATURA,
+  id: 'a2',
+  codigo: 'DER101',
+  nombre: 'Derecho Civil',
+  programaId: 'p2',
+  programaNombre: 'Derecho',
+  facultadId: 'f2',
+  facultadNombre: 'Facultad de Derecho',
+};
+// GET /facultades (solo Administrador) las devuelve ordenadas por nombre.
+const FACULTADES = [
+  { id: 'f2', nombre: 'Facultad de Derecho', estado: 'ACTIVO' },
+  { id: 'f1', nombre: 'Facultad de Ingeniería', estado: 'ACTIVO' },
+];
 const REPORTE: RiesgoAcademicoReporte = {
   semestreId: 's1',
   semestreCodigo: '2026-2',
@@ -36,7 +53,10 @@ const REPORTE: RiesgoAcademicoReporte = {
       asignaturaId: 'a1',
       asignaturaCodigo: 'SIS101',
       asignaturaNombre: 'Programación',
+      programaId: 'p1',
       programaNombre: 'Ingeniería de Sistemas',
+      facultadId: 'f1',
+      facultadNombre: 'Facultad de Ingeniería',
       cantidadRaNoAlcanzados: 2,
       severidad: 'RIESGO',
       ras: [
@@ -63,13 +83,13 @@ describe('RiesgoAcademicoTab', () => {
   let fixture: ComponentFixture<RiesgoAcademicoTab>;
   let http: HttpTestingController;
 
-  function crear(): HTMLElement {
+  function crear(rol: 'admin' | 'profesor' = 'admin'): HTMLElement {
     TestBed.configureTestingModule({
       imports: [RiesgoAcademicoTab],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: SesionService, useValue: { rol: signal('admin') } },
+        { provide: SesionService, useValue: { rol: signal(rol) } },
       ],
     });
     http = TestBed.inject(HttpTestingController);
@@ -78,9 +98,11 @@ describe('RiesgoAcademicoTab', () => {
     return fixture.nativeElement as HTMLElement;
   }
 
-  function responderListas(): void {
+  function responderListas(asignaturas: unknown[] = [ASIGNATURA, ASIGNATURA_DERECHO]): void {
     http.expectOne(`${API}/v1/semestres`).flush([{ id: 's1', codigo: '2026-2' }]);
-    http.expectOne((r) => r.url === `${API}/v1/asignaturas`).flush([ASIGNATURA]);
+    http.expectOne((r) => r.url === `${API}/v1/asignaturas`).flush(asignaturas);
+    http.expectOne(`${API}/v1/facultades`).flush(FACULTADES);
+    http.expectNone(`${API}/v1/programas`);
   }
 
   afterEach(() => http.verify());
@@ -114,6 +136,71 @@ describe('RiesgoAcademicoTab', () => {
     fixture.detectChanges();
 
     expect(html.textContent).toContain('Sin datos disponibles');
+  });
+
+  it('al elegir una facultad la envía al backend y acota programas y asignaturas', () => {
+    const html = crear();
+    responderListas();
+    http.expectOne((r) => r.url === `${API}/v1/reportes/riesgo-academico`).flush(REPORTE);
+    fixture.detectChanges();
+    expect(html.textContent).toContain('Facultad de Ingeniería · Ingeniería de Sistemas');
+
+    const textos = (selector: string) =>
+      [...html.querySelectorAll(`${selector} option`)].map((o) => o.textContent?.trim());
+    expect(textos('#filtro-facultad-r6')).toEqual([
+      'Todas las facultades',
+      'Facultad de Derecho',
+      'Facultad de Ingeniería',
+    ]);
+
+    const facultad = html.querySelector('#filtro-facultad-r6') as HTMLSelectElement;
+    facultad.value = 'f2';
+    facultad.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const req = http.expectOne((r) => r.url === `${API}/v1/reportes/riesgo-academico`);
+    expect(req.request.params.get('facultadId')).toBe('f2');
+    expect(req.request.params.get('minRaNoAlcanzados')).toBe('1');
+    req.flush({ ...REPORTE, totalEstudiantesEnRiesgo: 0, estudiantes: [], mensaje: 'Sin datos disponibles' });
+    fixture.detectChanges();
+
+    expect(textos('#filtro-programa-r6')).toEqual(['Todos los programas', 'Derecho']);
+    expect(textos('#filtro-asignatura-r6')).toEqual(['Todas las asignaturas', 'DER101 · Derecho Civil']);
+    expect(html.textContent).toContain('Sin datos disponibles');
+  });
+
+  it('el profesor arma las facultades con sus asignaturas y no consulta /facultades', () => {
+    const html = crear('profesor');
+    http.expectOne(`${API}/v1/semestres`).flush([{ id: 's1', codigo: '2026-2' }]);
+    http.expectOne((r) => r.url === `${API}/v1/asignaturas/mias`).flush([ASIGNATURA]);
+    http.expectNone(`${API}/v1/facultades`);
+    http.expectOne((r) => r.url === `${API}/v1/reportes/riesgo-academico`).flush(REPORTE);
+    fixture.detectChanges();
+
+    const facultad = html.querySelector('#filtro-facultad-r6') as HTMLSelectElement;
+    expect([...facultad.options].map((o) => o.textContent?.trim())).toEqual([
+      'Todas las facultades',
+      'Facultad de Ingeniería',
+    ]);
+    facultad.value = 'f1';
+    facultad.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    const req = http.expectOne((r) => r.url === `${API}/v1/reportes/riesgo-academico`);
+    expect(req.request.params.get('facultadId')).toBe('f1');
+    req.flush(REPORTE);
+  });
+
+  it('un profesor sin asignaturas ve el filtro de facultad deshabilitado con un aviso', () => {
+    const html = crear('profesor');
+    http.expectOne(`${API}/v1/semestres`).flush([]);
+    http.expectOne((r) => r.url === `${API}/v1/asignaturas/mias`).flush([]);
+    http.expectOne((r) => r.url === `${API}/v1/reportes/riesgo-academico`).flush(REPORTE);
+    fixture.detectChanges();
+
+    expect((html.querySelector('#filtro-facultad-r6') as HTMLSelectElement).disabled).toBe(true);
+    expect(html.querySelector('#filtro-facultad-r6-ayuda')?.textContent).toContain(
+      'No tienes asignaturas asignadas',
+    );
   });
 
   it('al cambiar el umbral vuelve a consultar', () => {

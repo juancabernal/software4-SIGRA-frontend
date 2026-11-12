@@ -88,6 +88,26 @@
 }
 
 // ── Buscador de materias ─────────────────────────────────────────────
+.filtros-materia {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.selector {
+  flex: 1 1 12rem;
+  max-width: 18rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
+  color: var(--sg-ink-body);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
 .buscador {
   display: flex;
   align-items: center;
