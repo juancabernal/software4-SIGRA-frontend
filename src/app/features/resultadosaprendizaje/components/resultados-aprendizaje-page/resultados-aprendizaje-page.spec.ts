@@ -27,6 +27,8 @@ const BORRADOR: AsignaturaOpcion = {
   nombre: 'Ingeniería de Software IV',
   programaId: 'p-sis',
   programaNombre: 'Ingeniería de Sistemas',
+  facultadId: 'f1',
+  facultadNombre: 'Facultad de Ingeniería',
   estado: 'BORRADOR',
   cantidadRa: 0,
 };
@@ -36,6 +38,8 @@ const ACTIVA: AsignaturaOpcion = {
   nombre: 'Matemáticas I',
   programaId: 'p-civ',
   programaNombre: 'Ingeniería Civil',
+  facultadId: 'f2',
+  facultadNombre: 'Facultad de Construcción',
   estado: 'ACTIVA',
   cantidadRa: 5,
 };
@@ -156,6 +160,10 @@ describe('ResultadosAprendizajePage', () => {
     http
       .match((req) => req.url.endsWith('/semestres'))
       .forEach((req) => !req.cancelled && req.flush([]));
+    // Las opciones de «Facultad» se piden al crear la página; solo las pruebas del filtro las usan.
+    http
+      .match((req) => req.url.endsWith('/facultades'))
+      .forEach((req) => !req.cancelled && req.flush([]));
     http.verify();
   });
 
@@ -229,6 +237,76 @@ describe('ResultadosAprendizajePage', () => {
       boton(html, 'Reintentar').click();
       await cargarAsignaturas([BORRADOR], []);
       expect(html.querySelector('#selector-materia')).not.toBeNull();
+    });
+  });
+
+  describe('filtro de facultad', () => {
+    // GET /facultades las devuelve ordenadas por nombre.
+    const FACULTADES = [
+      { id: 'f2', nombre: 'Facultad de Construcción', estado: 'ACTIVO' },
+      { id: 'f1', nombre: 'Facultad de Ingeniería', estado: 'ACTIVO' },
+    ];
+    const materiasDe = (estado: string, facultadId: string) =>
+      http.expectOne(`${URL_ASIGNATURAS}?estado=${estado}&facultadId=${facultadId}`);
+    const selectorFacultad = () => html.querySelector('#filtro-facultad') as HTMLSelectElement;
+    async function elegirFacultad(valor: string): Promise<void> {
+      selectorFacultad().value = valor;
+      selectorFacultad().dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+    }
+    async function cargarConFacultades(): Promise<void> {
+      await fixture.whenStable();
+      http.expectOne(`${API}/facultades`).flush(FACULTADES);
+      await cargarAsignaturas([BORRADOR], [ACTIVA]);
+    }
+
+    it('ofrece las facultades de GET /facultades antes del programa', async () => {
+      await cargarConFacultades();
+
+      expect(Array.from(selectorFacultad().options).map((o) => o.textContent?.trim())).toEqual([
+        'Todas las facultades',
+        'Facultad de Construcción',
+        'Facultad de Ingeniería',
+      ]);
+      const ids = Array.from(html.querySelectorAll('.barra--selectores select')).map((s) => s.id);
+      expect(ids).toEqual(['filtro-facultad', 'filtro-programa', 'selector-materia']);
+    });
+
+    it('al elegir una facultad pide al backend sus materias en borrador y activas', async () => {
+      await cargarConFacultades();
+      await elegirFacultad('f2');
+      materiasDe('BORRADOR', 'f2').flush([]);
+      materiasDe('ACTIVA', 'f2').flush([ACTIVA]);
+      await fixture.whenStable();
+
+      expect(opcionesMaterias()).toEqual(['MAT1 · Matemáticas I (Activa)']);
+      expect(selectorFacultad().value).toBe('f2');
+    });
+
+    it('al cambiar de facultad descarta la materia elegida si es de otra', async () => {
+      await cargarConFacultades();
+      await elegir(BORRADOR, []);
+
+      await elegirFacultad('f2');
+      materiasDe('BORRADOR', 'f2').flush([]);
+      materiasDe('ACTIVA', 'f2').flush([ACTIVA]);
+      await fixture.whenStable();
+
+      expect((html.querySelector('#selector-materia') as HTMLSelectElement).value).toBe('');
+      expect(html.textContent).toContain('Elige una materia en el selector');
+    });
+
+    it('una facultad sin materias mantiene los filtros visibles y lo indica', async () => {
+      await cargarConFacultades();
+      await elegirFacultad('f2');
+      materiasDe('BORRADOR', 'f2').flush([]);
+      materiasDe('ACTIVA', 'f2').flush([]);
+      await fixture.whenStable();
+
+      expect(html.textContent).not.toContain('No hay materias para gestionar');
+      expect(selectorFacultad()).not.toBeNull();
+      const placeholder = (html.querySelector('#selector-materia') as HTMLSelectElement).options[0];
+      expect(placeholder.textContent?.trim()).toBe('Sin materias en esta facultad');
     });
   });
 

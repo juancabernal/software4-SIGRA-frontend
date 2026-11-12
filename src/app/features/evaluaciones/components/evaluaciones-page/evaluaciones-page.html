@@ -53,6 +53,21 @@
         </div>
 
         <div class="filtro">
+          <label for="selector-facultad">Facultad</label>
+          <select
+            id="selector-facultad"
+            [disabled]="!semestreId() || facultades().length === 0"
+            [value]="facultadId()"
+            (change)="alCambiarFacultad($event)"
+          >
+            <option value="" [selected]="facultadId() === ''">Todas las facultades</option>
+            @for (f of facultades(); track f.id) {
+              <option [value]="f.id" [selected]="f.id === facultadId()">{{ f.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filtro">
           <label for="selector-materia">Materia</label>
           <select
             id="selector-materia"
@@ -60,7 +75,7 @@
             [value]="asignaturaId()"
             (change)="alCambiarAsignatura($event)"
           >
-            <option value="">{{ !semestreId() ? 'Elige primero un semestre' : cargandoAsignaturas() ? 'Cargando…' : asignaturas().length === 0 ? 'Sin materias en este semestre' : 'Selecciona una materia' }}</option>
+            <option value="">{{ !semestreId() ? 'Elige primero un semestre' : cargandoAsignaturas() ? 'Cargando…' : asignaturas().length === 0 ? (facultadId() ? 'Sin materias en esta facultad' : 'Sin materias en este semestre') : 'Selecciona una materia' }}</option>
             @for (a of asignaturas(); track a.id) {
               <option [value]="a.id" [selected]="a.id === asignaturaId()">
                 {{ a.codigo }} · {{ a.nombre }}

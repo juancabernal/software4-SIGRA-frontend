@@ -260,6 +260,98 @@ describe('EstadisticasPage', () => {
     });
   });
 
+  describe('filtro de facultad', () => {
+    const DE_DERECHO: Asignatura = {
+      ...MATERIA,
+      id: 'a2',
+      codigo: 'DER1',
+      nombre: 'Derecho Civil',
+      programaId: 'p2',
+      programaNombre: 'Derecho',
+      facultadId: 'f2',
+      facultadNombre: 'Facultad de Derecho',
+    };
+    const textos = (id: string) =>
+      Array.from((html.querySelector(`#${id}`) as HTMLSelectElement).options).map((o) =>
+        o.textContent?.trim(),
+      );
+    async function elegirFacultad(valor: string): Promise<void> {
+      const select = html.querySelector('#selector-facultad') as HTMLSelectElement;
+      select.value = valor;
+      select.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+      fixture.detectChanges();
+    }
+    const materiasDe = (facultadId: string) =>
+      http.expectOne(
+        (r) => r.url === URL_ASIGNATURAS && r.params.get('facultadId') === facultadId,
+      );
+
+    it('ofrece las facultades de las materias, sin duplicados y por nombre, antes de la materia', async () => {
+      await iniciar([MATERIA, DE_DERECHO, { ...MATERIA, id: 'a3', codigo: 'MAT2' }], [SEMESTRE_ACTIVO]);
+
+      expect(textos('selector-facultad')).toEqual([
+        'Todas las facultades',
+        'Facultad de Derecho',
+        'Facultad de Ingeniería',
+      ]);
+      const ids = Array.from(html.querySelectorAll('select')).map((s) => s.id);
+      expect(ids.indexOf('selector-facultad')).toBeLessThan(ids.indexOf('selector-materia'));
+    });
+
+    it('al elegir una facultad pide al backend sus materias y conserva las opciones', async () => {
+      await iniciar([MATERIA, DE_DERECHO], [SEMESTRE_ACTIVO]);
+
+      await elegirFacultad('f2');
+      materiasDe('f2').flush([DE_DERECHO]);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(textos('selector-materia')).toEqual(['Selecciona una materia', 'DER1 · Derecho Civil']);
+      expect(textos('selector-facultad').length).toBe(3);
+    });
+
+    it('al cambiar de facultad descarta la materia y el RA elegidos si son de otra', async () => {
+      await iniciar([MATERIA, DE_DERECHO], [SEMESTRE_ACTIVO]);
+      await elegirMateria(MATERIA, []);
+      atenderRendimientoPendiente();
+
+      await elegirFacultad('f2');
+      materiasDe('f2').flush([DE_DERECHO]);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect((html.querySelector('#selector-materia') as HTMLSelectElement).value).toBe('');
+      atenderRendimientoPendiente();
+    });
+
+    it('volver a «Todas las facultades» no consulta de nuevo y muestra todas las materias', async () => {
+      await iniciar([MATERIA, DE_DERECHO], [SEMESTRE_ACTIVO]);
+      await elegirFacultad('f2');
+      materiasDe('f2').flush([DE_DERECHO]);
+      await fixture.whenStable();
+
+      await elegirFacultad('');
+      http.expectNone((r) => r.url === URL_ASIGNATURAS);
+      expect(textos('selector-materia')).toEqual([
+        'Selecciona una materia',
+        'MAT1 · Matemáticas I',
+        'DER1 · Derecho Civil',
+      ]);
+    });
+
+    it('una facultad sin materias lo indica y no muestra el estado de «no hay materias»', async () => {
+      await iniciar([MATERIA, DE_DERECHO], [SEMESTRE_ACTIVO]);
+      await elegirFacultad('f2');
+      materiasDe('f2').flush([]);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(textos('selector-materia')).toEqual(['Sin materias en esta facultad']);
+      expect(html.textContent).not.toContain('No hay materias registradas');
+    });
+  });
+
   describe('selector de RA', () => {
     it('carga solo los RA en estado ACTIVO de la materia elegida', async () => {
       await iniciar([MATERIA], [SEMESTRE_ACTIVO]);

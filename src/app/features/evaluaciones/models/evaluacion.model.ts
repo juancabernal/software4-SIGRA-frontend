@@ -47,6 +47,8 @@ export interface AsignaturaOpcion {
   codigo: string;
   nombre: string;
   programaNombre: string;
+  facultadId: string;
+  facultadNombre: string;
   estado: 'BORRADOR' | 'ACTIVA' | 'INACTIVA';
 }
 

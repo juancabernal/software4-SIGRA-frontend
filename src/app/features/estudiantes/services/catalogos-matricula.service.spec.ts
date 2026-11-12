@@ -55,14 +55,29 @@ describe('CatalogosMatriculaService', () => {
         nombre: 'Cálculo I',
         programaId: '00000000-0000-4000-c000-000000000001',
         programaNombre: 'Ingeniería de Software',
+        facultadId: '00000000-0000-4000-c000-0000000000f1',
+        facultadNombre: 'Facultad de Ingeniería',
         estado: 'ACTIVA',
         cantidadRa: 5,
       },
     ]);
 
     expect(resultado).toEqual([
-      { id: '00000000-0000-4000-c000-000000000030', nombre: 'Cálculo I', estado: 'ACTIVA' },
+      {
+        id: '00000000-0000-4000-c000-000000000030',
+        nombre: 'Cálculo I',
+        estado: 'ACTIVA',
+        facultadId: '00000000-0000-4000-c000-0000000000f1',
+        facultadNombre: 'Facultad de Ingeniería',
+      },
     ]);
+  });
+
+  it('combina semestre y facultad al consultar asignaturas', () => {
+    service.listarAsignaturas('s1', 'f1').subscribe();
+    const req = http.expectOne(`${URL_ASIGNATURAS}?semestreId=s1&facultadId=f1`);
+    expect(req.request.params.get('facultadId')).toBe('f1');
+    req.flush([]);
   });
 
   it('lista semestres con GET /v1/semestres y mapea al modelo local', () => {
