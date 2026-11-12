@@ -18,6 +18,7 @@ import {
   of,
   skip,
   startWith,
+  Subscription,
   switchMap,
 } from 'rxjs';
 
@@ -27,6 +28,7 @@ import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-e
 import { SesionService } from '../../../../core/services/sesion';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
+import { facultadesDe } from '../../../../shared/filtros/filtro-por-facultad';
 import { Asignatura } from '../../../asignaturas/models/asignatura.model';
 import { AsignaturaService } from '../../../asignaturas/services/asignatura.service';
 import { AccionMejoraFormDialog } from '../../../mejoras/components/accion-mejora-form-dialog/accion-mejora-form-dialog';
@@ -150,8 +152,17 @@ export class EstadisticasPage {
   // ── Materias ─────────────────────────────────────────────────────────
   protected readonly cargandoAsignaturas = signal(true);
   protected readonly errorAsignaturas = signal<MensajeError | null>(null);
+  /** Todas las materias del usuario, sin filtrar: de aquí salen las opciones de «Facultad». */
+  protected readonly todas = signal<Asignatura[]>([]);
+  /** Lo que devolvió el backend con la facultad elegida (igual a `todas` sin facultad). */
   protected readonly asignaturas = signal<Asignatura[]>([]);
   protected readonly asignaturaId = signal('');
+
+  /** La facultad la filtra el backend (GET /asignaturas?facultadId=…). */
+  protected readonly facultadId = signal('');
+  /** El Profesor no puede consultar GET /facultades: las opciones salen de sus materias. */
+  protected readonly facultades = computed(() => facultadesDe(this.todas()));
+  private consultaFacultad: Subscription | undefined;
 
   // ── RA activos de la materia elegida ────────────────────────────────
   private readonly cargaRa = toSignal(
@@ -478,8 +489,11 @@ export class EstadisticasPage {
   protected cargarAsignaturas(): void {
     this.cargandoAsignaturas.set(true);
     this.errorAsignaturas.set(null);
+    this.consultaFacultad?.unsubscribe();
+    this.facultadId.set('');
     this.asignaturaService.listar().subscribe({
       next: (asignaturas) => {
+        this.todas.set(asignaturas);
         this.asignaturas.set(asignaturas);
         this.cargandoAsignaturas.set(false);
       },
@@ -538,6 +552,31 @@ export class EstadisticasPage {
       estadisticas,
       conclusion,
       silenciosa,
+    });
+  }
+
+  /**
+   * Pide al backend las materias de la facultad. Si la materia elegida es de otra facultad, se
+   * descartan la materia, el RA y lo consultado.
+   */
+  protected alCambiarFacultad(evento: Event): void {
+    const facultadId = (evento.target as HTMLSelectElement).value;
+    const elegida = this.todas().find((a) => a.id === this.asignaturaId());
+    if (facultadId && elegida && elegida.facultadId !== facultadId) {
+      this.asignaturaId.set('');
+      this.resultadoAprendizajeId.set('');
+      this.reiniciarConsulta();
+    }
+    this.facultadId.set(facultadId);
+
+    this.consultaFacultad?.unsubscribe();
+    if (!facultadId) {
+      this.asignaturas.set(this.todas());
+      return;
+    }
+    this.consultaFacultad = this.asignaturaService.listar({ facultadId }).subscribe({
+      next: (asignaturas) => this.asignaturas.set(asignaturas),
+      error: (error: unknown) => this.errorAsignaturas.set(mensajeDeError(error)),
     });
   }
 

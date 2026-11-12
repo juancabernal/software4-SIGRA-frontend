@@ -14,6 +14,8 @@ const BORRADOR: AsignaturaOpcion = {
   nombre: 'Materia en borrador',
   programaId: 'p1',
   programaNombre: 'Ingeniería de Sistemas',
+  facultadId: 'f1',
+  facultadNombre: 'Facultad de Ingeniería',
   estado: 'BORRADOR',
   cantidadRa: 2,
 };
@@ -24,6 +26,8 @@ const ACTIVA: AsignaturaOpcion = {
   nombre: 'Materia activa',
   programaId: 'p1',
   programaNombre: 'Ingeniería de Sistemas',
+  facultadId: 'f1',
+  facultadNombre: 'Facultad de Ingeniería',
   estado: 'ACTIVA',
   cantidadRa: 5,
 };
@@ -54,6 +58,13 @@ describe('AsignaturaOpcionesService', () => {
     borrador.flush([BORRADOR]);
     activa.flush([ACTIVA]);
     expect(resultado).toEqual([ACTIVA, BORRADOR]);
+  });
+
+  it('con una facultad la envía en las dos consultas', () => {
+    service.listarGestionables('f1').subscribe();
+
+    http.expectOne(`${URL}?estado=BORRADOR&facultadId=f1`).flush([]);
+    http.expectOne(`${URL}?estado=ACTIVA&facultadId=f1`).flush([]);
   });
 
   it('nunca consulta asignaturas INACTIVAS', () => {

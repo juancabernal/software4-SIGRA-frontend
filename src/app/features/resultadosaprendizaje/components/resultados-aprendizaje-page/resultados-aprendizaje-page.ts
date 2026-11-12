@@ -7,7 +7,18 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { EMPTY, catchError, filter, map, of, skip, startWith, switchMap, take } from 'rxjs';
+import {
+  EMPTY,
+  Subscription,
+  catchError,
+  filter,
+  map,
+  of,
+  skip,
+  startWith,
+  switchMap,
+  take,
+} from 'rxjs';
 
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
 import { refrescoAutomatico } from '../../../../core/util/refresco-automatico';
@@ -16,6 +27,8 @@ import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip
 import { Icono } from '../../../../shared/ui/icono/icono';
 import { Paginador } from '../../../../shared/ui/paginador/paginador';
 import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
+import { Facultad } from '../../../facultades/models/facultad.model';
+import { FacultadService } from '../../../facultades/services/facultad.service';
 import { SemestreService } from '../../../semestres/services/semestre.service';
 import {
   AsignaturaOpcion,
@@ -189,6 +202,8 @@ type CargaResultados =
 })
 export class ResultadosAprendizajePage {
   private readonly asignaturasService = inject(AsignaturaOpcionesService);
+  private readonly facultadService = inject(FacultadService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly resultadosService = inject(ResultadoAprendizajeService);
   private readonly semestreService = inject(SemestreService);
 
@@ -211,6 +226,14 @@ export class ResultadosAprendizajePage {
   );
 
   // ── Filtro del selector de materias ─────────────────────────────────
+  /** La facultad la filtra el backend (GET /asignaturas?facultadId=…). */
+  protected readonly facultadId = signal('');
+  /** Opciones de «Facultad» (GET /facultades). Si fallan, el filtro queda en «Todas». */
+  protected readonly facultades = toSignal(
+    this.facultadService.listar().pipe(catchError(() => of([] as Facultad[]))),
+    { initialValue: [] as Facultad[] },
+  );
+  private consultaFacultad: Subscription | undefined;
   protected readonly programaFiltro = signal('');
 
   /** Programas que tienen materias gestionables, sin repetir y ordenados por nombre. */
@@ -439,8 +462,10 @@ export class ResultadosAprendizajePage {
     if (this.cargandoAsignaturas() || this.errorAsignaturas()) {
       return;
     }
-    this.asignaturasService.listarGestionables().subscribe({
+    const facultadConsultada = this.facultadId();
+    this.asignaturasService.listarGestionables(facultadConsultada).subscribe({
       next: (asignaturas) => {
+        if (facultadConsultada !== this.facultadId()) return;
         const elegida = this.asignatura();
         this.asignaturas.set(asignaturas);
         if (elegida && !asignaturas.some((a) => a.id === elegida.id)) {
@@ -459,7 +484,8 @@ export class ResultadosAprendizajePage {
   protected cargarAsignaturas(): void {
     this.cargandoAsignaturas.set(true);
     this.errorAsignaturas.set(null);
-    this.asignaturasService.listarGestionables().subscribe({
+    this.consultaFacultad?.unsubscribe();
+    this.asignaturasService.listarGestionables(this.facultadId()).subscribe({
       next: (asignaturas) => {
         this.asignaturas.set(asignaturas);
         // Si la materia elegida ya no está (p. ej. se inactivó), se limpia la selección.
@@ -479,6 +505,34 @@ export class ResultadosAprendizajePage {
     this.asignaturaId.set((evento.target as HTMLSelectElement).value);
     this.busquedaRa.set('');
     this.paginacion.reiniciar();
+  }
+
+  /**
+   * Pide al backend las materias de la facultad, sin ocultar los selectores mientras llegan. La
+   * materia y el programa elegidos se descartan si son de otra facultad.
+   */
+  protected alCambiarFacultad(evento: Event): void {
+    const facultadId = (evento.target as HTMLSelectElement).value;
+    const elegida = this.asignatura();
+    if (facultadId && elegida && elegida.facultadId !== facultadId) {
+      this.asignaturaId.set('');
+      this.busquedaRa.set('');
+      this.paginacion.reiniciar();
+    }
+    const delPrograma = this.asignaturas().find((a) => a.programaId === this.programaFiltro());
+    if (facultadId && delPrograma && delPrograma.facultadId !== facultadId) {
+      this.programaFiltro.set('');
+    }
+    this.facultadId.set(facultadId);
+
+    this.consultaFacultad?.unsubscribe();
+    this.consultaFacultad = this.asignaturasService
+      .listarGestionables(facultadId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (asignaturas) => this.asignaturas.set(asignaturas),
+        error: (error: unknown) => this.errorAsignaturas.set(mensajeDeError(error)),
+      });
   }
 
   protected alCambiarPrograma(evento: Event): void {

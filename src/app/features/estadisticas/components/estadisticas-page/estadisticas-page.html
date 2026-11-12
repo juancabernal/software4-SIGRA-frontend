@@ -36,7 +36,7 @@
           Reintentar
         </button>
       </div>
-    } @else if (asignaturas().length === 0) {
+    } @else if (todas().length === 0) {
       <div class="estado-vista">
         <p class="estado-vista__titulo">No hay materias registradas</p>
         <p>Registra una materia en el Catálogo académico para poder consultar sus estadísticas.</p>
@@ -68,6 +68,21 @@
       </div>
 
       <div class="barra">
+        <label for="selector-facultad">Facultad</label>
+        <select
+          id="selector-facultad"
+          class="selector"
+          [value]="facultadId()"
+          (change)="alCambiarFacultad($event)"
+        >
+          <option value="" [selected]="facultadId() === ''">Todas las facultades</option>
+          @for (f of facultades(); track f.id) {
+            <option [value]="f.id" [selected]="f.id === facultadId()">{{ f.nombre }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="barra">
         <label for="selector-materia">Materia</label>
         <select
           id="selector-materia"
@@ -75,7 +90,9 @@
           [value]="asignaturaId()"
           (change)="alCambiarAsignatura($event)"
         >
-          <option value="">Selecciona una materia</option>
+          <option value="">
+            {{ asignaturas().length === 0 ? 'Sin materias en esta facultad' : 'Selecciona una materia' }}
+          </option>
           @for (a of asignaturas(); track a.id) {
             <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
           }

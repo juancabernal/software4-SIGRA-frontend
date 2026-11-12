@@ -22,14 +22,19 @@ export class AsignaturaOpcionesService {
    * Asignaturas en BORRADOR y ACTIVA. El filtro `estado` del backend admite un solo valor, así que
    * se hace una petición por estado y se unen los resultados, ordenados por código.
    */
-  listarGestionables(): Observable<AsignaturaOpcion[]> {
-    return forkJoin(ESTADOS_GESTIONABLES.map((estado) => this.listarPorEstado(estado))).pipe(
-      map((listas) => listas.flat().sort((a, b) => a.codigo.localeCompare(b.codigo))),
-    );
+  listarGestionables(facultadId?: string): Observable<AsignaturaOpcion[]> {
+    return forkJoin(
+      ESTADOS_GESTIONABLES.map((estado) => this.listarPorEstado(estado, facultadId)),
+    ).pipe(map((listas) => listas.flat().sort((a, b) => a.codigo.localeCompare(b.codigo))));
   }
 
-  private listarPorEstado(estado: EstadoAsignaturaOpcion): Observable<AsignaturaOpcion[]> {
-    const params = new HttpParams().set('estado', estado);
+  /** Con `facultadId`, el backend devuelve solo las materias de esa facultad. */
+  private listarPorEstado(
+    estado: EstadoAsignaturaOpcion,
+    facultadId?: string,
+  ): Observable<AsignaturaOpcion[]> {
+    let params = new HttpParams().set('estado', estado);
+    if (facultadId) params = params.set('facultadId', facultadId);
     return this.http.get<AsignaturaOpcion[]>(this.baseUrl, { params });
   }
 }

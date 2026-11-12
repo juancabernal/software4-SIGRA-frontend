@@ -10,7 +10,22 @@ const URL_ASIGNATURAS = `${environment.apiUrl}/v1/asignaturas`;
 const URL_SEMESTRES = `${environment.apiUrl}/v1/semestres`;
 const URL_MATRICULAS = `${environment.apiUrl}/v1/matriculas`;
 
-const ASIGNATURAS = [{ id: 'a1', nombre: 'Cálculo I', estado: 'ACTIVA' as const }];
+const ASIGNATURAS = [
+  {
+    id: 'a1',
+    nombre: 'Cálculo I',
+    estado: 'ACTIVA' as const,
+    facultadId: 'f1',
+    facultadNombre: 'Facultad de Ingeniería',
+  },
+];
+const DE_DERECHO = {
+  id: 'a2',
+  nombre: 'Derecho Civil',
+  estado: 'ACTIVA' as const,
+  facultadId: 'f2',
+  facultadNombre: 'Facultad de Derecho',
+};
 const SEMESTRES = [{ id: 's1', codigo: '2026-1', estado: 'ACTIVO' as const }];
 
 const ANA: EstudianteMatriculado = {
@@ -122,6 +137,95 @@ describe('MatriculadosPage', () => {
     expect((html.querySelector('#filtro-asignatura') as HTMLSelectElement).value).toBe('');
     expect(html.textContent).not.toContain('Ana María Gómez');
     http.expectNone(URL_MATRICULAS);
+  });
+
+  describe('filtro de facultad', () => {
+    const textos = (id: string) =>
+      Array.from((html.querySelector(`#${id}`) as HTMLSelectElement).options).map((o) =>
+        o.textContent?.trim(),
+      );
+    async function elegirFacultad(valor: string): Promise<void> {
+      const select = html.querySelector('#filtro-facultad') as HTMLSelectElement;
+      select.value = valor;
+      select.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+    }
+    async function conSemestre(): Promise<void> {
+      await iniciar();
+      elegirSemestre();
+      await fixture.whenStable();
+      http.expectOne(`${URL_ASIGNATURAS}?semestreId=s1`).flush([...ASIGNATURAS, DE_DERECHO]);
+      await fixture.whenStable();
+    }
+
+    it('está deshabilitado hasta elegir semestre y luego ofrece las facultades por nombre', async () => {
+      await iniciar();
+      expect((html.querySelector('#filtro-facultad') as HTMLSelectElement).disabled).toBe(true);
+
+      elegirSemestre();
+      await fixture.whenStable();
+      http.expectOne(`${URL_ASIGNATURAS}?semestreId=s1`).flush([...ASIGNATURAS, DE_DERECHO]);
+      await fixture.whenStable();
+
+      expect((html.querySelector('#filtro-facultad') as HTMLSelectElement).disabled).toBe(false);
+      expect(textos('filtro-facultad')).toEqual([
+        'Todas las facultades',
+        'Facultad de Derecho',
+        'Facultad de Ingeniería',
+      ]);
+    });
+
+    it('al elegir una facultad pide al backend sus asignaturas y conserva las opciones', async () => {
+      await conSemestre();
+      await elegirFacultad('f2');
+      http.expectOne(`${URL_ASIGNATURAS}?semestreId=s1&facultadId=f2`).flush([DE_DERECHO]);
+      await fixture.whenStable();
+
+      expect(textos('filtro-asignatura')).toEqual(['Selecciona una asignatura', 'Derecho Civil']);
+      expect(textos('filtro-facultad').length).toBe(3);
+    });
+
+    it('al cambiar de facultad descarta la asignatura elegida si es de otra y no consulta matriculados', async () => {
+      await conSemestre();
+      elegirAsignatura();
+      await fixture.whenStable();
+      consultaMatriculados().flush([ANA]);
+      await fixture.whenStable();
+
+      await elegirFacultad('f2');
+      http.expectOne(`${URL_ASIGNATURAS}?semestreId=s1&facultadId=f2`).flush([DE_DERECHO]);
+      await fixture.whenStable();
+
+      expect((html.querySelector('#filtro-asignatura') as HTMLSelectElement).value).toBe('');
+      expect(html.textContent).not.toContain('Ana María Gómez');
+      http.expectNone(URL_MATRICULAS);
+    });
+
+    it('una facultad sin asignaturas lo indica', async () => {
+      await conSemestre();
+      await elegirFacultad('f2');
+      http.expectOne(`${URL_ASIGNATURAS}?semestreId=s1&facultadId=f2`).flush([]);
+      await fixture.whenStable();
+
+      expect(html.textContent).toContain('Sin asignaturas en esta facultad');
+    });
+
+    it('al cambiar de semestre vuelve a «Todas las facultades»', async () => {
+      await conSemestre();
+      await elegirFacultad('f2');
+      http.expectOne(`${URL_ASIGNATURAS}?semestreId=s1&facultadId=f2`).flush([DE_DERECHO]);
+      await fixture.whenStable();
+
+      const semestre = html.querySelector('#filtro-semestre') as HTMLSelectElement;
+      semestre.add(new Option('2026-2', 's2'));
+      semestre.value = 's2';
+      semestre.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+      http.expectOne(`${URL_ASIGNATURAS}?semestreId=s2`).flush(ASIGNATURAS);
+      await fixture.whenStable();
+
+      expect((html.querySelector('#filtro-facultad') as HTMLSelectElement).value).toBe('');
+    });
   });
 
   it('consulta al completar ambos filtros', async () => {
