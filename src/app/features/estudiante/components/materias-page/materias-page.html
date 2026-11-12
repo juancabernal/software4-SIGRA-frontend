@@ -1,0 +1,48 @@
+<section class="pagina" aria-labelledby="titulo-materias">
+  <header class="cabecera">
+    <h1 id="titulo-materias">Mis materias</h1>
+    <p>Materias asociadas a tu registro académico</p>
+  </header>
+
+  @if (cargando()) {
+    <p class="estado" role="status" aria-busy="true">Cargando tus materias…</p>
+  } @else if (error(); as mensaje) {
+    <div class="estado error" role="alert">
+      <p>{{ mensaje.mensaje }}</p>
+      <button type="button" class="btn" (click)="reintentar()">Reintentar</button>
+    </div>
+  } @else if (materias().length === 0) {
+    <p class="estado estado__titulo">Aún no tienes asignaturas matriculadas</p>
+  } @else {
+    <div class="tarjetas" role="list">
+      @for (materia of materias(); track materia.matriculaId) {
+        <article class="tarjeta" role="listitem">
+          <div class="cabecera-tarjeta">
+            <div>
+              <p class="codigo">{{ materia.asignaturaCodigo }}</p>
+              <h2>{{ materia.asignaturaNombre }}</h2>
+            </div>
+            <app-chip-estado
+              [etiqueta]="etiquetas[materia.situacion]"
+              [variante]="variantes[materia.situacion]"
+            />
+          </div>
+          <dl class="datos">
+            @if (materia.programaNombre !== null) {
+              <div><dt>Programa</dt><dd>{{ materia.programaNombre }}</dd></div>
+            }
+            <div><dt>Semestre</dt><dd>{{ materia.semestreCodigo }}</dd></div>
+            <div><dt>Fecha de matrícula</dt><dd>{{ formatearFecha(materia.fechaMatricula) }}</dd></div>
+          </dl>
+          <a
+            class="enlace"
+            [routerLink]="['/estudiante/materias', materia.matriculaId]"
+            [attr.aria-label]="'Ver detalle de ' + materia.asignaturaNombre"
+          >
+            Ver detalle
+          </a>
+        </article>
+      }
+    </div>
+  }
+</section>

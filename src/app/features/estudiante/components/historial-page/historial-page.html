@@ -1,0 +1,25 @@
+<section class="pagina" aria-labelledby="titulo-historial">
+  <header class="cabecera"><h1 id="titulo-historial">Mi historial</h1><p>Materias cursadas y desvinculadas</p></header>
+  @if (cargando()) {
+    <p class="estado" role="status" aria-busy="true">Cargando tu historial…</p>
+  } @else if (error(); as mensaje) {
+    <div class="estado error" role="alert"><p>{{ mensaje.mensaje }}</p><button type="button" class="btn" (click)="reintentar()">Reintentar</button></div>
+  } @else if (grupos().length === 0) {
+    <p class="estado estado__titulo">Aún no tienes materias en tu historial</p>
+  } @else {
+    @for (grupo of grupos(); track grupo.semestre) {
+      <section class="grupo" [attr.aria-labelledby]="'semestre-' + grupo.semestre">
+        <h2 [id]="'semestre-' + grupo.semestre">{{ grupo.semestre }}</h2>
+        @for (materia of grupo.materias; track materia.matriculaId) {
+          <article class="tarjeta">
+            <div><p class="codigo">{{ materia.asignaturaCodigo }}</p><h3>{{ materia.asignaturaNombre }}</h3></div>
+            <app-chip-estado [etiqueta]="etiquetas[materia.situacion]" [variante]="variantes[materia.situacion]" />
+            @if (materia.programaNombre !== null) { <p>Programa: {{ materia.programaNombre }}</p> }
+            <p>Fecha de matrícula: {{ formatearFecha(materia.fechaMatricula) }}</p>
+            <a class="enlace" [routerLink]="['/estudiante/materias', materia.matriculaId]" [attr.aria-label]="'Ver detalle de ' + materia.asignaturaNombre">Ver detalle</a>
+          </article>
+        }
+      </section>
+    }
+  }
+</section>

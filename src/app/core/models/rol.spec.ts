@@ -18,6 +18,14 @@ describe('rolDesdeUrl', () => {
 });
 
 describe('perfiles de rol', () => {
+  it('el menú de estudiante contiene exactamente sus tres opciones', () => {
+    expect(PERFILES.estudiante.menu).toEqual([
+      { ruta: '/estudiante/materias', etiqueta: 'Mis materias', icono: 'libro' },
+      { ruta: '/estudiante/progreso', etiqueta: 'Mi progreso', icono: 'barras' },
+      { ruta: '/estudiante/historial', etiqueta: 'Mi historial', icono: 'reloj' },
+    ]);
+  });
+
   it('cada rol tiene su menú y su pantalla por defecto', () => {
     for (const rol of ROLES) {
       expect(PERFILES[rol].menu.length).toBeGreaterThan(0);

@@ -1,0 +1,71 @@
+<section class="pagina" aria-labelledby="titulo-detalle">
+  @if (cargando()) {
+    <h1 id="titulo-detalle">Detalle de materia</h1>
+    <p class="estado" role="status" aria-busy="true">Cargando la materia…</p>
+  } @else if (noEncontrada()) {
+    <h1 id="titulo-detalle">Materia no encontrada</h1>
+    <div class="estado" role="alert">
+      <p>No encontramos esta materia en tu registro académico</p>
+      <a class="enlace" routerLink="/estudiante/materias">Volver a Mis materias</a>
+    </div>
+  } @else if (error(); as mensaje) {
+    <h1 id="titulo-detalle">Detalle de materia</h1>
+    <div class="estado error" role="alert"><p>{{ mensaje.mensaje }}</p></div>
+  } @else if (materia(); as materia) {
+    <header class="cabecera">
+      <div>
+        <p class="codigo">{{ materia.asignaturaCodigo }}</p>
+        <h1 id="titulo-detalle">{{ materia.asignaturaNombre }}</h1>
+        <p>{{ materia.programaNombre ?? 'Programa no informado' }} · {{ materia.semestreCodigo }}</p>
+      </div>
+      <app-chip-estado
+        [etiqueta]="etiquetas[materia.situacion]"
+        [variante]="variantes[materia.situacion]"
+      />
+    </header>
+    <a class="enlace" [routerLink]="materia.situacion === 'CURSADA' || materia.situacion === 'DESVINCULADA' ? '/estudiante/historial' : '/estudiante/materias'">
+      Volver a {{ materia.situacion === 'CURSADA' || materia.situacion === 'DESVINCULADA' ? 'Mi historial' : 'Mis materias' }}
+    </a>
+    <p class="aviso">El nivel de logro corresponde al último cálculo del sistema</p>
+    @if (materia.resultadosAprendizaje.length === 0) {
+      <p class="estado">Esta materia aún no tiene resultados de aprendizaje registrados</p>
+    } @else {
+      @for (ra of materia.resultadosAprendizaje; track ra.codigo) {
+        <article class="tarjeta">
+          <header class="ra-cabecera">
+            <div><h2>{{ ra.codigo }}</h2><p>{{ ra.descripcion }}</p></div>
+            <app-badge-nivel-logro [nivel]="ra.nivelLogro" [etiqueta]="etiquetasNivel[ra.nivelLogro]" />
+          </header>
+          <p>
+            @if (ra.promedio !== null) { Promedio: {{ formatearNumero(ra.promedio) }} · }
+            {{ ra.evaluacionesCalificadas }} de {{ ra.evaluacionesTotales }} evaluaciones calificadas
+          </p>
+          @if (nivelEsSinEvaluar(ra.nivelLogro)) {
+            <p class="nota">Aún no hay calificaciones suficientes para calcular el nivel de este RA</p>
+          }
+          @if (ra.evaluaciones.length === 0) {
+            <p class="estado">Aún no hay evaluaciones registradas para este resultado de aprendizaje</p>
+          } @else {
+            <div class="tabla-contenedor">
+              <table>
+                <caption>Evaluaciones de {{ ra.codigo }}</caption>
+                <thead><tr><th>Nombre</th><th>Fecha tentativa</th><th>Porcentaje</th><th>Nota</th><th>Observación</th></tr></thead>
+                <tbody>
+                  @for (evaluacion of ra.evaluaciones; track evaluacion.nombre) {
+                    <tr>
+                      <td>{{ evaluacion.nombre }}</td>
+                      <td>{{ evaluacion.fecha ? formatearFecha(evaluacion.fecha) : '—' }}</td>
+                      <td>{{ formatearNumero(evaluacion.porcentaje) }} %</td>
+                      <td>{{ evaluacion.nota === null ? 'Sin calificar' : formatearNumero(evaluacion.nota) }}</td>
+                      <td>{{ evaluacion.observacion ?? '—' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </article>
+      }
+    }
+  }
+</section>
