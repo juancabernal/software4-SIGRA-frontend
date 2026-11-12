@@ -54,7 +54,7 @@ export const routes: Routes = [
           import('./features/asignaturas/components/mis-asignaturas-page/mis-asignaturas-page').then(
             (m) => m.MisAsignaturasPage,
           ),
-        title: 'Mis asignaturas · SIGRA',
+        title: 'Mis materias · SIGRA',
         data: {
           ...profesor.data,
           vista: 'PROFESOR',
@@ -229,38 +229,60 @@ export const routes: Routes = [
         ...estudiante,
         path: 'estudiante/materias',
         loadComponent: () =>
-          import('./features/asignaturas/components/mis-asignaturas-page/mis-asignaturas-page').then(
-            (m) => m.MisAsignaturasPage,
+          import('./features/estudiante/components/materias-page/materias-page').then(
+            (m) => m.MisMateriasPage,
           ),
         title: 'Mis asignaturas · SIGRA',
         data: {
           ...estudiante.data,
-          vista: 'ESTUDIANTE',
-          titulo: 'Mis asignaturas',
-          subtitulo: 'Semestre en curso · vista de estudiante · solo lectura',
+          titulo: 'Mis materias',
+          subtitulo: 'Materias asociadas a tu registro académico · solo lectura',
+          requisito: 'RF-22',
+        },
+      },
+      {
+        ...estudiante,
+        path: 'estudiante/materias/:matriculaId',
+        loadComponent: () =>
+          import('./features/estudiante/components/detalle-page/detalle-page').then(
+            (m) => m.MateriaDetallePage,
+          ),
+        title: 'Detalle de materia · SIGRA',
+        data: {
+          ...estudiante.data,
+          titulo: 'Detalle de materia',
+          subtitulo: 'Evaluaciones y resultados de aprendizaje · solo lectura',
           requisito: 'RF-22',
         },
       },
       {
         ...estudiante,
         path: 'estudiante/progreso',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import('./features/estudiante/components/progreso-page/progreso-page').then(
+            (m) => m.MiProgresoPage,
+          ),
         title: 'Mi progreso · SIGRA',
         data: {
           ...estudiante.data,
           titulo: 'Mi progreso',
-          subtitulo: 'Detalle de asignatura y avance por RA · solo lectura',
+          subtitulo: 'Avance de tus materias en curso · solo lectura',
+          requisito: 'RF-22',
         },
       },
       {
         ...estudiante,
-        path: 'estudiante/progreso/calificaciones',
-        loadComponent: pendiente,
-        title: 'Calificaciones y observaciones · SIGRA',
+        path: 'estudiante/historial',
+        loadComponent: () =>
+          import('./features/estudiante/components/historial-page/historial-page').then(
+            (m) => m.MiHistorialPage,
+          ),
+        title: 'Mi historial · SIGRA',
         data: {
           ...estudiante.data,
-          titulo: 'Calificaciones y observaciones',
-          subtitulo: 'Notas y observaciones recibidas · solo lectura',
+          titulo: 'Mi historial',
+          subtitulo: 'Materias cursadas y desvinculadas · solo lectura',
+          requisito: 'RF-22',
         },
       },
     ],

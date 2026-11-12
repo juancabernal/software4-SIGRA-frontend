@@ -1,0 +1,28 @@
+<section class="pagina" aria-labelledby="titulo-progreso">
+  <header class="cabecera"><h1 id="titulo-progreso">Mi progreso</h1><p>Avance de tus materias en curso</p></header>
+  @if (cargando()) {
+    <p class="estado" role="status" aria-busy="true">Cargando tu progreso…</p>
+  } @else if (error(); as mensaje) {
+    <div class="estado error" role="alert"><p>{{ mensaje.mensaje }}</p><button type="button" class="btn" (click)="reintentar()">Reintentar</button></div>
+  } @else if (materias().length === 0) {
+    <p class="estado estado__titulo">Aún no tienes asignaturas en curso</p>
+  } @else {
+    @for (materia of materias(); track materia.matriculaId) {
+      <article class="tarjeta">
+        <header class="cabecera-tarjeta">
+          <div><p class="codigo">{{ materia.asignaturaCodigo }}</p><h2>{{ materia.asignaturaNombre }}</h2><p>{{ materia.semestreCodigo }}</p></div>
+          <app-chip-estado [etiqueta]="etiquetas[materia.situacion]" variante="ok" />
+        </header>
+        @for (ra of materia.resultadosAprendizaje; track ra.codigo) {
+          <div class="ra">
+            <div><strong>{{ ra.codigo }}</strong><span>{{ ra.descripcion }}</span></div>
+            <app-badge-nivel-logro [nivel]="ra.nivelLogro" [etiqueta]="etiquetasNivel[ra.nivelLogro]" />
+            <span>{{ ra.promedio === null ? 'Sin promedio' : 'Promedio: ' + formatearNumero(ra.promedio) }}</span>
+            <span>{{ ra.evaluacionesCalificadas }} de {{ ra.evaluacionesTotales }} evaluaciones calificadas</span>
+          </div>
+        }
+        <a class="enlace" [routerLink]="['/estudiante/materias', materia.matriculaId]" [attr.aria-label]="'Ver detalle de ' + materia.asignaturaNombre">Ver detalle</a>
+      </article>
+    }
+  }
+</section>
