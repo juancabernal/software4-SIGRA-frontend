@@ -37,10 +37,22 @@
     } @else {
       <div class="filtros">
         <div class="filtro">
+          <label for="selector-facultad">Facultad</label>
+          <select id="selector-facultad" class="selector" [value]="facultadId()" (change)="alCambiarFacultad($event)">
+            <option value="" [selected]="facultadId() === ''">Todas las facultades</option>
+            @for (f of facultades(); track f.id) {
+              <option [value]="f.id" [selected]="f.id === facultadId()">{{ f.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filtro">
           <label for="selector-materia">Materia</label>
           <select id="selector-materia" class="selector" [value]="asignaturaId()" (change)="alCambiarAsignatura($event)">
-            <option value="">Selecciona una materia</option>
-            @for (a of listaAsignaturas(); track a.id) {
+            <option value="">
+              {{ listaMaterias().length === 0 ? 'Sin materias en esta facultad' : 'Selecciona una materia' }}
+            </option>
+            @for (a of listaMaterias(); track a.id) {
               <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
             }
           </select>
