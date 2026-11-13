@@ -32,25 +32,58 @@
     <div class="tarjeta">
       @if (profesoresActivos().length === 0) {
         <p class="estado-vista">No hay profesores activos.</p>
-      } @else {
-        <div class="barra-profesor">
-          <label for="profesor-elegido">Profesor</label>
-          <select
-            id="profesor-elegido"
-            class="selector selector--profesor"
-            (change)="alCambiarProfesor($event)"
-          >
-            <option value="" [selected]="!hayProfesorElegido()">Elige un profesor…</option>
-            @for (p of profesoresActivos(); track p.id) {
-              <option [value]="p.id" [selected]="p.id === profesorElegido()">
-                {{ p.nombreCompleto }} ({{ p.correoInstitucional }})
-              </option>
-            }
-          </select>
+      } @else if (datosProfesorElegido(); as profesor) {
+        <div class="profesor-elegido">
+          <div class="profesor-elegido__avatar" aria-hidden="true">{{ inicialesProfesorElegido() }}</div>
+          <div class="profesor-elegido__datos">
+            <p class="profesor-elegido__etiqueta">Profesor</p>
+            <p class="profesor-elegido__nombre">{{ profesor.nombreCompleto }}</p>
+            <p class="profesor-elegido__correo">{{ profesor.correoInstitucional }}</p>
+          </div>
+          <button type="button" class="btn" (click)="cambiarProfesor()">
+            <app-icono nombre="buscar" [tamano]="16" />
+            Cambiar profesor
+          </button>
         </div>
-        @if (!hayProfesorElegido()) {
-          <p class="estado-vista">Elige un profesor para ver sus materias y asignarle nuevas.</p>
-        }
+      } @else {
+        <div class="paso">
+          <h2>Elige el profesor</h2>
+          <div class="buscador">
+            <app-icono nombre="buscar" [tamano]="16" />
+            <input
+              id="buscar-profesor"
+              type="search"
+              placeholder="Buscar por nombre, documento o correo..."
+              aria-label="Buscar profesor por nombre, documento o correo"
+              autocomplete="off"
+              [value]="textoProfesor()"
+              (input)="alEscribirProfesor($event)"
+            />
+          </div>
+
+          @if (profesoresCoincidentes().length === 0) {
+            <p class="estado-vista">Ningún profesor coincide con la búsqueda.</p>
+          } @else {
+            <p class="resumen-seleccion" role="status" aria-live="polite">
+              @if (profesoresCoincidentes().length > limiteProfesores) {
+                Mostrando {{ limiteProfesores }} de {{ profesoresCoincidentes().length }} profesores. Escribe
+                para acotar la búsqueda.
+              } @else {
+                {{ profesoresCoincidentes().length }} profesor(es)
+              }
+            </p>
+            <ul class="lista-profesores">
+              @for (p of profesoresVisibles(); track p.id) {
+                <li>
+                  <button type="button" class="profesor-opcion" (click)="elegirProfesor(p.id)">
+                    <span class="profesor-opcion__nombre">{{ p.nombreCompleto }}</span>
+                    <span class="dato-secundario">{{ p.correoInstitucional }} · {{ p.numeroDocumento }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
       }
     </div>
 

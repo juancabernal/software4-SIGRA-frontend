@@ -123,9 +123,18 @@ describe('AsignacionDocentePage', () => {
   let http: HttpTestingController;
   let html: HTMLElement;
 
-  const selectorProfesor = () => html.querySelector('#profesor-elegido') as HTMLSelectElement;
   const textoCompacto = (selector: string) =>
     html.querySelector(selector)?.textContent?.replace(/\s+/g, ' ').trim();
+  const buscadorProfesor = () => html.querySelector('#buscar-profesor') as HTMLInputElement;
+  const opcionesProfesor = () =>
+    Array.from(html.querySelectorAll('.profesor-opcion')) as HTMLButtonElement[];
+
+  function escribirProfesor(texto: string): void {
+    const buscador = buscadorProfesor();
+    buscador.value = texto;
+    buscador.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
 
   async function cargarCatalogos(): Promise<void> {
     http.expectOne(URL_PROFESORES).flush([PROFESOR_ACTIVO, PROFESOR_ACTIVO_2, PROFESOR_INACTIVO]);
@@ -138,24 +147,29 @@ describe('AsignacionDocentePage', () => {
     fixture.detectChanges();
   }
 
-  /** Elige un profesor en el selector, sin responder todavía la consulta de sus materias. */
-  function seleccionarProfesor(id: string): void {
-    const selector = selectorProfesor();
-    selector.value = id;
-    selector.dispatchEvent(new Event('change'));
+  /** Elige un profesor de la lista de resultados, sin responder todavía la consulta de sus materias. */
+  function seleccionarProfesor(profesor: Profesor): void {
+    const opcion = opcionesProfesor().find((o) => o.textContent?.includes(profesor.correoInstitucional));
+    opcion!.click();
     fixture.detectChanges();
   }
 
-  const peticionAsignadas = (profesorId: string) =>
-    http.expectOne((r) => r.url === `${URL_PROFESORES}/${profesorId}/asignaturas`);
+  /** Vuelve al buscador con «Cambiar profesor». */
+  function cambiarProfesor(): void {
+    (html.querySelector('.profesor-elegido .btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+  }
+
+  const peticionAsignadas = (profesor: Profesor) =>
+    http.expectOne((r) => r.url === `${URL_PROFESORES}/${profesor.id}/asignaturas`);
 
   /** Elige al profesor y responde la consulta de sus materias ya asignadas. */
   async function elegirProfesor(
     asignadas: AsignaturaProfesor[] = [],
-    profesorId: string = PROFESOR_ACTIVO.id,
+    profesor: Profesor = PROFESOR_ACTIVO,
   ): Promise<void> {
-    seleccionarProfesor(profesorId);
-    peticionAsignadas(profesorId).flush(asignadas);
+    seleccionarProfesor(profesor);
+    peticionAsignadas(profesor).flush(asignadas);
     await fixture.whenStable();
     fixture.detectChanges();
   }
@@ -188,16 +202,51 @@ describe('AsignacionDocentePage', () => {
   });
 
   it('ofrece solo los profesores activos y pide elegir uno antes de mostrar materias', () => {
-    const opciones = [...selectorProfesor().options].map((o) => o.textContent?.replace(/\s+/g, ' ').trim());
-    expect(opciones).toEqual([
-      'Elige un profesor…',
-      'Ana Activa (ana.activa@uco.net.co)',
-      'Carlos Segundo (carlos.segundo@uco.net.co)',
+    const parte = (clase: string) =>
+      opcionesProfesor().map((o) => o.querySelector(clase)?.textContent?.replace(/\s+/g, ' ').trim());
+    expect(parte('.profesor-opcion__nombre')).toEqual(['Ana Activa', 'Carlos Segundo']);
+    expect(parte('.dato-secundario')).toEqual([
+      'ana.activa@uco.net.co · 123456',
+      'carlos.segundo@uco.net.co · 123456',
     ]);
-    expect(html.textContent).toContain('Elige un profesor para ver sus materias y asignarle nuevas');
+    expect(textoCompacto('.paso h2')).toBe('Elige el profesor');
     expect(html.querySelector('table')).toBeNull();
     expect(html.querySelector('.lista-seleccionable')).toBeNull();
     expect(html.textContent).not.toContain('Cálculo');
+  });
+
+  it('el buscador filtra los profesores por nombre, correo o documento, sin importar tildes ni mayúsculas', () => {
+    escribirProfesor('CARLOS');
+    expect(opcionesProfesor().length).toBe(1);
+    expect(opcionesProfesor()[0].textContent).toContain('Carlos Segundo');
+
+    escribirProfesor('ana.activa@');
+    expect(opcionesProfesor().length).toBe(1);
+    expect(opcionesProfesor()[0].textContent).toContain('Ana Activa');
+
+    escribirProfesor('123456');
+    expect(opcionesProfesor().length).toBe(2);
+
+    escribirProfesor('segúndo');
+    expect(opcionesProfesor().length).toBe(1);
+    expect(textoCompacto('.resumen-seleccion')).toBe('1 profesor(es)');
+  });
+
+  it('un profesor inactivo no aparece aunque coincida con la búsqueda', () => {
+    escribirProfesor('Beto');
+
+    expect(opcionesProfesor().length).toBe(0);
+    expect(html.textContent).toContain('Ningún profesor coincide con la búsqueda.');
+  });
+
+  it('al elegir un profesor la búsqueda se reemplaza por el profesor elegido', async () => {
+    await elegirProfesor();
+
+    expect(buscadorProfesor()).toBeNull();
+    expect(html.querySelector('.lista-profesores')).toBeNull();
+    expect(textoCompacto('.profesor-elegido__nombre')).toBe('Ana Activa');
+    expect(textoCompacto('.profesor-elegido__correo')).toBe('ana.activa@uco.net.co');
+    expect(textoCompacto('.profesor-elegido__avatar')).toBe('AA');
   });
 
   it('al elegir un profesor muestra sus materias asignadas y las que se le pueden agregar', async () => {
@@ -294,18 +343,20 @@ describe('AsignacionDocentePage', () => {
     expect(html.querySelector('#asignar-filtro-facultad')).not.toBeNull();
   });
 
-  it('al volver a «Elige un profesor» desaparecen sus materias', async () => {
+  it('«Cambiar profesor» vuelve al buscador, limpio, y desaparecen las materias del anterior', async () => {
+    escribirProfesor('ana');
     await elegirProfesor([CALCULO_ASIGNADA]);
     expect(html.querySelector('table')).not.toBeNull();
 
-    seleccionarProfesor('');
+    cambiarProfesor();
     await fixture.whenStable();
     fixture.detectChanges();
 
     http.expectNone((r) => r.url.includes('/profesores/') && r.url.endsWith('/asignaturas'));
     expect(html.querySelector('table')).toBeNull();
     expect(html.querySelector('.lista-seleccionable')).toBeNull();
-    expect(html.textContent).toContain('Elige un profesor para ver sus materias y asignarle nuevas');
+    expect(buscadorProfesor().value).toBe('');
+    expect(opcionesProfesor().length).toBe(2);
   });
 
   it('el resumen dice a quién se asigna y cuántas materias lleva', async () => {
@@ -323,7 +374,8 @@ describe('AsignacionDocentePage', () => {
     fixture.detectChanges();
     expect(botonAsignar().getAttribute('aria-disabled')).toBeNull();
 
-    await elegirProfesor([], PROFESOR_ACTIVO_2.id);
+    cambiarProfesor();
+    await elegirProfesor([], PROFESOR_ACTIVO_2);
 
     expect(html.textContent).toContain('Agregar materias a Carlos Segundo');
     expect(casillasDeAgregar().filter((c) => c.checked).length).toBe(0);
@@ -331,12 +383,13 @@ describe('AsignacionDocentePage', () => {
   });
 
   it('ignora la respuesta tardía del profesor anterior', async () => {
-    seleccionarProfesor(PROFESOR_ACTIVO.id);
-    seleccionarProfesor(PROFESOR_ACTIVO_2.id);
+    seleccionarProfesor(PROFESOR_ACTIVO);
+    cambiarProfesor();
+    seleccionarProfesor(PROFESOR_ACTIVO_2);
 
     // Responde primero el segundo profesor y después, tarde, el primero (que tiene Cálculo asignada).
-    peticionAsignadas(PROFESOR_ACTIVO_2.id).flush([]);
-    peticionAsignadas(PROFESOR_ACTIVO.id).flush([CALCULO_ASIGNADA]);
+    peticionAsignadas(PROFESOR_ACTIVO_2).flush([]);
+    peticionAsignadas(PROFESOR_ACTIVO).flush([CALCULO_ASIGNADA]);
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -379,11 +432,11 @@ describe('AsignacionDocentePage', () => {
     fixture.detectChanges();
 
     // El profesor sigue elegido y se vuelve a consultar para ver su materia nueva en la tabla.
-    peticionAsignadas(PROFESOR_ACTIVO.id).flush([CALCULO_ASIGNADA]);
+    peticionAsignadas(PROFESOR_ACTIVO).flush([CALCULO_ASIGNADA]);
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(selectorProfesor().value).toBe(PROFESOR_ACTIVO.id);
+    expect(textoCompacto('.profesor-elegido__nombre')).toBe('Ana Activa');
     expect(textoCompacto('.resultado__resumen')).toBe('Se asignó 1 materia a Ana Activa.');
     expect(html.textContent).toContain('Asignadas (1)');
     expect(textoCompacto('.resultado__grupo ul')).toBe('Cálculo (MAT101)');
@@ -416,7 +469,7 @@ describe('AsignacionDocentePage', () => {
         },
       ],
     } satisfies ResultadoAsignacionMasiva);
-    peticionAsignadas(PROFESOR_ACTIVO.id).flush([]);
+    peticionAsignadas(PROFESOR_ACTIVO).flush([]);
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -451,7 +504,7 @@ describe('AsignacionDocentePage', () => {
       omitidas: [],
       rechazadas: [],
     } satisfies ResultadoAsignacionMasiva);
-    peticionAsignadas(PROFESOR_ACTIVO.id).flush([CALCULO_ASIGNADA]);
+    peticionAsignadas(PROFESOR_ACTIVO).flush([CALCULO_ASIGNADA]);
     await fixture.whenStable();
     fixture.detectChanges();
     expect(html.querySelector('.resultado')).not.toBeNull();
@@ -465,7 +518,7 @@ describe('AsignacionDocentePage', () => {
     expect(html.querySelector('.resultado')).toBeNull();
 
     http.expectOne(`${URL_ASIGNACIONES}/asig-doc-1/desasignar`).flush(null);
-    peticionAsignadas(PROFESOR_ACTIVO.id).flush([]);
+    peticionAsignadas(PROFESOR_ACTIVO).flush([]);
     await fixture.whenStable();
     fixture.detectChanges();
     expect(html.querySelector('.resultado')).toBeNull();
@@ -487,11 +540,54 @@ describe('AsignacionDocentePage', () => {
     (html.querySelector('.btn--peligro') as HTMLButtonElement).click();
 
     http.expectOne(`${URL_ASIGNACIONES}/asig-doc-1/desasignar`).flush(null);
-    peticionAsignadas(PROFESOR_ACTIVO.id).flush([]);
+    peticionAsignadas(PROFESOR_ACTIVO).flush([]);
     await fixture.whenStable();
     fixture.detectChanges();
 
     expect(html.textContent).toContain('Ana Activa no tiene materias asignadas todavía');
     expect(html.querySelector('.lista-seleccionable')?.textContent).toContain('Cálculo');
+  });
+});
+
+describe('AsignacionDocentePage con muchos profesores', () => {
+  it('muestra solo los primeros resultados y pide acotar la búsqueda', async () => {
+    TestBed.configureTestingModule({
+      imports: [AsignacionDocentePage],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
+    const http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(AsignacionDocentePage);
+    const html = fixture.nativeElement as HTMLElement;
+    document.body.appendChild(html);
+    fixture.detectChanges();
+
+    const muchos: Profesor[] = Array.from({ length: 45 }, (_, i) => ({
+      ...PROFESOR_ACTIVO,
+      id: `prof-${i}`,
+      nombreCompleto: `Profesor ${i}`,
+      correoInstitucional: `profesor${i}@uco.net.co`,
+    }));
+    http.expectOne(URL_PROFESORES).flush(muchos);
+    http.expectOne((r) => r.url === URL_ASIGNATURAS).flush([]);
+    http.expectOne(URL_FACULTADES).flush([]);
+    http.expectOne(URL_PROGRAMAS).flush([]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const resumen = () => html.querySelector('.resumen-seleccion')?.textContent?.replace(/\s+/g, ' ').trim();
+    expect(html.querySelectorAll('.profesor-opcion').length).toBe(30);
+    expect(resumen()).toBe('Mostrando 30 de 45 profesores. Escribe para acotar la búsqueda.');
+
+    const buscador = html.querySelector('#buscar-profesor') as HTMLInputElement;
+    buscador.value = 'Profesor 4';
+    buscador.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    // «Profesor 4» y «Profesor 40» a «Profesor 44».
+    expect(html.querySelectorAll('.profesor-opcion').length).toBe(6);
+    expect(resumen()).toBe('6 profesor(es)');
+
+    html.remove();
+    http.verify();
   });
 });

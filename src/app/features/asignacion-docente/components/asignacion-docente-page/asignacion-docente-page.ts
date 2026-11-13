@@ -17,6 +17,7 @@ import { ResultadoAsignacionMasiva } from '../../models/asignacion-docente.model
 import { AsignacionDocenteService } from '../../services/asignacion-docente.service';
 
 const DURACION_AVISO_MS = 8000;
+const LIMITE_PROFESORES_VISIBLES = 30;
 
 interface Aviso {
   texto: string;
@@ -66,9 +67,41 @@ export class AsignacionDocentePage {
   /** Id del profesor elegido; cadena vacía mientras no se haya elegido ninguno. */
   protected readonly profesorElegido = signal('');
   protected readonly hayProfesorElegido = computed(() => this.profesorElegido() !== '');
-  protected readonly nombreProfesorElegido = computed(
-    () => this.profesoresActivos().find((p) => p.id === this.profesorElegido())?.nombreCompleto ?? '',
+  protected readonly datosProfesorElegido = computed(
+    () => this.profesoresActivos().find((p) => p.id === this.profesorElegido()) ?? null,
   );
+  protected readonly nombreProfesorElegido = computed(
+    () => this.datosProfesorElegido()?.nombreCompleto ?? '',
+  );
+  protected readonly inicialesProfesorElegido = computed(() =>
+    this.nombreProfesorElegido()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((palabra) => palabra[0].toUpperCase())
+      .join(''),
+  );
+
+  // ── Buscador de profesor ───────────────────────────────────────────
+  /**
+   * Con cientos de profesores un desplegable no sirve: se busca por nombre, documento o correo
+   * sobre el catálogo ya cargado (sin volver a pedirlo) y solo se dibujan los primeros resultados.
+   */
+  protected readonly textoProfesor = signal('');
+  protected readonly profesoresCoincidentes = computed(() => {
+    const filtro = normalizar(this.textoProfesor().trim());
+    const activos = this.profesoresActivos();
+    if (!filtro) {
+      return activos;
+    }
+    return activos.filter((p) =>
+      normalizar(`${p.nombreCompleto} ${p.correoInstitucional} ${p.numeroDocumento}`).includes(filtro),
+    );
+  });
+  protected readonly profesoresVisibles = computed(() =>
+    this.profesoresCoincidentes().slice(0, LIMITE_PROFESORES_VISIBLES),
+  );
+  protected readonly limiteProfesores = LIMITE_PROFESORES_VISIBLES;
 
   /** Materias ACTIVAS que el profesor elegido tiene asignadas hoy. */
   protected readonly asignaciones = signal<AsignaturaProfesor[]>([]);
@@ -200,9 +233,23 @@ export class AsignacionDocentePage {
   }
 
   // ── Profesor ───────────────────────────────────────────────────────
+  protected alEscribirProfesor(evento: Event): void {
+    this.textoProfesor.set((evento.target as HTMLInputElement).value);
+  }
+
+  protected elegirProfesor(id: string): void {
+    this.reiniciarPantalla(id);
+  }
+
+  /** Vuelve al buscador para elegir a otro profesor. */
+  protected cambiarProfesor(): void {
+    this.textoProfesor.set('');
+    this.reiniciarPantalla('');
+  }
+
   /** Al cambiar de profesor se empieza de cero: lo marcado y el último resultado eran del anterior. */
-  protected alCambiarProfesor(evento: Event): void {
-    this.profesorElegido.set((evento.target as HTMLSelectElement).value);
+  private reiniciarPantalla(profesorId: string): void {
+    this.profesorElegido.set(profesorId);
     this.asignaturasSeleccionadas.set(new Set());
     this.resultado.set(null);
     this.asignaciones.set([]);
@@ -343,6 +390,11 @@ export class AsignacionDocentePage {
     this.aviso.set({ texto, tono });
     this.temporizadorAviso = setTimeout(() => this.aviso.set(null), DURACION_AVISO_MS);
   }
+}
+
+/** Minúsculas y sin tildes, para que «jose» encuentre «José». */
+function normalizar(texto: string): string {
+  return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 }
 
 function resumirResultado(resultado: ResultadoAsignacionMasiva, profesor: string): string {
