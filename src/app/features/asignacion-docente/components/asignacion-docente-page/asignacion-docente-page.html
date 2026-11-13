@@ -1,42 +1,276 @@
 <section class="pagina" aria-labelledby="titulo-asignacion">
   <header class="cabecera">
     <h1 id="titulo-asignacion">Asignación docente</h1>
-    <p class="cabecera__sub">Asigna materias activas a un profesor, o consulta y desasigna</p>
+    <p class="cabecera__sub">
+      Elige un profesor para ver sus materias, asignarle nuevas o quitarle las que ya no dicta
+    </p>
   </header>
 
-  <div class="pestanas" role="tablist" aria-label="Secciones de asignación docente">
-    @for (pestana of pestanas; track pestana.id; let i = $index) {
-      <button
-        #pestana
-        type="button"
-        role="tab"
-        class="pestana"
-        [id]="'pestana-' + pestana.id"
-        [attr.aria-controls]="'panel-' + pestana.id"
-        [attr.aria-selected]="activa() === pestana.id"
-        [attr.tabindex]="activa() === pestana.id ? 0 : -1"
-        (click)="seleccionar(pestana.id)"
-        (keydown)="alTeclear($event, i)"
-      >
-        <app-icono [nombre]="pestana.icono" [tamano]="16" />
-        {{ pestana.etiqueta }}
-      </button>
+  <div class="aviso-zona" role="status" aria-live="polite">
+    @if (aviso(); as a) {
+      <div class="aviso" [class.aviso--error]="a.tono === 'error'">
+        <app-icono [nombre]="a.tono === 'ok' ? 'check' : 'advertencia'" [tamano]="16" />
+        <span>{{ a.texto }}</span>
+        <button type="button" class="aviso__cerrar" aria-label="Cerrar aviso" (click)="cerrarAviso()">
+          <app-icono nombre="cerrar" [tamano]="14" />
+        </button>
+      </div>
     }
   </div>
 
-  <div
-    role="tabpanel"
-    class="panel"
-    [id]="'panel-' + activa()"
-    [attr.aria-labelledby]="'pestana-' + activa()"
-  >
-    @switch (activa()) {
-      @case ('asignar') {
-        <app-asignar-tab />
+  @if (cargandoCatalogos()) {
+    <p class="estado-vista" role="status">Cargando profesores y materias…</p>
+  } @else if (errorCatalogos(); as error) {
+    <div class="estado-vista estado-vista--error" role="alert">
+      <p>{{ error.mensaje }}</p>
+      <button type="button" class="btn" (click)="recargarCatalogos()">
+        <app-icono nombre="recargar" [tamano]="16" />
+        Reintentar
+      </button>
+    </div>
+  } @else {
+    <div class="tarjeta">
+      @if (profesoresActivos().length === 0) {
+        <p class="estado-vista">No hay profesores activos.</p>
+      } @else {
+        <div class="barra-profesor">
+          <label for="profesor-elegido">Profesor</label>
+          <select
+            id="profesor-elegido"
+            class="selector selector--profesor"
+            (change)="alCambiarProfesor($event)"
+          >
+            <option value="" [selected]="!hayProfesorElegido()">Elige un profesor…</option>
+            @for (p of profesoresActivos(); track p.id) {
+              <option [value]="p.id" [selected]="p.id === profesorElegido()">
+                {{ p.nombreCompleto }} ({{ p.correoInstitucional }})
+              </option>
+            }
+          </select>
+        </div>
+        @if (!hayProfesorElegido()) {
+          <p class="estado-vista">Elige un profesor para ver sus materias y asignarle nuevas.</p>
+        }
       }
-      @case ('consultar') {
-        <app-consultar-tab />
-      }
+    </div>
+
+    @if (hayProfesorElegido()) {
+      <div class="tarjeta">
+        <div class="seccion-cabecera">
+          <h2>Materias asignadas a {{ nombreProfesorElegido() }}</h2>
+          @if (!cargandoAsignaciones()) {
+            <span class="contador">{{ asignaciones().length }}</span>
+          }
+        </div>
+
+        @if (cargandoAsignaciones()) {
+          <p class="estado-vista" role="status">Cargando materias asignadas…</p>
+        } @else if (asignaciones().length === 0) {
+          <p class="estado-vista">{{ nombreProfesorElegido() }} no tiene materias asignadas todavía.</p>
+        } @else {
+          <div class="tabla-contenedor">
+            <table>
+              <caption class="solo-lectores">Materias asignadas al profesor elegido</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Materia</th>
+                  <th scope="col">Código</th>
+                  <th scope="col">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (a of paginacion.filas(); track a.asignacionId) {
+                  <tr>
+                    <th scope="row" class="nombre">{{ a.nombreAsignatura }}</th>
+                    <td class="codigo">{{ a.codigoAsignatura }}</td>
+                    <td>
+                      @if (desasignandoId() === a.asignacionId) {
+                        <span class="accion-estado" role="status" aria-live="polite">
+                          <span class="accion-estado__spinner" aria-hidden="true"></span>
+                          Desasignando…
+                        </span>
+                      }
+                      <button
+                        type="button"
+                        class="btn btn--peligro btn--pequeno"
+                        [attr.aria-label]="'Desasignar ' + a.nombreAsignatura"
+                        [attr.aria-disabled]="desasignandoId() === a.asignacionId ? 'true' : null"
+                        (click)="desasignar(a.asignacionId)"
+                      >
+                        <app-icono nombre="prohibido" [tamano]="16" />
+                        <span>Desasignar</span>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <app-paginador
+            [total]="paginacion.total()"
+            [pagina]="paginacion.pagina()"
+            [tamanoPagina]="paginacion.tamanoPagina()"
+            (cambioPagina)="paginacion.irA($event)"
+            (cambioTamano)="paginacion.cambiarTamano($event)"
+          />
+        }
+      </div>
+
+      <div class="tarjeta">
+        <div class="seccion-cabecera">
+          <h2>Agregar materias a {{ nombreProfesorElegido() }}</h2>
+        </div>
+
+        @if (asignaturasActivas().length === 0 && !facultadId() && !programaId() && !cargandoMaterias()) {
+          <p class="estado-vista">No hay materias activas.</p>
+        } @else {
+          <div class="buscador">
+            <app-icono nombre="buscar" [tamano]="16" />
+            <input
+              type="search"
+              placeholder="Buscar por nombre o código..."
+              aria-label="Buscar materias por nombre o código"
+              [value]="filtroMateria()"
+              (input)="alEscribirFiltroMateria($event)"
+            />
+          </div>
+
+          @if (facultades().length > 0) {
+            <div class="filtros-materia">
+              <select
+                id="asignar-filtro-facultad"
+                class="selector"
+                aria-label="Filtrar materias por facultad"
+                (change)="alCambiarFacultad($event)"
+              >
+                <option value="" [selected]="facultadId() === ''">Todas las facultades</option>
+                @for (f of facultades(); track f.id) {
+                  <option [value]="f.id" [selected]="f.id === facultadId()">
+                    {{ f.nombre }}{{ f.estado === 'INACTIVO' ? ' (inactiva)' : '' }}
+                  </option>
+                }
+              </select>
+              <select
+                id="asignar-filtro-programa"
+                class="selector"
+                aria-label="Filtrar materias por programa"
+                (change)="alCambiarPrograma($event)"
+              >
+                <option value="" [selected]="programaId() === ''">Todos los programas</option>
+                @for (p of programasDeFacultad(); track p.id) {
+                  <option [value]="p.id" [selected]="p.id === programaId()">{{ p.nombre }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          @if (cargandoAsignaciones() || cargandoMaterias()) {
+            <p class="estado-vista" role="status">Cargando materias disponibles…</p>
+          } @else if (asignaturasActivas().length === 0) {
+            <p class="estado-vista">No hay materias activas en la facultad o el programa elegido.</p>
+          } @else if (asignaturasDisponibles().length === 0) {
+            <p class="estado-vista">Este profesor ya tiene todas las materias activas asignadas.</p>
+          } @else if (asignaturasFiltradas().length === 0) {
+            <p class="estado-vista">Ninguna materia coincide con la búsqueda.</p>
+          } @else {
+            <ul class="lista-seleccionable">
+              @for (a of asignaturasFiltradas(); track a.id) {
+                <li>
+                  <label>
+                    <input
+                      type="checkbox"
+                      [checked]="asignaturaEstaSeleccionada(a.id)"
+                      (change)="alternarAsignatura(a.id)"
+                    />
+                    <span>{{ a.nombre }}</span>
+                    <span class="dato-secundario">
+                      {{ a.codigo }} · {{ a.programaNombre }} · {{ a.facultadNombre }}
+                    </span>
+                  </label>
+                </li>
+              }
+            </ul>
+          }
+        }
+
+        <div class="barra">
+          <p class="resumen-seleccion">
+            Asignando a <strong>{{ nombreProfesorElegido() }}</strong>:
+            {{ asignaturasSeleccionadas().size }} materia(s) seleccionada(s)
+          </p>
+          @if (asignando()) {
+            <span class="accion-estado" role="status" aria-live="polite">
+              <span class="accion-estado__spinner" aria-hidden="true"></span>
+              Asignando…
+            </span>
+          }
+          <button
+            type="button"
+            class="btn btn--primario barra__registrar"
+            [attr.aria-disabled]="!haySeleccion() || asignando() ? 'true' : null"
+            (click)="asignar()"
+          >
+            <app-icono nombre="mas" [tamano]="16" />
+            Asignar seleccionadas
+          </button>
+        </div>
+
+        @if (resultado(); as r) {
+          <div class="resultado">
+            <h2>Resultado de la asignación</h2>
+            <p class="resultado__resumen">{{ resumenResultado() }}</p>
+            @if (r.creadas.length > 0) {
+              <div class="resultado__grupo">
+                <p class="resultado__titulo resultado__titulo--ok">
+                  <app-icono nombre="check" [tamano]="16" />
+                  Asignadas ({{ r.creadas.length }})
+                </p>
+                <ul>
+                  @for (c of r.creadas; track c.id) {
+                    <li>{{ c.nombreAsignatura }} ({{ c.codigoAsignatura }})</li>
+                  }
+                </ul>
+              </div>
+            }
+            @if (r.omitidas.length > 0) {
+              <div class="resultado__grupo">
+                <p class="resultado__titulo">
+                  <app-icono nombre="advertencia" [tamano]="16" />
+                  Ya estaban asignadas ({{ r.omitidas.length }})
+                </p>
+                <ul>
+                  @for (o of r.omitidas; track o.profesorId + o.asignaturaId) {
+                    <li>
+                      @if (descripcionMateria(o.asignaturaId); as materia) {
+                        <strong>{{ materia }}</strong> —
+                      }
+                      {{ o.motivo }}
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+            @if (r.rechazadas.length > 0) {
+              <div class="resultado__grupo">
+                <p class="resultado__titulo resultado__titulo--error">
+                  <app-icono nombre="prohibido" [tamano]="16" />
+                  No se pudieron asignar ({{ r.rechazadas.length }})
+                </p>
+                <ul>
+                  @for (rc of r.rechazadas; track rc.profesorId + rc.asignaturaId) {
+                    <li>
+                      @if (descripcionMateria(rc.asignaturaId); as materia) {
+                        <strong>{{ materia }}</strong> —
+                      }
+                      {{ rc.motivo }}
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        }
+      </div>
     }
-  </div>
+  }
 </section>
