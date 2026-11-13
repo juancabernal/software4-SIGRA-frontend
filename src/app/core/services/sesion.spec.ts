@@ -93,6 +93,7 @@ describe('SesionService', () => {
       expect(sesion.identidad().menu.map((item) => item.etiqueta)).toEqual([
         'Mis materias',
         'Mi progreso',
+        'Reportes por facultad',
         'Mi historial',
       ]);
     });

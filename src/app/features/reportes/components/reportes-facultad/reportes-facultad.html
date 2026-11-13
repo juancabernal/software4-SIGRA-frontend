@@ -1,0 +1,235 @@
+<div class="tablero" aria-labelledby="titulo-reportes-facultad">
+  <header class="tablero__cabecera">
+    <div>
+      <h2 id="titulo-reportes-facultad" class="tablero__titulo">
+        <app-icono nombre="edificio" [tamano]="20" />
+        {{ textos.titulo }}
+      </h2>
+      <p class="tablero__sub">{{ textos.subtitulo }}</p>
+    </div>
+    <span class="etiqueta-rol">{{ textos.etiquetaRol }}</span>
+  </header>
+
+  @if (institucional) {
+    <form class="filtros" (submit)="$event.preventDefault()" aria-label="Filtros de reportes por facultad">
+      <div class="campo">
+        <label for="filtro-semestre-facultad">Semestre</label>
+        <select
+          id="filtro-semestre-facultad"
+          (change)="cambiarSemestre($any($event.target).value)"
+        >
+          <option value="" [selected]="semestreId() === ''">Semestre activo</option>
+          @for (s of semestres(); track s.id) {
+            <option [value]="s.id" [selected]="s.id === semestreId()">{{ s.codigo }}</option>
+          }
+        </select>
+      </div>
+    </form>
+  }
+
+  <div class="resultado" aria-live="polite" [attr.aria-busy]="carga().estado === 'cargando'">
+    @switch (carga().estado) {
+      @case ('cargando') {
+        <p class="estado-vista" role="status">Cargando reportes por facultad…</p>
+      }
+      @case ('error') {
+        @if (carga(); as c) {
+          @if (c.estado === 'error') {
+            <div class="estado-vista estado-vista--error" role="alert">
+              <p>{{ c.error.mensaje }}</p>
+              <button type="button" class="btn" (click)="reintentar()">Reintentar</button>
+            </div>
+          }
+        }
+      }
+      @case ('listo') {
+        @if (resumen(); as r) {
+          @if (semestreCodigo(); as codigo) {
+            <p class="semestre">Semestre: <strong>{{ codigo }}</strong></p>
+          }
+
+          <!-- Resumen general del alcance del rol -->
+          <ul class="kpis" aria-label="Resumen general">
+            <li class="kpi kpi--{{ r.semaforo }}">
+              <span class="kpi__etiqueta">Promedio de logro</span>
+              <span class="kpi__valor">{{ r.promedio === null ? '—' : formatearNota(r.promedio) }}</span>
+              <span class="semaforo semaforo--{{ r.semaforo }}">
+                <span class="semaforo__punto" aria-hidden="true"></span>
+                {{ etiquetaSemaforo[r.semaforo] }}
+              </span>
+            </li>
+            <li class="kpi">
+              <span class="kpi__etiqueta">RA con nivel</span>
+              <span class="kpi__valor">{{ r.totalRa - r.raSinNivel }} / {{ r.totalRa }}</span>
+            </li>
+            <li class="kpi">
+              <span class="kpi__etiqueta">RA en nivel Bajo</span>
+              <span class="kpi__valor">
+                {{ r.porcentajeBajo === null ? '—' : formatearPorcentaje(r.porcentajeBajo) }}
+              </span>
+            </li>
+            @if (institucional) {
+              <li class="kpi">
+                <span class="kpi__etiqueta">Estudiantes en riesgo</span>
+                <span class="kpi__valor">{{ r.estudiantesEnRiesgo }}</span>
+              </li>
+              <li class="kpi">
+                <span class="kpi__etiqueta">Acciones de mejora convertidas</span>
+                <span class="kpi__valor">{{ r.accionesConvertidas }} / {{ r.accionesPropuestas }}</span>
+              </li>
+              <li class="kpi">
+                <span class="kpi__etiqueta">Materias con menos de {{ minRa }} RA</span>
+                <span class="kpi__valor">{{ r.materiasRaInsuficientes }}</span>
+              </li>
+            } @else {
+              <li class="kpi">
+                <span class="kpi__etiqueta">RA sin evaluar todavía</span>
+                <span class="kpi__valor">{{ r.raSinNivel }}</span>
+              </li>
+            }
+          </ul>
+
+          <!-- Navegación facultad › programa › materia -->
+          <nav class="migas" aria-label="Nivel del reporte">
+            <ol>
+              <li>
+                @if (facultad()) {
+                  <button type="button" class="migas__enlace" (click)="irAFacultades()">Facultades</button>
+                } @else {
+                  <span aria-current="page">Facultades</span>
+                }
+              </li>
+              @if (facultad(); as f) {
+                <li>
+                  @if (programa()) {
+                    <button type="button" class="migas__enlace" (click)="irAProgramas()">{{ f.nombre }}</button>
+                  } @else {
+                    <span aria-current="page">{{ f.nombre }}</span>
+                  }
+                </li>
+              }
+              @if (programa(); as p) {
+                <li><span aria-current="page">{{ p.nombre }}</span></li>
+              }
+            </ol>
+          </nav>
+
+          <ol class="ranking" [attr.aria-label]="'Ranking de ' + etiquetaNivelActual()">
+            @for (fila of filas(); track fila.id; let i = $index) {
+              <li class="fila fila--{{ fila.semaforo }}">
+                <div class="fila__cabecera">
+                  <span class="fila__posicion" aria-hidden="true">{{ i + 1 }}</span>
+                  <div class="fila__nombre">
+                    <h3>
+                      @if (fila.codigo) {
+                        <span class="fila__codigo">{{ fila.codigo }}</span>
+                      }
+                      {{ fila.nombre }}
+                    </h3>
+                    <p class="fila__detalle">
+                      {{ fila.cantidadMaterias }} {{ fila.cantidadMaterias === 1 ? 'materia' : 'materias' }} ·
+                      {{ fila.totalRa }} RA
+                    </p>
+                  </div>
+                  <div class="fila__promedio">
+                    <span class="fila__nota">{{ fila.promedio === null ? '—' : formatearNota(fila.promedio) }}</span>
+                    <span class="semaforo semaforo--{{ fila.semaforo }}">
+                      <span class="semaforo__punto" aria-hidden="true"></span>
+                      {{ etiquetaSemaforo[fila.semaforo] }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="distribucion" role="img" [attr.aria-label]="descripcionDistribucion(fila)">
+                  @if (fila.totalRa === 0) {
+                    <span class="distribucion__vacia">Sin RA evaluados en este semestre</span>
+                  } @else {
+                    @for (nivel of niveles; track nivel) {
+                      @if (fila.distribucion[nivel]) {
+                        <span
+                          class="distribucion__tramo distribucion__tramo--{{ nivel.toLowerCase() }}"
+                          [style.width.%]="ancho(fila, nivel)"
+                        ></span>
+                      }
+                    }
+                    @if (fila.distribucion.SIN_NIVEL) {
+                      <span
+                        class="distribucion__tramo distribucion__tramo--sin-nivel"
+                        [style.width.%]="ancho(fila, 'SIN_NIVEL')"
+                      ></span>
+                    }
+                  }
+                </div>
+                <ul class="leyenda" aria-hidden="true">
+                  @for (nivel of niveles; track nivel) {
+                    <li><span class="leyenda__muestra leyenda__muestra--{{ nivel.toLowerCase() }}"></span>{{ etiquetaNivel[nivel] }} {{ fila.distribucion[nivel] }}</li>
+                  }
+                  @if (fila.distribucion.SIN_NIVEL) {
+                    <li><span class="leyenda__muestra leyenda__muestra--sin-nivel"></span>Sin nivel {{ fila.distribucion.SIN_NIVEL }}</li>
+                  }
+                </ul>
+
+                <dl class="metricas">
+                  <div>
+                    <dt>RA en Bajo</dt>
+                    <dd>{{ fila.porcentajeBajo === null ? '—' : formatearPorcentaje(fila.porcentajeBajo) }}</dd>
+                  </div>
+                  @if (institucional) {
+                    <div>
+                      <dt>Estudiantes en riesgo</dt>
+                      <dd>{{ fila.estudiantesEnRiesgo }}</dd>
+                    </div>
+                    <div>
+                      <dt>Acciones de mejora</dt>
+                      <dd>{{ fila.accionesConvertidas }} de {{ fila.accionesPropuestas }} convertidas</dd>
+                    </div>
+                    <div>
+                      <dt>Con menos de {{ minRa }} RA</dt>
+                      <dd [class.alerta]="fila.materiasRaInsuficientes > 0">{{ fila.materiasRaInsuficientes }}</dd>
+                    </div>
+                  } @else {
+                    <div>
+                      <dt>RA sin evaluar</dt>
+                      <dd>{{ fila.raSinNivel }}</dd>
+                    </div>
+                  }
+                </dl>
+
+                @if (nivel() !== 'ASIGNATURA') {
+                  <button
+                    type="button"
+                    class="btn fila__abrir"
+                    [attr.aria-label]="etiquetaAbrir() + ' de ' + fila.nombre"
+                    (click)="abrir(fila)"
+                  >
+                    {{ etiquetaAbrir() }}
+                    <app-icono nombre="flecha-der" [tamano]="14" />
+                  </button>
+                }
+              </li>
+            } @empty {
+              <li class="estado-vista">No hay {{ etiquetaNivelActual() }} con datos en este nivel.</li>
+            }
+          </ol>
+        } @else {
+          <div class="estado-vista">
+            <p class="estado-vista__titulo">Sin datos disponibles</p>
+            <p>
+              @switch (vista) {
+                @case ('ESTUDIANTE') {
+                  Cuando tengas materias en curso, aquí verás tu desempeño por facultad.
+                }
+                @case ('PROFESOR') {
+                  Cuando tengas materias asignadas, aquí verás su rendimiento por facultad.
+                }
+                @default {
+                  Todavía no hay materias registradas para comparar.
+                }
+              }
+            </p>
+          </div>
+        }
+      }
+    }
+  </div>
+</div>

@@ -2,9 +2,10 @@ import { ChangeDetectionStrategy, Component, ElementRef, signal, viewChildren } 
 
 import { Icono } from '../../../../shared/ui/icono/icono';
 import { RendimientoRaTab } from '../rendimiento-ra-tab/rendimiento-ra-tab';
+import { ReportesFacultad } from '../reportes-facultad/reportes-facultad';
 import { RiesgoAcademicoTab } from '../riesgo-academico-tab/riesgo-academico-tab';
 
-type IdPestana = 'rendimiento-ra' | 'riesgo-academico';
+type IdPestana = 'rendimiento-ra' | 'riesgo-academico' | 'por-facultad';
 
 interface Pestana {
   id: IdPestana;
@@ -15,15 +16,17 @@ interface Pestana {
 export const PESTANAS: readonly Pestana[] = [
   { id: 'rendimiento-ra', etiqueta: 'Rendimiento por RA', icono: 'barras' },
   { id: 'riesgo-academico', etiqueta: 'Riesgo académico', icono: 'advertencia' },
+  { id: 'por-facultad', etiqueta: 'Reportes por facultad', icono: 'edificio' },
 ];
 
 /**
  * Shell del módulo Reportes (0000041): pestañas ARIA como Catálogo / Asignación docente.
- * R1 = rendimiento por RA; R6 = estudiantes con RA no alcanzados.
+ * R1 = rendimiento por RA; R6 = estudiantes con RA no alcanzados; «Reportes por facultad» =
+ * comparativo de facultades, programas y materias.
  */
 @Component({
   selector: 'app-reportes-page',
-  imports: [Icono, RendimientoRaTab, RiesgoAcademicoTab],
+  imports: [Icono, RendimientoRaTab, ReportesFacultad, RiesgoAcademicoTab],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reportes-page.html',
   styleUrl: './reportes-page.scss',

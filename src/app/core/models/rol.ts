@@ -57,6 +57,7 @@ export const PERFILES: Readonly<Record<Rol, PerfilRol>> = {
     menu: [
       { ruta: '/estudiante/materias', etiqueta: 'Mis materias', icono: 'libro' },
       { ruta: '/estudiante/progreso', etiqueta: 'Mi progreso', icono: 'barras' },
+      { ruta: '/estudiante/reportes-facultad', etiqueta: 'Reportes por facultad', icono: 'edificio' },
       { ruta: '/estudiante/historial', etiqueta: 'Mi historial', icono: 'reloj' },
     ],
   },
