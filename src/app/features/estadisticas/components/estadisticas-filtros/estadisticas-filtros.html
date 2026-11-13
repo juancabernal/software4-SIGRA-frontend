@@ -1,0 +1,118 @@
+  @if (cargandoAsignaturas()) {
+    <p class="estado-vista" role="status">Cargando materias…</p>
+  } @else if (errorAsignaturas(); as error) {
+    <div class="estado-vista estado-vista--error" role="alert">
+      <p>{{ error.mensaje }}</p>
+      <button type="button" class="btn" (click)="cargarAsignaturas()">
+        <app-icono nombre="recargar" [tamano]="16" />
+        Reintentar
+      </button>
+    </div>
+  } @else if (todas().length === 0) {
+    <div class="estado-vista">
+      <p class="estado-vista__titulo">No hay materias registradas</p>
+      <p>Registra una materia en el Catálogo académico para poder consultar sus estadísticas.</p>
+    </div>
+  } @else {
+    <div class="barra">
+      <label for="selector-semestre">Semestre</label>
+      @if (cargandoSemestres()) {
+        <p class="estado-inline" role="status">Cargando semestres…</p>
+      } @else if (errorSemestres(); as error) {
+        <div class="estado-inline estado-inline--error" role="alert">
+          <p>{{ error.mensaje }}</p>
+        </div>
+      } @else {
+        <select
+          id="selector-semestre"
+          class="selector"
+          [value]="semestreId()"
+          (change)="alCambiarSemestre($event)"
+        >
+          <option value="">Selecciona un semestre</option>
+          @for (s of semestres(); track s.id) {
+            <option [value]="s.id" [selected]="s.id === semestreId()">
+              {{ s.codigo }}{{ s.estado === 'ACTIVO' ? ' (activo)' : '' }}
+            </option>
+          }
+        </select>
+      }
+    </div>
+
+    <div class="barra">
+      <label for="selector-facultad">Facultad</label>
+      <select
+        id="selector-facultad"
+        class="selector"
+        [value]="facultadId()"
+        (change)="alCambiarFacultad($event)"
+      >
+        <option value="" [selected]="facultadId() === ''">Todas las facultades</option>
+        @for (f of facultades(); track f.id) {
+          <option [value]="f.id" [selected]="f.id === facultadId()">{{ f.nombre }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="barra">
+      <label for="selector-materia">Materia</label>
+      <select
+        id="selector-materia"
+        class="selector"
+        [value]="asignaturaId()"
+        (change)="alCambiarAsignatura($event)"
+      >
+        <option value="">
+          {{ asignaturas().length === 0 ? 'Sin materias en esta facultad' : 'Selecciona una materia' }}
+        </option>
+        @for (a of asignaturas(); track a.id) {
+          <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="barra">
+      <label for="selector-ra">Resultado de aprendizaje</label>
+      @if (cargandoRa()) {
+        <p class="estado-inline" role="status">Cargando RA…</p>
+      } @else if (errorRa(); as error) {
+        <div class="estado-inline estado-inline--error" role="alert">
+          <p>{{ error.mensaje }}</p>
+        </div>
+      } @else {
+        <select
+          id="selector-ra"
+          class="selector"
+          [value]="resultadoAprendizajeId()"
+          [attr.disabled]="
+            asignaturaId() === '' || resultadosActivos().length === 0 ? true : null
+          "
+          (change)="alCambiarRa($event)"
+        >
+          <option value="">
+            {{
+              asignaturaId() === ''
+                ? 'Elige primero una materia'
+                : resultadosActivos().length === 0
+                  ? 'Esta materia no tiene RA activos'
+                  : 'Selecciona un RA'
+            }}
+          </option>
+          @for (ra of resultadosActivos(); track ra.id) {
+            <option [value]="ra.id">{{ ra.codigo }}</option>
+          }
+        </select>
+      }
+    </div>
+
+    <div class="barra barra--acciones">
+      <ng-content />
+    </div>
+
+    @if (!cargandoSemestres() && !errorSemestres() && semestres().length === 0) {
+      <div class="estado-vista" role="status">
+        <p class="estado-vista__titulo">No tienes semestres con asignaturas</p>
+        <p>Aparecen aquí los semestres en los que tienes asignaturas asignadas.</p>
+      </div>
+    }
+  }

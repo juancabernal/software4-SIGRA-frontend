@@ -1,0 +1,109 @@
+<section class="pagina" aria-labelledby="titulo-acciones-mejora">
+  <header class="cabecera">
+    <div>
+      <h1 id="titulo-acciones-mejora">Acciones de mejora</h1>
+      <p class="cabecera__sub">
+        Acciones de mejora de un resultado de aprendizaje por semestre
+      </p>
+    </div>
+  </header>
+
+  <div class="aviso-zona" role="status" aria-live="polite">
+    @if (aviso(); as a) {
+      <div class="aviso" [class.aviso--error]="a.tono === 'error'">
+        <app-icono [nombre]="a.tono === 'ok' ? 'check' : 'advertencia'" [tamano]="16" />
+        <span>{{ a.texto }}</span>
+        <button
+          type="button"
+          class="aviso__cerrar"
+          aria-label="Cerrar aviso"
+          (click)="cerrarAviso()"
+        >
+          <app-icono nombre="cerrar" [tamano]="14" />
+        </button>
+      </div>
+    }
+  </div>
+
+  <div class="tarjeta">
+    <app-estadisticas-filtros (cambio)="alCambiarFiltros($event)" />
+
+    @if (puedeConsultar()) {
+      <div class="acciones-mejora">
+        <h2 class="acciones-mejora__titulo">Acciones de mejora</h2>
+        @switch (accionesEstado()) {
+          @case ('cargando') {
+            <p class="estado-inline" role="status">Cargando acciones de mejora…</p>
+          }
+          @case ('error') {
+            <div class="estado-inline estado-inline--error" role="alert">
+              <p>{{ accionesError()?.mensaje }}</p>
+            </div>
+          }
+          @case ('listo') {
+            @if (accionesMejora().length === 0) {
+              <p class="estado-inline">
+                No hay acciones de mejora registradas para este RA en este semestre.
+              </p>
+            } @else {
+              <ul class="lista-acciones">
+                @for (accion of accionesMejora(); track accion.id) {
+                  <li class="accion-mejora">
+                    <div class="accion-mejora__cabecera">
+                      <p class="accion-mejora__nombre">{{ accion.nombre }}</p>
+                      @if (accion.convertida) {
+                        <app-chip-estado etiqueta="Convertida" variante="ok" icono="check" />
+                      } @else {
+                        <app-chip-estado
+                          etiqueta="No convertida"
+                          variante="neutro"
+                          icono="reloj"
+                        />
+                      }
+                    </div>
+                    <p class="accion-mejora__descripcion">{{ accion.descripcion }}</p>
+                    <p class="accion-mejora__fecha">
+                      Registrada el {{ formatearFecha(accion.fechaPropuesta) }}
+                    </p>
+                    @if (accion.convertida) {
+                      <p class="accion-mejora__evaluacion">
+                        Ya se generó la evaluación a partir de esta acción.
+                      </p>
+                    } @else {
+                      <button type="button" class="btn" (click)="editarAccionMejora(accion)">
+                        <app-icono nombre="lapiz" [tamano]="16" />
+                        Editar
+                      </button>
+                      <button type="button" class="btn" (click)="abrirConversion(accion)">
+                        <app-icono nombre="flecha-der" [tamano]="16" />
+                        Convertir en evaluación
+                      </button>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+          }
+        }
+      </div>
+    } @else {
+      <div class="estado-vista">
+        <p>Elige materia, RA y semestre para ver las acciones de mejora.</p>
+      </div>
+    }
+  </div>
+
+  <app-accion-mejora-form-dialog
+    [abierto]="dialogoAbierto()"
+    [accion]="accionEnEdicion()"
+    (guardado)="alGuardarAccionMejora()"
+    (cancelar)="alCancelarAccionMejora()"
+  />
+
+  <app-conversion-accion-mejora-dialog
+    [abierto]="dialogoConversionAbierto()"
+    [accion]="accionEnConversion()"
+    (convertida)="alConvertirAccionMejora()"
+    (cancelar)="alCancelarConversion()"
+  />
+</section>

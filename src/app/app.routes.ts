@@ -93,18 +93,54 @@ export const routes: Routes = [
         title: 'Registro de notas y observaciones · SIGRA',
       },
       {
-        // RF-16: consulta de conclusiones (desempeño insuficiente) por materia, RA y semestre.
-        ...profesor,
+        // Mantis 0000048: la ruta vieja sigue llevando a la primera de las tres páginas de estadísticas.
         path: 'profesor/estadisticas',
+        pathMatch: 'full',
+        redirectTo: 'profesor/estadisticas/niveles-logro',
+      },
+      {
+        // RF-14 / RF-15: nivel de logro y rendimiento del RA por semestre.
+        ...profesor,
+        path: 'profesor/estadisticas/niveles-logro',
         loadComponent: () =>
-          import('./features/estadisticas/components/estadisticas-page/estadisticas-page').then(
-            (m) => m.EstadisticasPage,
+          import('./features/estadisticas/components/niveles-logro-page/niveles-logro-page').then(
+            (m) => m.NivelesLogroPage,
           ),
-        title: 'Estadísticas y ciclo de mejora · SIGRA',
+        title: 'Niveles de logro · SIGRA',
         data: {
           ...profesor.data,
-          titulo: 'Estadísticas y ciclo de mejora',
-          subtitulo: 'Distribución de logro por RA y acciones de mejora',
+          titulo: 'Niveles de logro',
+          subtitulo: 'Distribución de logro y rendimiento por RA',
+        },
+      },
+      {
+        // RF-16: conclusión (desempeño insuficiente) por materia, RA y semestre.
+        ...profesor,
+        path: 'profesor/estadisticas/conclusiones',
+        loadComponent: () =>
+          import('./features/estadisticas/components/conclusiones-page/conclusiones-page').then(
+            (m) => m.ConclusionesPage,
+          ),
+        title: 'Conclusiones · SIGRA',
+        data: {
+          ...profesor.data,
+          titulo: 'Conclusiones',
+          subtitulo: 'Conclusión de desempeño por RA y semestre',
+        },
+      },
+      {
+        // RF-17 / RF-18: acciones de mejora y su conversión en evaluación.
+        ...profesor,
+        path: 'profesor/estadisticas/acciones-mejora',
+        loadComponent: () =>
+          import('./features/estadisticas/components/acciones-mejora-page/acciones-mejora-page').then(
+            (m) => m.AccionesMejoraPage,
+          ),
+        title: 'Acciones de mejora · SIGRA',
+        data: {
+          ...profesor.data,
+          titulo: 'Acciones de mejora',
+          subtitulo: 'Acciones registradas por RA y semestre',
         },
       },
       {
