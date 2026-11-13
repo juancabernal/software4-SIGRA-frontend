@@ -56,11 +56,12 @@ describe('ReportesPage', () => {
     });
   }
 
-  it('muestra el título y las dos pestañas en orden', () => {
+  it('muestra el título y las tres pestañas en orden', () => {
     expect(html.querySelector('h1')?.textContent).toContain('Reportes');
     expect(pestanas().map((p) => p.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
       'Rendimiento por RA',
       'Riesgo académico',
+      'Reportes por facultad',
     ]);
   });
 

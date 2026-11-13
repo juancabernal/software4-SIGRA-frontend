@@ -285,6 +285,21 @@ export const routes: Routes = [
           requisito: 'RF-22',
         },
       },
+      {
+        // «Reportes por facultad»: el estudiante ve su propio desempeño agrupado por facultad.
+        ...estudiante,
+        path: 'estudiante/reportes-facultad',
+        loadComponent: () =>
+          import('./features/reportes/components/reportes-facultad/reportes-facultad').then(
+            (m) => m.ReportesFacultad,
+          ),
+        title: 'Reportes por facultad · SIGRA',
+        data: {
+          ...estudiante.data,
+          titulo: 'Reportes por facultad',
+          subtitulo: 'Tu desempeño por facultad, programa y materia · solo lectura',
+        },
+      },
     ],
   },
   { path: '**', redirectTo: '' },
