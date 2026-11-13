@@ -368,6 +368,26 @@ describe('AsignacionDocentePage', () => {
     expect(textoCompacto('.resumen-seleccion')).toBe('Asignando a Ana Activa: 1 materia(s) seleccionada(s)');
   });
 
+  it('el resumen avisa de las materias marcadas que el buscador dejó fuera de la lista', async () => {
+    await elegirProfesor();
+    casillasDeAgregar()[0].click(); // Cálculo
+    fixture.detectChanges();
+
+    const buscador = html.querySelector('.buscador input') as HTMLInputElement;
+    buscador.value = 'fis';
+    buscador.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(textoCompacto('.resumen-seleccion')).toBe(
+      'Asignando a Ana Activa: 1 materia(s) seleccionada(s) (1 fuera de la lista actual por el buscador o el filtro)',
+    );
+
+    buscador.value = '';
+    buscador.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(textoCompacto('.resumen-seleccion')).toBe('Asignando a Ana Activa: 1 materia(s) seleccionada(s)');
+  });
+
   it('al cambiar de profesor se empieza de cero: se descartan las materias marcadas', async () => {
     await elegirProfesor();
     casillasDeAgregar()[0].click();

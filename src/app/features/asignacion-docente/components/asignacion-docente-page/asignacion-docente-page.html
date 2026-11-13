@@ -230,6 +230,9 @@
           <p class="resumen-seleccion">
             Asignando a <strong>{{ nombreProfesorElegido() }}</strong>:
             {{ asignaturasSeleccionadas().size }} materia(s) seleccionada(s)
+            @if (seleccionadasOcultas() > 0) {
+              ({{ seleccionadasOcultas() }} fuera de la lista actual por el buscador o el filtro)
+            }
           </p>
           @if (asignando()) {
             <span class="accion-estado" role="status" aria-live="polite">

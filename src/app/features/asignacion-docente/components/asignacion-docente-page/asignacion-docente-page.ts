@@ -166,6 +166,15 @@ export class AsignacionDocentePage {
     );
   });
 
+  /**
+   * Materias marcadas que el buscador o el filtro de facultad/programa dejaron fuera de la lista:
+   * se asignan igual, así que el resumen las cuenta aparte para que no sorprendan.
+   */
+  protected readonly seleccionadasOcultas = computed(() => {
+    const visibles = new Set(this.asignaturasFiltradas().map((a) => a.id));
+    return [...this.asignaturasSeleccionadas()].filter((id) => !visibles.has(id)).length;
+  });
+
   // ── Asignar ────────────────────────────────────────────────────────
   protected readonly asignando = signal(false);
   protected readonly resultado = signal<ResultadoAsignacionMasiva | null>(null);

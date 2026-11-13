@@ -40,6 +40,8 @@ h1 {
 
   span {
     flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 }
 
@@ -71,16 +73,21 @@ h1 {
   box-shadow: var(--sg-shadow-card);
 }
 
+// Los títulos de las tarjetas comparten estilo.
+.paso h2,
+.seccion-cabecera h2,
+.resultado h2 {
+  min-width: 0;
+  margin: 0;
+  font-family: var(--sg-font-titulo);
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
 .seccion-cabecera {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-
-  h2 {
-    margin: 0;
-    font-family: var(--sg-font-titulo);
-    font-size: 1rem;
-  }
 }
 
 .contador {
@@ -97,17 +104,12 @@ h1 {
 .paso {
   display: grid;
   gap: 0.6rem;
-
-  h2 {
-    margin: 0;
-    font-family: var(--sg-font-titulo);
-    font-size: 1rem;
-  }
 }
 
 // ── Profesor: buscador y profesor elegido ────────────────────────────
 .lista-profesores {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.25rem;
   max-height: 16rem;
   overflow-y: auto;
@@ -151,6 +153,11 @@ h1 {
   font-weight: 600;
 }
 
+.profesor-opcion__nombre,
+.profesor-opcion .dato-secundario {
+  overflow-wrap: anywhere;
+}
+
 .profesor-elegido {
   display: flex;
   flex-wrap: wrap;
@@ -191,11 +198,13 @@ h1 {
   color: var(--sg-ink);
   font-size: 1.0625rem;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .profesor-elegido__correo {
   color: var(--sg-ink-muted);
   font-size: 0.8125rem;
+  overflow-wrap: anywhere;
 }
 
 .barra {
@@ -280,6 +289,7 @@ h1 {
 // ── Materias por agregar ─────────────────────────────────────────────
 .lista-seleccionable {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.25rem;
   max-height: 18rem;
   overflow-y: auto;
@@ -299,11 +309,15 @@ h1 {
 
   label {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     column-gap: 0.5rem;
     padding: 0.45rem 0.6rem;
     cursor: pointer;
+
+    span {
+      overflow-wrap: anywhere;
+    }
   }
 }
 
@@ -311,6 +325,7 @@ h1 {
   grid-column: 2;
   color: var(--sg-ink-muted);
   font-size: 0.75rem;
+  overflow-wrap: anywhere;
 }
 
 // ── Tabla de materias asignadas ──────────────────────────────────────
@@ -347,6 +362,7 @@ tbody td {
 .nombre {
   color: var(--sg-ink);
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .codigo {
@@ -360,12 +376,6 @@ tbody td {
   gap: 0.75rem;
   padding-top: 0.75rem;
   border-top: 1px solid var(--sg-divider);
-
-  h2 {
-    margin: 0;
-    font-family: var(--sg-font-titulo);
-    font-size: 1rem;
-  }
 }
 
 .resultado__grupo {
@@ -373,6 +383,7 @@ tbody td {
     margin: 0.3rem 0 0;
     padding-left: 1.2rem;
     font-size: 0.8125rem;
+    overflow-wrap: anywhere;
   }
 }
 
