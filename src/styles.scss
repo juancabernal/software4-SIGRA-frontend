@@ -210,15 +210,15 @@
   }
 }
 
-/* Cancelar: un rojo MUY clarito — insinúa "descartar", sin la fuerza visual de Peligro
- * (que es para Inactivar/Desasignar). Contraste texto/fondo verificado en 6.9:1. */
+/* Cancelar: mismo azul neutro que el resto de botones — "descartar" no necesita su propio
+ * color, solo distinguirse por el texto. Misma receta que .btn / .btn--secundario. */
 .btn--cancelar {
-  border-color: #9a2e22;
-  background: #fbf3f2;
-  color: #9a2e22;
+  border-color: var(--sg-navy);
+  background: var(--sg-secondary-hover);
+  color: var(--sg-navy);
 
   &:hover:not(:disabled):not([aria-disabled='true']) {
-    background: color-mix(in srgb, #fbf3f2 60%, #9a2e22);
+    background: color-mix(in srgb, var(--sg-secondary-hover) 40%, var(--sg-navy));
   }
 }
 
