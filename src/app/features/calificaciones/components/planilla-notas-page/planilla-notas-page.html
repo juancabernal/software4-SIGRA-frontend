@@ -1,6 +1,6 @@
 <section class="pagina" aria-labelledby="titulo-notas">
   <header class="cabecera">
-    <div>
+    <div class="cabecera__texto">
       <h1 id="titulo-notas">Registro de notas y observaciones</h1>
       <p class="cabecera__sub">Planilla de notas por evaluación</p>
     </div>
@@ -239,6 +239,7 @@
                           <button
                             type="button"
                             class="btn btn--fila"
+                            [class.btn--primario]="!f.calificacionId"
                             [attr.aria-disabled]="puedeEditar(f) ? null : 'true'"
                             [attr.title]="
                               puedeEditar(f)

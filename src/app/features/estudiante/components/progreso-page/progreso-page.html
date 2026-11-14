@@ -1,11 +1,16 @@
 <section class="pagina" aria-labelledby="titulo-progreso">
-  <header class="cabecera"><h1 id="titulo-progreso">Mi progreso</h1><p>Avance de tus materias en curso</p></header>
+  <header class="cabecera">
+    <div class="cabecera__texto">
+      <h1 id="titulo-progreso">Mi progreso</h1>
+      <p>Avance de tus materias en curso</p>
+    </div>
+  </header>
   @if (cargando()) {
-    <p class="estado" role="status" aria-busy="true">Cargando tu progreso…</p>
+    <p class="estado-vista" role="status" aria-busy="true">Cargando tu progreso…</p>
   } @else if (error(); as mensaje) {
-    <div class="estado error" role="alert"><p>{{ mensaje.mensaje }}</p><button type="button" class="btn" (click)="reintentar()">Reintentar</button></div>
+    <div class="estado-vista estado-vista--error" role="alert"><p>{{ mensaje.mensaje }}</p><button type="button" class="btn" (click)="reintentar()">Reintentar</button></div>
   } @else if (materias().length === 0) {
-    <p class="estado estado__titulo">Aún no tienes asignaturas en curso</p>
+    <p class="estado-vista">Aún no tienes asignaturas en curso</p>
   } @else {
     @for (materia of materias(); track materia.matriculaId) {
       <article class="tarjeta">

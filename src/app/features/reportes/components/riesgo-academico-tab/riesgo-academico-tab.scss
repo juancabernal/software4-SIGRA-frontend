@@ -96,11 +96,6 @@
   overflow-x: auto;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
 th,
 td {
   padding: 10px 12px;
@@ -150,16 +145,6 @@ thead th {
 .chip-ra__txt {
   font-size: 0.8125rem;
   color: var(--sg-ink-muted, #64748b);
-}
-
-.estado-vista {
-  padding: 32px 16px;
-  text-align: center;
-  color: var(--sg-ink-muted, #64748b);
-
-  &--error {
-    color: var(--sg-error-fg, #c0392b);
-  }
 }
 
 .estado-vista__titulo {

@@ -1,11 +1,16 @@
 <section class="pagina" aria-labelledby="titulo-historial">
-  <header class="cabecera"><h1 id="titulo-historial">Mi historial</h1><p>Materias cursadas y desvinculadas</p></header>
+  <header class="cabecera">
+    <div class="cabecera__texto">
+      <h1 id="titulo-historial">Mi historial</h1>
+      <p>Materias cursadas y desvinculadas</p>
+    </div>
+  </header>
   @if (cargando()) {
-    <p class="estado" role="status" aria-busy="true">Cargando tu historial…</p>
+    <p class="estado-vista" role="status" aria-busy="true">Cargando tu historial…</p>
   } @else if (error(); as mensaje) {
-    <div class="estado error" role="alert"><p>{{ mensaje.mensaje }}</p><button type="button" class="btn" (click)="reintentar()">Reintentar</button></div>
+    <div class="estado-vista estado-vista--error" role="alert"><p>{{ mensaje.mensaje }}</p><button type="button" class="btn" (click)="reintentar()">Reintentar</button></div>
   } @else if (grupos().length === 0) {
-    <p class="estado estado__titulo">Aún no tienes materias en tu historial</p>
+    <p class="estado-vista">Aún no tienes materias en tu historial</p>
   } @else {
     @for (grupo of grupos(); track grupo.semestre) {
       <section class="grupo" [attr.aria-labelledby]="'semestre-' + grupo.semestre">

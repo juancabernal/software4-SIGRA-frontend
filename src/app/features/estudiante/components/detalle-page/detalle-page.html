@@ -1,16 +1,16 @@
 <section class="pagina" aria-labelledby="titulo-detalle">
   @if (cargando()) {
     <h1 id="titulo-detalle">Detalle de materia</h1>
-    <p class="estado" role="status" aria-busy="true">Cargando la materia…</p>
+    <p class="estado-vista" role="status" aria-busy="true">Cargando la materia…</p>
   } @else if (noEncontrada()) {
     <h1 id="titulo-detalle">Materia no encontrada</h1>
-    <div class="estado" role="alert">
+    <div class="estado-vista" role="alert">
       <p>No encontramos esta materia en tu registro académico</p>
       <a class="enlace" routerLink="/estudiante/materias">Volver a Mis materias</a>
     </div>
   } @else if (error(); as mensaje) {
     <h1 id="titulo-detalle">Detalle de materia</h1>
-    <div class="estado error" role="alert"><p>{{ mensaje.mensaje }}</p></div>
+    <div class="estado-vista estado-vista--error" role="alert"><p>{{ mensaje.mensaje }}</p></div>
   } @else if (materia(); as materia) {
     <header class="cabecera">
       <div>
@@ -28,7 +28,7 @@
     </a>
     <p class="aviso">El nivel de logro corresponde al último cálculo del sistema</p>
     @if (materia.resultadosAprendizaje.length === 0) {
-      <p class="estado">Esta materia aún no tiene resultados de aprendizaje registrados</p>
+      <p class="estado-vista">Esta materia aún no tiene resultados de aprendizaje registrados</p>
     } @else {
       @for (ra of materia.resultadosAprendizaje; track ra.codigo) {
         <article class="tarjeta">
@@ -44,7 +44,7 @@
             <p class="nota">Aún no hay calificaciones suficientes para calcular el nivel de este RA</p>
           }
           @if (ra.evaluaciones.length === 0) {
-            <p class="estado">Aún no hay evaluaciones registradas para este resultado de aprendizaje</p>
+            <p class="estado-vista">Aún no hay evaluaciones registradas para este resultado de aprendizaje</p>
           } @else {
             <div class="tabla-contenedor">
               <table>
