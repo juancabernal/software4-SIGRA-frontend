@@ -50,18 +50,34 @@ describe('ReportesPage', () => {
           estudiantes: [],
           mensaje: 'Sin datos disponibles',
         });
+      } else if (req.request.url.includes('/reportes/matriculas-programa-semestre')) {
+        req.flush({
+          semestreId: null,
+          programaId: null,
+          facultadId: null,
+          resumen: {
+            totalMatriculas: 0,
+            activas: 0,
+            desvinculadas: 0,
+            estudiantesDistintos: 0,
+            programas: 0,
+            semestres: 0,
+          },
+          filas: [],
+        });
       } else {
         req.flush([]);
       }
     });
   }
 
-  it('muestra el título y las tres pestañas en orden', () => {
+  it('muestra el título y las cuatro pestañas en orden', () => {
     expect(html.querySelector('h1')?.textContent).toContain('Reportes');
     expect(pestanas().map((p) => p.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
       'Rendimiento por RA',
       'Riesgo académico',
       'Reportes por facultad',
+      'Matrículas por programa',
     ]);
   });
 
@@ -79,5 +95,15 @@ describe('ReportesPage', () => {
 
     expect(html.querySelector('app-rendimiento-ra-tab')).toBeNull();
     expect(html.querySelector('app-riesgo-academico-tab')).not.toBeNull();
+  });
+
+  it('muestra la pestaña R2 y su componente', async () => {
+    pestanas()[3].click();
+    fixture.detectChanges();
+    flushPendientes();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(html.querySelector('app-matriculas-programa-semestre-tab')).not.toBeNull();
   });
 });
