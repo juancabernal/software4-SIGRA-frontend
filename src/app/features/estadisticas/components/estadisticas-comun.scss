@@ -21,30 +21,6 @@
   justify-content: flex-end;
 }
 
-.barra label {
-  color: var(--sg-ink-body);
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.selector {
-  flex: 1 1 18rem;
-  max-width: 32rem;
-  padding: 0.55rem 0.75rem;
-  border: 1px solid var(--sg-border);
-  border-radius: var(--sg-radius-control);
-  background: var(--sg-field);
-  color: var(--sg-ink-body);
-  font: inherit;
-  font-size: 0.875rem;
-  cursor: pointer;
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-}
-
 .estado-inline {
   flex: 1 1 18rem;
   margin: 0;

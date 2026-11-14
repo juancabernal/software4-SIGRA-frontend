@@ -313,6 +313,7 @@
  * No se redefinen en cada componente: si hay que cambiarlos, se cambia aquí. */
 section.pagina {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.25rem;
   max-width: 72rem;
   margin: 0 auto;
@@ -563,4 +564,62 @@ details.plegable .tarjeta__titulo {
     color: var(--sg-navy);
     text-decoration: underline;
   }
+}
+
+/* ── Barra de filtros común (Mantis 0042) ────────────────────────────────
+ * Todas las pantallas filtran igual: la etiqueta va ARRIBA del control, los campos se
+ * reparten el ancho en una cuadrícula y el botón "Limpiar" queda al final. Dentro de una
+ * tarjeta la barra lleva relleno y una línea inferior. */
+.filtros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  align-items: end;
+  gap: 0.9rem 1rem;
+}
+
+.tarjeta > .filtros {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--sg-divider);
+}
+
+.filtro,
+.filtros > .campo,
+.filtros > .campo-filtro {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  max-width: none;
+
+  > label,
+  > span:first-child {
+    color: var(--sg-ink-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+}
+
+.filtros select,
+.filtros .selector,
+.filtros input:not([type='checkbox']):not([type='radio']) {
+  width: 100%;
+  max-width: none;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-control);
+  background: var(--sg-field);
+  color: var(--sg-ink-body);
+  font: inherit;
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+.filtros select {
+  cursor: pointer;
 }

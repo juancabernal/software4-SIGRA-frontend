@@ -43,37 +43,6 @@
 }
 
 // ── Filtros ──────────────────────────────────────────────────────────
-.filtros {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.campo {
-  display: grid;
-  gap: 4px;
-  min-width: 13rem;
-
-  label {
-    font-weight: 600;
-  }
-
-  select {
-    min-height: 40px;
-    padding: 0 12px;
-    border: 1px solid var(--sg-border, #e2e8f0);
-    border-radius: var(--sg-radius-control, 12px);
-    background: var(--sg-field, #f8fafc);
-    color: inherit;
-    font: inherit;
-
-    &:focus-visible {
-      outline: 2px solid var(--sg-navy, #1b3a5c);
-      outline-offset: 2px;
-    }
-  }
-}
-
 .resultado {
   display: grid;
   gap: 16px;

@@ -3,3 +3,9 @@
 .barra--acciones:empty {
   display: none;
 }
+
+// La barra de filtros comun vive en styles.scss; aqui solo va dentro del host, no de la tarjeta.
+.filtros {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--sg-divider);
+}

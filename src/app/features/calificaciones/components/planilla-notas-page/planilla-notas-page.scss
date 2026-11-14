@@ -9,42 +9,6 @@
 }
 
 // ── Filtros ──
-.filtros {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: 0.9rem 1rem;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--sg-divider);
-}
-
-.filtro {
-  display: grid;
-  gap: 0.35rem;
-
-  label {
-    color: var(--sg-ink-body);
-    font-size: 0.875rem;
-    font-weight: 600;
-  }
-}
-
-.selector {
-  width: 100%;
-  padding: 0.55rem 0.75rem;
-  border: 1px solid var(--sg-border);
-  border-radius: var(--sg-radius-control);
-  background: var(--sg-field);
-  color: var(--sg-ink-body);
-  font: inherit;
-  font-size: 0.875rem;
-  cursor: pointer;
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-}
-
 .estado-inline {
   margin: 0;
   color: var(--sg-ink-muted);

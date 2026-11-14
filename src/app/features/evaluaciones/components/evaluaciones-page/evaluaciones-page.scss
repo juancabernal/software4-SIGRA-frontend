@@ -9,46 +9,6 @@
 }
 
 // ── Selectores ──
-.filtros {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-  gap: 0.9rem;
-  padding: 1.1rem 1.25rem;
-  border-bottom: 1px solid var(--sg-divider);
-}
-
-.filtro {
-  display: grid;
-  gap: 0.35rem;
-  min-width: 0;
-
-  label {
-    color: var(--sg-ink-muted);
-    font-size: 0.6875rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  select {
-    width: 100%;
-    padding: 0.55rem 0.75rem;
-    border: 1px solid var(--sg-border);
-    border-radius: var(--sg-radius-control);
-    background: var(--sg-field);
-    color: var(--sg-ink-body);
-    font: inherit;
-    font-size: 0.875rem;
-    text-overflow: ellipsis;
-    cursor: pointer;
-
-    &:disabled {
-      color: var(--sg-ink-muted);
-      cursor: not-allowed;
-    }
-  }
-}
-
 // ── Resumen del RA y porcentaje ──
 .resumen {
   display: flex;

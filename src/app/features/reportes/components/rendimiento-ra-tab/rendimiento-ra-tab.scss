@@ -7,6 +7,7 @@
 
 .panel-reporte {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 
@@ -16,13 +17,6 @@
   font-size: 0.875rem;
 }
 
-.filtros {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 16px;
-}
-
 .campo__ayuda {
   max-width: 16rem;
   margin: 0;
@@ -30,38 +24,9 @@
   font-size: 0.8rem;
 }
 
-.campo {
-  display: grid;
-  gap: 4px;
-  min-width: 13rem;
-
-  select:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-
-  label {
-    font-weight: 600;
-  }
-
-  select {
-    min-height: 40px;
-    padding: 0 12px;
-    border: 1px solid var(--sg-border, #e2e8f0);
-    border-radius: var(--sg-radius-control, 12px);
-    background: var(--sg-field, #f8fafc);
-    color: inherit;
-    font: inherit;
-
-    &:focus-visible {
-      outline: 2px solid var(--sg-navy, #1b3a5c);
-      outline-offset: 2px;
-    }
-  }
-}
-
 .resultado {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 
