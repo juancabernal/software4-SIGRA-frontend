@@ -13,11 +13,11 @@
     <p class="estado-vista">Aún no tienes asignaturas en curso</p>
   } @else {
     @for (materia of materias(); track materia.matriculaId) {
-      <article class="tarjeta">
-        <header class="cabecera-tarjeta">
+      <details class="tarjeta plegable" [open]="$first">
+        <summary class="plegable__resumen cabecera-tarjeta">
           <div><p class="codigo">{{ materia.asignaturaCodigo }}</p><h2>{{ materia.asignaturaNombre }}</h2><p>{{ materia.semestreCodigo }}</p></div>
           <app-chip-estado [etiqueta]="etiquetas[materia.situacion]" variante="ok" />
-        </header>
+        </summary>
         @for (ra of materia.resultadosAprendizaje; track ra.codigo) {
           <div class="ra">
             <div><strong>{{ ra.codigo }}</strong><span>{{ ra.descripcion }}</span></div>
@@ -27,7 +27,7 @@
           </div>
         }
         <a class="enlace" [routerLink]="['/estudiante/materias', materia.matriculaId]" [attr.aria-label]="'Ver detalle de ' + materia.asignaturaNombre">Ver detalle</a>
-      </article>
+      </details>
     }
   }
 </section>

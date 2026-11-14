@@ -34,13 +34,6 @@ tbody tr:hover {
   font-weight: 600;
 }
 
-.acciones {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
-}
-
 .estado-vista__titulo {
   color: var(--sg-navy);
   font-family: var(--sg-font-titulo);

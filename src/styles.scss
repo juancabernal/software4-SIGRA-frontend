@@ -483,3 +483,63 @@ tbody td {
   font-size: 0.8125rem;
   cursor: pointer;
 }
+
+/* ── Acciones de fila en una sola línea (Mantis 0042) ────────────────────
+ * Ver / Modificar / Inactivar van siempre lado a lado y en el mismo orden;
+ * la columna se ajusta al contenido en vez de apilar los botones. */
+.acciones {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.4rem;
+
+  .btn--pequeno,
+  .btn-ghost {
+    min-width: 0;
+  }
+}
+
+td:has(> .acciones) {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* ── Tarjeta plegable (Mantis 0042) ──────────────────────────────────────
+ * Para listas largas (Reportes, Mi progreso): solo la primera va abierta, el resto se
+ * abre con un clic. Usa <details>, así que funciona con teclado y lector de pantalla. */
+details.plegable > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  list-style: none;
+  cursor: pointer;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &::after {
+    content: '';
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-left: auto;
+    border-right: 2px solid var(--sg-ink-muted);
+    border-bottom: 2px solid var(--sg-ink-muted);
+    transform: rotate(45deg);
+    transition: transform var(--sg-transition);
+  }
+}
+
+details.plegable[open] > summary {
+  margin-bottom: 0.75rem;
+
+  &::after {
+    transform: rotate(-135deg);
+  }
+}
+
+details.plegable .tarjeta__titulo {
+  margin: 0;
+}

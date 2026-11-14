@@ -88,13 +88,6 @@ tbody tr:hover {
   color: var(--sg-ink-muted);
 }
 
-.acciones {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
-}
-
 // ── Estados de la vista ──────────────────────────────────────────────
 .estado-vista__titulo {
   color: var(--sg-navy);
