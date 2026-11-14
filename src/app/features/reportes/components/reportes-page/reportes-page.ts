@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, ElementRef, signal, viewChildren } from '@angular/core';
 
 import { Icono } from '../../../../shared/ui/icono/icono';
+import { MatriculasProgramaSemestreTab } from '../matriculas-programa-semestre-tab/matriculas-programa-semestre-tab';
 import { RendimientoRaTab } from '../rendimiento-ra-tab/rendimiento-ra-tab';
 import { ReportesFacultad } from '../reportes-facultad/reportes-facultad';
 import { RiesgoAcademicoTab } from '../riesgo-academico-tab/riesgo-academico-tab';
 
-type IdPestana = 'rendimiento-ra' | 'riesgo-academico' | 'por-facultad';
+type IdPestana = 'rendimiento-ra' | 'riesgo-academico' | 'por-facultad' | 'matriculas-programa-semestre';
 
 interface Pestana {
   id: IdPestana;
@@ -17,6 +18,7 @@ export const PESTANAS: readonly Pestana[] = [
   { id: 'rendimiento-ra', etiqueta: 'Rendimiento por RA', icono: 'barras' },
   { id: 'riesgo-academico', etiqueta: 'Riesgo académico', icono: 'advertencia' },
   { id: 'por-facultad', etiqueta: 'Reportes por facultad', icono: 'edificio' },
+  { id: 'matriculas-programa-semestre', etiqueta: 'Matrículas por programa', icono: 'personas' },
 ];
 
 /**
@@ -26,7 +28,7 @@ export const PESTANAS: readonly Pestana[] = [
  */
 @Component({
   selector: 'app-reportes-page',
-  imports: [Icono, RendimientoRaTab, ReportesFacultad, RiesgoAcademicoTab],
+  imports: [Icono, MatriculasProgramaSemestreTab, RendimientoRaTab, ReportesFacultad, RiesgoAcademicoTab],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reportes-page.html',
   styleUrl: './reportes-page.scss',

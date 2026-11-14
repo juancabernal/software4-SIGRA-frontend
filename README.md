@@ -80,6 +80,7 @@ Las vistas se construyen en paralelo con el módulo backend correspondiente. Cad
 | --- | --- | --- |
 | Juan Camilo Bernal | Registro de acción de mejora y conversión a evaluación, mostrando la evaluación generada | RF-17, RF-18 |
 | Santiago Torres | Vista consolidada del profesor, reporte de RA por asignatura, reporte de logro por programa y vista del estudiante con «Sin evaluar» | RF-20, RF-21a/b, RF-22 |
+| Tomás Gómez | Reporte R2 de matrículas por programa y semestre para coordinación académica | R2 |
 
 ### Responsabilidades transversales
 
