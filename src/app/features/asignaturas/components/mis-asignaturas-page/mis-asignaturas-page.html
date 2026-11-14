@@ -1,7 +1,6 @@
 <section class="pagina" [attr.aria-labelledby]="'titulo-' + vista().toLowerCase()">
   <header class="cabecera">
-    <div>
-      <p class="sobretitulo">SIGRA · {{ esProfesor() ? 'Profesor' : 'Estudiante' }}</p>
+    <div class="cabecera__texto">
       <h1 [id]="'titulo-' + vista().toLowerCase()">{{ titulo() }}</h1>
       <p>{{ subtitulo() }}</p>
     </div>

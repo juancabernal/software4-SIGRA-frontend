@@ -116,3 +116,40 @@ Si agregas o modificas un botón, revisa que:
 - Si es un botón de "+ Registrar", lleve el nombre de la entidad; si es el de enviar dentro del
   diálogo, sea genérico.
 - Tenga su icono.
+
+## Reglas añadidas en 0000042
+
+- **Inactivar siempre es rojo** (`btn btn--peligro btn--pequeno`) en todas las pantallas. No se usa
+  `.btn-ghost` para acciones destructivas.
+- **Hover único.** Todo botón azul (`.btn`, `.btn--secundario`, `.btn--cancelar`) pasa a
+  `--sg-hover-suave` al pasar el cursor: un tono más intenso, con el texto navy siempre legible.
+  Ya no se mezcla con navy (antes el texto de "Modificar" quedaba ilegible).
+- **Registrar ≠ Modificar.** Donde un mismo botón sirve para ambos (planilla de notas), "Registrar"
+  va en navy sólido (`btn--primario`) y "Modificar" en azul claro, además del icono (+ / lápiz).
+
+## Estructura común de pantalla (0000042)
+
+El formato de todas las pantallas se define **una sola vez** en `src/styles.scss`; los componentes
+no lo redefinen:
+
+| Elemento | Clase | Valor |
+|---|---|---|
+| Contenedor | `section.pagina` | ancho máx. 72 rem, separación 1,25 rem |
+| Título | `h1` dentro de `.pagina` | 1,5 rem, navy, negrita |
+| Cabecera | `.cabecera` + `.cabecera__texto` | título y subtítulo a la izquierda, botón principal a la derecha |
+| Avisos | `.aviso`, `.aviso--error`, `.aviso-zona` | igual en todo el sistema |
+| Vacío / cargando / error | `.estado-vista`, `.estado-vista--error` | una sola forma |
+| Tablas | `table`, `thead th`, `tbody td`, `.tabla-contenedor` | mismo relleno y encabezado |
+| Buscador y selector | `.buscador`, `.selector` | mismo estilo |
+
+Plantilla de cabecera:
+
+```html
+<header class="cabecera">
+  <div class="cabecera__texto">
+    <h1 id="titulo-x">Título</h1>
+    <p>Subtítulo breve.</p>
+  </div>
+  <button type="button" class="btn btn--primario">Registrar algo</button>
+</header>
+```

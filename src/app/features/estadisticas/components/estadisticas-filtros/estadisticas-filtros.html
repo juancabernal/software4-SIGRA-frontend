@@ -14,7 +14,8 @@
       <p>Registra una materia en el Catálogo académico para poder consultar sus estadísticas.</p>
     </div>
   } @else {
-    <div class="barra">
+    <div class="filtros">
+    <div class="filtro">
       <label for="selector-semestre">Semestre</label>
       @if (cargandoSemestres()) {
         <p class="estado-inline" role="status">Cargando semestres…</p>
@@ -39,7 +40,7 @@
       }
     </div>
 
-    <div class="barra">
+    <div class="filtro">
       <label for="selector-facultad">Facultad</label>
       <select
         id="selector-facultad"
@@ -54,7 +55,7 @@
       </select>
     </div>
 
-    <div class="barra">
+    <div class="filtro">
       <label for="selector-materia">Materia</label>
       <select
         id="selector-materia"
@@ -71,7 +72,7 @@
       </select>
     </div>
 
-    <div class="barra">
+    <div class="filtro">
       <label for="selector-ra">Resultado de aprendizaje</label>
       @if (cargandoRa()) {
         <p class="estado-inline" role="status">Cargando RA…</p>
@@ -103,6 +104,7 @@
           }
         </select>
       }
+    </div>
     </div>
 
     <div class="barra barra--acciones">

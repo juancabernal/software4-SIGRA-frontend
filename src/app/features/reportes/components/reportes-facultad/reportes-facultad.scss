@@ -10,78 +10,39 @@
   gap: 1rem;
 }
 
-// ── Cabecera con el sello del módulo ─────────────────────────────────
+// ── Encabezado del panel (dentro de la pestaña de Reportes) ─────────────
 .tablero__cabecera {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 16px 20px;
-  border-radius: var(--sg-radius-card, 20px);
-  background: linear-gradient(
-    120deg,
-    var(--sg-navy, #1b3a5c),
-    color-mix(in srgb, var(--sg-navy, #1b3a5c) 70%, var(--sg-info, #2563eb))
-  );
-  color: #fff;
+  gap: 0.75rem;
 }
 
 .tablero__titulo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   margin: 0;
+  color: var(--sg-navy, #1b3a5c);
   font-family: var(--sg-font-titulo, Manrope, system-ui, sans-serif);
-  font-size: 1.15rem;
+  font-size: 1rem;
 }
 
 .tablero__sub {
-  margin: 4px 0 0;
-  opacity: 0.85;
+  margin: 0.25rem 0 0;
+  color: var(--sg-ink-muted, #64748b);
 }
 
 .etiqueta-rol {
-  padding: 4px 12px;
-  border: 1px solid rgb(255 255 255 / 40%);
+  padding: 0.2rem 0.75rem;
+  border: 1px solid var(--sg-border, #e2e8f0);
   border-radius: 999px;
+  background: var(--sg-card, #fff);
+  color: var(--sg-ink-muted, #64748b);
   font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
 }
 
 // ── Filtros ──────────────────────────────────────────────────────────
-.filtros {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.campo {
-  display: grid;
-  gap: 4px;
-  min-width: 13rem;
-
-  label {
-    font-weight: 600;
-  }
-
-  select {
-    min-height: 40px;
-    padding: 0 12px;
-    border: 1px solid var(--sg-border, #e2e8f0);
-    border-radius: var(--sg-radius-control, 12px);
-    background: var(--sg-field, #f8fafc);
-    color: inherit;
-    font: inherit;
-
-    &:focus-visible {
-      outline: 2px solid var(--sg-navy, #1b3a5c);
-      outline-offset: 2px;
-    }
-  }
-}
-
 .resultado {
   display: grid;
   gap: 16px;
@@ -399,16 +360,6 @@
 
   &:hover {
     background: var(--sg-field, #f8fafc);
-  }
-}
-
-.estado-vista {
-  padding: 32px 16px;
-  text-align: center;
-  color: var(--sg-ink-muted, #64748b);
-
-  &--error {
-    color: var(--sg-error-fg, #c0392b);
   }
 }
 

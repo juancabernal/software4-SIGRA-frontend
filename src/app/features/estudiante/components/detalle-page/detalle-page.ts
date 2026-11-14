@@ -13,6 +13,7 @@ import { catchError, distinctUntilChanged, filter, finalize, of, switchMap } fro
 import { mensajeDeError, MensajeError } from '../../../../core/http/mensaje-de-error';
 import { BadgeNivelLogro } from '../../../../shared/ui/badge-nivel-logro/badge-nivel-logro';
 import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
+import { Icono } from '../../../../shared/ui/icono/icono';
 import {
   ETIQUETA_NIVEL,
   ETIQUETA_SITUACION,
@@ -33,7 +34,7 @@ const VARIANTE: Readonly<Record<SituacionMateria, VarianteChip>> = {
 
 @Component({
   selector: 'app-materia-detalle-page',
-  imports: [RouterLink, BadgeNivelLogro, ChipEstado],
+  imports: [RouterLink, BadgeNivelLogro, ChipEstado, Icono],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './detalle-page.html',
   styleUrl: './detalle-page.scss',
@@ -46,6 +47,12 @@ export class MateriaDetallePage {
   protected readonly error = signal<MensajeError | null>(null);
   protected readonly noEncontrada = signal(false);
   protected readonly materia = signal<MiMateriaDetalle | null>(null);
+
+  /** Una materia ya cursada o desvinculada se abre desde el historial; el resto, desde Mis materias. */
+  protected volverAHistorial(): boolean {
+    const situacion = this.materia()?.situacion;
+    return situacion === 'CURSADA' || situacion === 'DESVINCULADA';
+  }
   protected readonly etiquetas = ETIQUETA_SITUACION;
   protected readonly etiquetasNivel = ETIQUETA_NIVEL;
   protected readonly variantes = VARIANTE;

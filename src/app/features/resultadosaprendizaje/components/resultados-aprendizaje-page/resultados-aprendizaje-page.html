@@ -1,6 +1,6 @@
 <section class="pagina" aria-labelledby="titulo-ra">
   <header class="cabecera">
-    <div>
+    <div class="cabecera__texto">
       <h1 id="titulo-ra">Gestión de Resultados de Aprendizaje</h1>
       <p class="cabecera__sub">Selecciona una materia para gestionar sus RA</p>
     </div>
@@ -43,7 +43,7 @@
         </p>
       </div>
     } @else {
-      <div class="barra barra--selectores">
+      <div class="filtros">
         <div class="filtro">
           <label for="filtro-facultad">Facultad</label>
           <select
@@ -275,7 +275,7 @@
                             <span class="con-tooltip">
                               <button
                                 type="button"
-                                class="btn-ghost btn-ghost--peligro"
+                                class="btn btn--peligro btn--pequeno"
                                 [attr.aria-label]="'Inactivar ' + ra.codigo"
                                 [attr.aria-disabled]="puedeInactivar() ? null : 'true'"
                                 [attr.aria-describedby]="

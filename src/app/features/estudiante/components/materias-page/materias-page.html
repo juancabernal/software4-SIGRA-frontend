@@ -1,18 +1,20 @@
 <section class="pagina" aria-labelledby="titulo-materias">
   <header class="cabecera">
-    <h1 id="titulo-materias">Mis materias</h1>
-    <p>Materias asociadas a tu registro académico</p>
+    <div class="cabecera__texto">
+      <h1 id="titulo-materias">Mis materias</h1>
+      <p>Materias asociadas a tu registro académico</p>
+    </div>
   </header>
 
   @if (cargando()) {
-    <p class="estado" role="status" aria-busy="true">Cargando tus materias…</p>
+    <p class="estado-vista" role="status" aria-busy="true">Cargando tus materias…</p>
   } @else if (error(); as mensaje) {
-    <div class="estado error" role="alert">
+    <div class="estado-vista estado-vista--error" role="alert">
       <p>{{ mensaje.mensaje }}</p>
       <button type="button" class="btn" (click)="reintentar()">Reintentar</button>
     </div>
   } @else if (materias().length === 0) {
-    <p class="estado estado__titulo">Aún no tienes asignaturas matriculadas</p>
+    <p class="estado-vista">Aún no tienes asignaturas matriculadas</p>
   } @else {
     <div class="tarjetas" role="list">
       @for (materia of materias(); track materia.matriculaId) {
