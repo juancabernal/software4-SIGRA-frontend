@@ -6,7 +6,6 @@ h2 { color: var(--sg-ink); font-size: 1.1rem; }
 .tarjeta { display: grid; gap: 1rem; padding: 1.25rem; border: 1px solid var(--sg-border); border-radius: var(--sg-radius-card); background: var(--sg-card); box-shadow: var(--sg-shadow-card); }
 .error { color: var(--sg-error-fg); }
 .aviso { border-left: 3px solid var(--sg-navy); }
-.enlace { color: var(--sg-navy); font-weight: 600; }
 .nota { color: var(--sg-ink-muted); font-size: .9rem; }
 th, td { padding: .65rem; border-bottom: 1px solid var(--sg-divider); text-align: left; vertical-align: top; }
 th { color: var(--sg-ink-muted); font-size: .75rem; text-transform: uppercase; }

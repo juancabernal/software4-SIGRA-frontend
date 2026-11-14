@@ -1,4 +1,8 @@
 <section class="pagina" aria-labelledby="titulo-detalle">
+  <a class="volver" [routerLink]="volverAHistorial() ? '/estudiante/historial' : '/estudiante/materias'">
+    <app-icono nombre="flecha-der" [tamano]="14" />
+    Volver a {{ volverAHistorial() ? 'Mi historial' : 'Mis materias' }}
+  </a>
   @if (cargando()) {
     <h1 id="titulo-detalle">Detalle de materia</h1>
     <p class="estado-vista" role="status" aria-busy="true">Cargando la materia…</p>
@@ -6,14 +10,13 @@
     <h1 id="titulo-detalle">Materia no encontrada</h1>
     <div class="estado-vista" role="alert">
       <p>No encontramos esta materia en tu registro académico</p>
-      <a class="enlace" routerLink="/estudiante/materias">Volver a Mis materias</a>
     </div>
   } @else if (error(); as mensaje) {
     <h1 id="titulo-detalle">Detalle de materia</h1>
     <div class="estado-vista estado-vista--error" role="alert"><p>{{ mensaje.mensaje }}</p></div>
   } @else if (materia(); as materia) {
     <header class="cabecera">
-      <div>
+      <div class="cabecera__texto">
         <p class="codigo">{{ materia.asignaturaCodigo }}</p>
         <h1 id="titulo-detalle">{{ materia.asignaturaNombre }}</h1>
         <p>{{ materia.programaNombre ?? 'Programa no informado' }} · {{ materia.semestreCodigo }}</p>
@@ -23,9 +26,6 @@
         [variante]="variantes[materia.situacion]"
       />
     </header>
-    <a class="enlace" [routerLink]="materia.situacion === 'CURSADA' || materia.situacion === 'DESVINCULADA' ? '/estudiante/historial' : '/estudiante/materias'">
-      Volver a {{ materia.situacion === 'CURSADA' || materia.situacion === 'DESVINCULADA' ? 'Mi historial' : 'Mis materias' }}
-    </a>
     <p class="aviso">El nivel de logro corresponde al último cálculo del sistema</p>
     @if (materia.resultadosAprendizaje.length === 0) {
       <p class="estado-vista">Esta materia aún no tiene resultados de aprendizaje registrados</p>

@@ -543,3 +543,24 @@ details.plegable[open] > summary {
 details.plegable .tarjeta__titulo {
   margin: 0;
 }
+
+/* Enlace "Volver" de las pantallas de detalle: mismo lugar y estilo en todas (0000042). */
+.volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  justify-self: start;
+  color: var(--sg-ink-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+
+  app-icono {
+    transform: rotate(180deg);
+  }
+
+  &:hover {
+    color: var(--sg-navy);
+    text-decoration: underline;
+  }
+}

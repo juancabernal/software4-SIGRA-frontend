@@ -4,26 +4,6 @@
   gap: 0.5rem;
 }
 
-.volver {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: var(--sg-ink-muted);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  text-decoration: none;
-  justify-self: start;
-
-  app-icono {
-    transform: rotate(180deg);
-  }
-
-  &:hover {
-    color: var(--sg-navy);
-    text-decoration: underline;
-  }
-}
-
 h2 {
   margin: 0;
   color: var(--sg-navy);
