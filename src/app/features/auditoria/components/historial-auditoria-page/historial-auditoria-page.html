@@ -1,9 +1,13 @@
 <section class="pagina" aria-labelledby="titulo-auditoria">
   <header class="cabecera">
     <div class="cabecera__texto">
-      <h1 id="titulo-auditoria">Historial de auditoría</h1>
+      <h1 id="titulo-auditoria">{{ esProfesor ? 'Mi historial' : 'Historial de auditoría' }}</h1>
       <p class="cabecera__sub">
-        Eventos del sistema, del más reciente al más antiguo · solo lectura: no se pueden modificar ni borrar
+        {{
+          esProfesor
+            ? 'Tus acciones en el sistema, del más reciente al más antiguo · solo lectura'
+            : 'Eventos del sistema, del más reciente al más antiguo · solo lectura: no se pueden modificar ni borrar'
+        }}
       </p>
     </div>
   </header>
@@ -60,7 +64,9 @@
               {{
                 hayFiltros()
                   ? 'Ningún evento cumple los filtros. Prueba con otro rango de fechas o tipo de entidad.'
-                  : 'Los inicios de sesión, cambios de estado y cambios de notas aparecerán aquí.'
+                  : esProfesor
+                    ? 'Tus cambios de notas, evaluaciones y conclusiones aparecerán aquí.'
+                    : 'Los inicios de sesión, cambios de estado y cambios de notas aparecerán aquí.'
               }}
             </p>
           </div>
@@ -74,7 +80,9 @@
                   <th scope="col">Fecha y hora</th>
                   <th scope="col">Acción</th>
                   <th scope="col">Entidad</th>
-                  <th scope="col">Usuario</th>
+                  @if (!esProfesor) {
+                    <th scope="col">Usuario</th>
+                  }
                   <th scope="col">Detalle</th>
                 </tr>
               </thead>
@@ -94,12 +102,14 @@
                       {{ etiquetaEntidad[r.tipoEntidad] }}
                       <span class="id" [attr.title]="r.idEntidad">{{ abreviar(r.idEntidad) }}</span>
                     </td>
-                    <td>
-                      {{ r.rolUsuario ?? 'Sin sesión' }}
-                      @if (r.usuarioId) {
-                        <span class="id" [attr.title]="r.usuarioId">{{ abreviar(r.usuarioId) }}</span>
-                      }
-                    </td>
+                    @if (!esProfesor) {
+                      <td>
+                        {{ r.rolUsuario ?? 'Sin sesión' }}
+                        @if (r.usuarioId) {
+                          <span class="id" [attr.title]="r.usuarioId">{{ abreviar(r.usuarioId) }}</span>
+                        }
+                      </td>
+                    }
                     <td class="detalle">{{ r.detalle }}</td>
                   </tr>
                 }
