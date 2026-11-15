@@ -109,13 +109,43 @@ tbody tr:hover {
   font-variant-numeric: tabular-nums;
 }
 
-// El ⚠ acompaña al texto para lectores de pantalla: el color nunca va solo (RNF-21).
+// El ⚠ lleva su texto visible al pasar el cursor, al tocarlo o al llegar con el teclado (RF-13,
+// RNF-21): el color nunca va solo y el aviso no depende de un tooltip nativo, que no sale al tocar.
 .fuera-de-fecha {
+  position: relative;
   display: inline-flex;
   align-items: center;
   margin-left: 0.4rem;
   color: var(--sg-warning-fg);
   vertical-align: middle;
+  cursor: help;
+  border-radius: var(--sg-radius-micro);
+}
+
+.fuera-de-fecha__aviso {
+  position: absolute;
+  bottom: calc(100% + 0.4rem);
+  left: 50%;
+  z-index: 2;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--sg-radius-micro);
+  background: var(--sg-ink);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-50%);
+  transition: opacity var(--sg-transition);
+}
+
+.fuera-de-fecha:hover .fuera-de-fecha__aviso,
+.fuera-de-fecha:focus .fuera-de-fecha__aviso {
+  opacity: 1;
+  visibility: visible;
 }
 
 .fila--retirada {

@@ -227,10 +227,11 @@
                             @if (f.fueraDeFecha) {
                               <span
                                 class="fuera-de-fecha"
-                                title="Registrado fuera de fecha"
+                                tabindex="0"
+                                aria-label="Registrado fuera de fecha"
                               >
                                 <app-icono nombre="advertencia" [tamano]="16" />
-                                <span class="solo-lectores">Registrado fuera de fecha</span>
+                                <span class="fuera-de-fecha__aviso" aria-hidden="true">Registrado fuera de fecha</span>
                               </span>
                             }
                           }
