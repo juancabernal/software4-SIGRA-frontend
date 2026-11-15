@@ -506,6 +506,12 @@ td:has(> .acciones) {
   white-space: nowrap;
 }
 
+/* El texto de un tooltip hereda el nowrap de la celda de acciones y se salía de la tabla (aparecía
+ * un desplazamiento horizontal y la primera columna quedaba cortada): se vuelve a ajustar. */
+.tooltip {
+  white-space: normal;
+}
+
 /* ── Tarjeta plegable (Mantis 0042) ──────────────────────────────────────
  * Para listas largas (Reportes, Mi progreso): solo la primera va abierta, el resto se
  * abre con un clic. Usa <details>, así que funciona con teclado y lector de pantalla. */
@@ -623,6 +629,13 @@ details.plegable .tarjeta__titulo {
 
 .filtros select {
   cursor: pointer;
+}
+
+/* Un botón dentro de la barra de filtros (Limpiar filtros) mide lo que dice su texto; no se
+ * estira a todo el ancho de la columna de la cuadrícula. */
+.filtros > .btn,
+.filtros > button {
+  justify-self: start;
 }
 
 /* ── Estado vacío: título, pestañas (Mantis 0042) ───────────────────────── */
