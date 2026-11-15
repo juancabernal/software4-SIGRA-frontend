@@ -7,7 +7,7 @@
   </header>
 
   <div class="pestanas" role="tablist" aria-label="Secciones de reportes">
-    @for (pestana of pestanas; track pestana.id; let i = $index) {
+    @for (pestana of pestanas(); track pestana.id; let i = $index) {
       <button
         #pestana
         type="button"
@@ -43,7 +43,9 @@
         <app-reportes-facultad />
       }
       @case ('matriculas-programa-semestre') {
-        <app-matriculas-programa-semestre-tab />
+        @if (rol() === 'admin') {
+          <app-matriculas-programa-semestre-tab />
+        }
       }
     }
   </div>

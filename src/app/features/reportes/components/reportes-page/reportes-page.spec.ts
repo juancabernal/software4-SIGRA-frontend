@@ -10,6 +10,7 @@ describe('ReportesPage', () => {
   let fixture: ComponentFixture<ReportesPage>;
   let http: HttpTestingController;
   let html: HTMLElement;
+  const rol = signal('admin');
 
   const pestanas = () => Array.from(html.querySelectorAll('[role="tab"]')) as HTMLButtonElement[];
   const seleccionada = () => pestanas().find((p) => p.getAttribute('aria-selected') === 'true');
@@ -20,7 +21,7 @@ describe('ReportesPage', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: SesionService, useValue: { rol: signal('admin') } },
+        { provide: SesionService, useValue: { rol } },
       ],
     });
     http = TestBed.inject(HttpTestingController);
@@ -105,5 +106,18 @@ describe('ReportesPage', () => {
     fixture.detectChanges();
 
     expect(html.querySelector('app-matriculas-programa-semestre-tab')).not.toBeNull();
+  });
+
+  it('oculta Matrículas por programa para el profesor', () => {
+    rol.set('profesor');
+    fixture.detectChanges();
+
+    expect(pestanas().map((p) => p.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+      'Rendimiento por RA',
+      'Riesgo académico',
+      'Reportes por facultad',
+    ]);
+    expect(html.querySelector('app-matriculas-programa-semestre-tab')).toBeNull();
+    expect(http.match((req) => req.url.includes('/reportes/matriculas-programa-semestre'))).toHaveLength(0);
   });
 });
