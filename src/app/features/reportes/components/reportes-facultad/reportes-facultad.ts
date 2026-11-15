@@ -89,6 +89,8 @@ export class ReportesFacultad {
         ? 'PROFESOR'
         : 'ADMINISTRADOR';
   protected readonly textos = TEXTOS[this.vista];
+  /** El estudiante entra por una ruta propia: la pantalla es una página completa, no una pestaña. */
+  protected readonly esPagina = this.vista === 'ESTUDIANTE';
   /** Estudiantes en riesgo, acciones de mejora y materias con pocos RA no son del estudiante. */
   protected readonly institucional = this.vista !== 'ESTUDIANTE';
 

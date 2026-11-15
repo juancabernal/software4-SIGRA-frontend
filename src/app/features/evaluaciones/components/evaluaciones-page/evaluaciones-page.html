@@ -1,10 +1,12 @@
 <section class="pagina" aria-labelledby="titulo-evaluaciones">
   <header class="cabecera">
-    <h1 id="titulo-evaluaciones">Evaluaciones por RA</h1>
-    <p class="cabecera__sub">
-      Organiza las evaluaciones de cada resultado de aprendizaje. Las activas de un RA no pueden
-      sumar más del 100 % en el semestre.
-    </p>
+    <div class="cabecera__texto">
+      <h1 id="titulo-evaluaciones">Evaluaciones por RA</h1>
+      <p class="cabecera__sub">
+        Organiza las evaluaciones de cada resultado de aprendizaje. Las activas de un RA no pueden
+        sumar más del 100 % en el semestre.
+      </p>
+    </div>
   </header>
 
   <div class="aviso-zona" role="status" aria-live="polite">
@@ -281,7 +283,7 @@
                             </button>
                             <button
                               type="button"
-                              class="btn-ghost btn-ghost--peligro"
+                              class="btn btn--peligro btn--pequeno"
                               [attr.aria-label]="'Inactivar ' + e.nombre"
                               (click)="pedirInactivar(e)"
                             >

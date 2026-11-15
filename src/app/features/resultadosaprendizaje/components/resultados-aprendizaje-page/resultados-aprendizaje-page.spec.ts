@@ -268,7 +268,7 @@ describe('ResultadosAprendizajePage', () => {
         'Facultad de Construcción',
         'Facultad de Ingeniería',
       ]);
-      const ids = Array.from(html.querySelectorAll('.barra--selectores select')).map((s) => s.id);
+      const ids = Array.from(html.querySelectorAll('.filtros select')).map((s) => s.id);
       expect(ids).toEqual(['filtro-facultad', 'filtro-programa', 'selector-materia']);
     });
 

@@ -85,13 +85,15 @@
               </div>
             }
             @for (asignatura of c.reporte.asignaturas; track asignatura.asignaturaId) {
-              <section class="tarjeta" [attr.aria-labelledby]="'asig-' + asignatura.asignaturaId">
-                <h2 class="tarjeta__titulo" [id]="'asig-' + asignatura.asignaturaId">
+              <details class="tarjeta plegable" [open]="$first">
+                <summary class="plegable__resumen">
+                  <h2 class="tarjeta__titulo" [id]="'asig-' + asignatura.asignaturaId">
                   {{ asignatura.codigo }} · {{ asignatura.nombre }}
                   <span class="tarjeta__programa">
                     {{ asignatura.facultadNombre }} · {{ asignatura.programaNombre }}
                   </span>
                 </h2>
+                </summary>
                 <div class="tabla-scroll">
                   <table>
                     <caption class="solo-lectores">
@@ -144,7 +146,7 @@
                     </tbody>
                   </table>
                 </div>
-              </section>
+              </details>
             }
           }
         }

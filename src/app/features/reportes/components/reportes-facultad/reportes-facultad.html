@@ -1,14 +1,21 @@
-<div class="tablero" aria-labelledby="titulo-reportes-facultad">
-  <header class="tablero__cabecera">
-    <div>
-      <h2 id="titulo-reportes-facultad" class="tablero__titulo">
-        <app-icono nombre="edificio" [tamano]="20" />
-        {{ textos.titulo }}
-      </h2>
-      <p class="tablero__sub">{{ textos.subtitulo }}</p>
-    </div>
-    <span class="etiqueta-rol">{{ textos.etiquetaRol }}</span>
-  </header>
+<section class="tablero" [class.pagina]="esPagina" aria-labelledby="titulo-reportes-facultad">
+  @if (esPagina) {
+    <header class="cabecera">
+      <div class="cabecera__texto">
+        <h1 id="titulo-reportes-facultad">{{ textos.titulo }}</h1>
+        <p>{{ textos.subtitulo }}</p>
+      </div>
+      <span class="etiqueta-rol">{{ textos.etiquetaRol }}</span>
+    </header>
+  } @else {
+    <header class="tablero__cabecera">
+      <div>
+        <h2 id="titulo-reportes-facultad" class="tablero__titulo">{{ textos.titulo }}</h2>
+        <p class="tablero__sub">{{ textos.subtitulo }}</p>
+      </div>
+      <span class="etiqueta-rol">{{ textos.etiquetaRol }}</span>
+    </header>
+  }
 
   @if (institucional) {
     <form class="filtros" (submit)="$event.preventDefault()" aria-label="Filtros de reportes por facultad">
@@ -232,4 +239,4 @@
       }
     }
   </div>
-</div>
+</section>
