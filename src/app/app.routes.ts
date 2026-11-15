@@ -5,9 +5,6 @@ import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { roleGuard, rootRedirectGuard } from './core/guards/role.guard';
 
-const pendiente = () =>
-  import('./shared/ui/modulo-pendiente/modulo-pendiente').then((m) => m.ModuloPendiente);
-
 const profesor = { canActivate: [roleGuard], data: { roles: ['PROFESOR'] as const } };
 const administrador = {
   canActivate: [roleGuard],
@@ -159,13 +156,11 @@ export const routes: Routes = [
       {
         ...profesor,
         path: 'profesor/historial',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import('./features/auditoria/components/historial-auditoria-page/historial-auditoria-page').then(
+            (m) => m.HistorialAuditoriaPage,
+          ),
         title: 'Mi historial · SIGRA',
-        data: {
-          ...profesor.data,
-          titulo: 'Mi historial',
-          subtitulo: 'Registro de auditoría · solo lectura · acotado a tus asignaturas',
-        },
       },
 
       // ── Administrador ───────────────────────────────────────────────
