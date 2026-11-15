@@ -12,7 +12,7 @@
   } @else if (materias().length === 0) {
     <p class="estado-vista">Aún no tienes asignaturas en curso</p>
   } @else {
-    @for (materia of materias(); track materia.matriculaId) {
+    @for (materia of paginacion.filas(); track materia.matriculaId) {
       <details class="tarjeta plegable" [open]="$first">
         <summary class="plegable__resumen cabecera-tarjeta">
           <div><p class="codigo">{{ materia.asignaturaCodigo }}</p><h2>{{ materia.asignaturaNombre }}</h2><p>{{ materia.semestreCodigo }}</p></div>
@@ -29,5 +29,12 @@
         <a class="enlace" [routerLink]="['/estudiante/materias', materia.matriculaId]" [attr.aria-label]="'Ver detalle de ' + materia.asignaturaNombre">Ver detalle</a>
       </details>
     }
+    <app-paginador
+      [total]="paginacion.total()"
+      [pagina]="paginacion.pagina()"
+      [tamanoPagina]="paginacion.tamanoPagina()"
+      (cambioPagina)="paginacion.irA($event)"
+      (cambioTamano)="paginacion.cambiarTamano($event)"
+    />
   }
 </section>

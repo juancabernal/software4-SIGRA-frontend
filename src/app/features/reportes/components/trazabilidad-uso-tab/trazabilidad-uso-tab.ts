@@ -4,6 +4,8 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, map, Observable, of, startWith, switchMap } from 'rxjs';
 
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
+import { Paginador } from '../../../../shared/ui/paginador/paginador';
+import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 import { ETIQUETA_ACCION } from '../../../auditoria/models/auditoria.model';
 import { Semestre } from '../../../semestres/models/semestre.model';
 import { SemestreService } from '../../../semestres/services/semestre.service';
@@ -35,7 +37,7 @@ type Carga =
  */
 @Component({
   selector: 'app-trazabilidad-uso-tab',
-  imports: [DatePipe],
+  imports: [DatePipe, Paginador],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './trazabilidad-uso-tab.html',
   styleUrl: './trazabilidad-uso-tab.scss',
@@ -125,6 +127,10 @@ export class TrazabilidadUsoTab {
     return actual.estado === 'profesor' ? actual.reporte : null;
   });
 
+  private readonly estudiantesProfesor = computed(() => this.reporteProfesor()?.estudiantes ?? []);
+  /** Paginación en cliente, igual que en «Materias». */
+  protected readonly paginacion = paginarEnCliente(this.estudiantesProfesor);
+
   protected readonly mayorTotalRol = computed(() =>
     Math.max(0, ...(this.reporteGeneral()?.porRol.map((fila) => fila.totalEventos) ?? [])),
   );
@@ -134,22 +140,27 @@ export class TrazabilidadUsoTab {
   );
 
   protected cambiarSemestre(valor: string): void {
+    this.paginacion.reiniciar();
     this.semestreId.set(valor);
   }
 
   protected cambiarDesde(valor: string): void {
+    this.paginacion.reiniciar();
     this.desde.set(valor);
   }
 
   protected cambiarHasta(valor: string): void {
+    this.paginacion.reiniciar();
     this.hasta.set(valor);
   }
 
   protected cambiarRol(valor: string): void {
+    this.paginacion.reiniciar();
     this.rol.set(valor as RolTrazabilidad | '');
   }
 
   protected limpiarFechas(): void {
+    this.paginacion.reiniciar();
     this.desde.set('');
     this.hasta.set('');
   }

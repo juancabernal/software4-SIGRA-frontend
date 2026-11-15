@@ -116,7 +116,7 @@
                       </tr>
                     </thead>
                     <tbody>
-                      @for (fila of c.reporte.estudiantes; track fila.estudianteId + '-' + fila.asignaturaId) {
+                      @for (fila of paginacion.filas(); track fila.estudianteId + '-' + fila.asignaturaId) {
                         <tr>
                           <th scope="row" class="est">
                             <span class="est__nombre">{{ fila.nombreCompleto }}</span>
@@ -158,6 +158,13 @@
                     </tbody>
                   </table>
                 </div>
+                <app-paginador
+                  [total]="paginacion.total()"
+                  [pagina]="paginacion.pagina()"
+                  [tamanoPagina]="paginacion.tamanoPagina()"
+                  (cambioPagina)="paginacion.irA($event)"
+                  (cambioTamano)="paginacion.cambiarTamano($event)"
+                />
               </section>
             }
           }

@@ -122,10 +122,10 @@
           </nav>
 
           <ol class="ranking" [attr.aria-label]="'Ranking de ' + etiquetaNivelActual()">
-            @for (fila of filas(); track fila.id; let i = $index) {
+            @for (fila of paginacion.filas(); track fila.id; let i = $index) {
               <li class="fila fila--{{ fila.semaforo }}">
                 <div class="fila__cabecera">
-                  <span class="fila__posicion" aria-hidden="true">{{ i + 1 }}</span>
+                  <span class="fila__posicion" aria-hidden="true">{{ (paginacion.pagina() - 1) * paginacion.tamanoPagina() + i + 1 }}</span>
                   <div class="fila__nombre">
                     <h3>
                       @if (fila.codigo) {
@@ -218,6 +218,15 @@
               <li class="estado-vista">No hay {{ etiquetaNivelActual() }} con datos en este nivel.</li>
             }
           </ol>
+          @if (paginacion.total() > 0) {
+            <app-paginador
+              [total]="paginacion.total()"
+              [pagina]="paginacion.pagina()"
+              [tamanoPagina]="paginacion.tamanoPagina()"
+              (cambioPagina)="paginacion.irA($event)"
+              (cambioTamano)="paginacion.cambiarTamano($event)"
+            />
+          }
         } @else {
           <div class="estado-vista">
             <p class="estado-vista__titulo">Sin datos disponibles</p>

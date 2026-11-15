@@ -96,7 +96,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    @for (fila of actual.reporte.filas; track fila.semestreId + '-' + fila.programaId) {
+                    @for (fila of paginacion.filas(); track fila.semestreId + '-' + fila.programaId) {
                       <tr>
                         <th scope="row">
                           {{ fila.semestreCodigo }}
@@ -130,6 +130,13 @@
                   </tbody>
                 </table>
               </div>
+              <app-paginador
+                [total]="paginacion.total()"
+                [pagina]="paginacion.pagina()"
+                [tamanoPagina]="paginacion.tamanoPagina()"
+                (cambioPagina)="paginacion.irA($event)"
+                (cambioTamano)="paginacion.cambiarTamano($event)"
+              />
               <p class="nota">
                 Solo aparecen programas con al menos una matrícula. Un estudiante puede contar en varias filas; el total de estudiantes no los repite.
               </p>

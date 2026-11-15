@@ -5,6 +5,8 @@ import { catchError, finalize, of } from 'rxjs';
 import { mensajeDeError, MensajeError } from '../../../../core/http/mensaje-de-error';
 import { BadgeNivelLogro } from '../../../../shared/ui/badge-nivel-logro/badge-nivel-logro';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
+import { Paginador } from '../../../../shared/ui/paginador/paginador';
+import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 import {
   ETIQUETA_NIVEL,
   ETIQUETA_SITUACION,
@@ -15,7 +17,7 @@ import { MiProcesoService } from '../../services/mi-proceso.service';
 
 @Component({
   selector: 'app-mi-progreso-page',
-  imports: [RouterLink, BadgeNivelLogro, ChipEstado],
+  imports: [RouterLink, BadgeNivelLogro, ChipEstado, Paginador],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './progreso-page.html',
   styleUrl: './progreso-page.scss',
@@ -25,6 +27,8 @@ export class MiProgresoPage {
   protected readonly cargando = signal(true);
   protected readonly error = signal<MensajeError | null>(null);
   protected readonly materias = signal<MiMateriaDetalle[]>([]);
+  /** Paginación en cliente, igual que en «Materias». */
+  protected readonly paginacion = paginarEnCliente(this.materias);
   protected readonly etiquetas = ETIQUETA_SITUACION;
   protected readonly etiquetasNivel = ETIQUETA_NIVEL;
   protected readonly formatearNumero = formatearNumero;

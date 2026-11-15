@@ -26,5 +26,12 @@
         }
       </section>
     }
+    <app-paginador
+      [total]="paginacion.total()"
+      [pagina]="paginacion.pagina()"
+      [tamanoPagina]="paginacion.tamanoPagina()"
+      (cambioPagina)="paginacion.irA($event)"
+      (cambioTamano)="paginacion.cambiarTamano($event)"
+    />
   }
 </section>

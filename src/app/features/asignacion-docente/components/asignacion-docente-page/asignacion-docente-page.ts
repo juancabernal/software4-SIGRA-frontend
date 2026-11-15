@@ -17,7 +17,6 @@ import { ResultadoAsignacionMasiva } from '../../models/asignacion-docente.model
 import { AsignacionDocenteService } from '../../services/asignacion-docente.service';
 
 const DURACION_AVISO_MS = 8000;
-const LIMITE_PROFESORES_VISIBLES = 30;
 
 interface Aviso {
   texto: string;
@@ -98,10 +97,8 @@ export class AsignacionDocentePage {
       normalizar(`${p.nombreCompleto} ${p.correoInstitucional} ${p.numeroDocumento}`).includes(filtro),
     );
   });
-  protected readonly profesoresVisibles = computed(() =>
-    this.profesoresCoincidentes().slice(0, LIMITE_PROFESORES_VISIBLES),
-  );
-  protected readonly limiteProfesores = LIMITE_PROFESORES_VISIBLES;
+  /** Lista de profesores paginada con el mismo paginador de «Materias». */
+  protected readonly paginacionProfesores = paginarEnCliente(this.profesoresCoincidentes);
 
   /** Materias ACTIVAS que el profesor elegido tiene asignadas hoy. */
   protected readonly asignaciones = signal<AsignaturaProfesor[]>([]);
@@ -165,6 +162,9 @@ export class AsignacionDocentePage {
       (a) => a.nombre.toLowerCase().includes(filtro) || a.codigo.toLowerCase().includes(filtro),
     );
   });
+
+  /** Materias disponibles paginadas; lo marcado se conserva al cambiar de página. */
+  protected readonly paginacionMaterias = paginarEnCliente(this.asignaturasFiltradas);
 
   /**
    * Materias marcadas que el buscador o el filtro de facultad/programa dejaron fuera de la lista:
@@ -243,6 +243,7 @@ export class AsignacionDocentePage {
 
   // ── Profesor ───────────────────────────────────────────────────────
   protected alEscribirProfesor(evento: Event): void {
+    this.paginacionProfesores.reiniciar();
     this.textoProfesor.set((evento.target as HTMLInputElement).value);
   }
 
@@ -252,6 +253,7 @@ export class AsignacionDocentePage {
 
   /** Vuelve al buscador para elegir a otro profesor. */
   protected cambiarProfesor(): void {
+    this.paginacionProfesores.reiniciar();
     this.textoProfesor.set('');
     this.reiniciarPantalla('');
   }
@@ -338,11 +340,13 @@ export class AsignacionDocentePage {
   }
 
   protected alEscribirFiltroMateria(evento: Event): void {
+    this.paginacionMaterias.reiniciar();
     this.filtroMateria.set((evento.target as HTMLInputElement).value);
   }
 
   /** Al cambiar de facultad se descarta el programa elegido si no pertenece a ella. */
   protected alCambiarFacultad(evento: Event): void {
+    this.paginacionMaterias.reiniciar();
     const facultadId = (evento.target as HTMLSelectElement).value;
     this.facultadId.set(facultadId);
     const programa = this.programas().find((p) => p.id === this.programaId());
@@ -352,6 +356,7 @@ export class AsignacionDocentePage {
   }
 
   protected alCambiarPrograma(evento: Event): void {
+    this.paginacionMaterias.reiniciar();
     this.programaId.set((evento.target as HTMLSelectElement).value);
   }
 
