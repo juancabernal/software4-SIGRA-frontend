@@ -26,7 +26,7 @@
   --sg-divider: #f1f5f9;
   --sg-ink: #0f172a;
   --sg-ink-body: #374151;
-  --sg-ink-muted: #64748b;
+  --sg-ink-muted: #5f6f85;
   --sg-ink-soft: #94a3b8;
   --sg-ink-disabled: #cbd5e1;
   --sg-secondary-hover: #f0f5ff;
@@ -408,6 +408,7 @@ section.pagina {
 
 /* ── Tablas, buscador y selectores comunes (Mantis 0042) ─────────────── */
 .tabla-contenedor {
+  min-width: 0;
   overflow-x: auto;
 }
 
@@ -503,6 +504,12 @@ tbody td {
 td:has(> .acciones) {
   width: 1%;
   white-space: nowrap;
+}
+
+/* El texto de un tooltip hereda el nowrap de la celda de acciones y se salía de la tabla (aparecía
+ * un desplazamiento horizontal y la primera columna quedaba cortada): se vuelve a ajustar. */
+.tooltip {
+  white-space: normal;
 }
 
 /* ── Tarjeta plegable (Mantis 0042) ──────────────────────────────────────
@@ -622,4 +629,58 @@ details.plegable .tarjeta__titulo {
 
 .filtros select {
   cursor: pointer;
+}
+
+/* Un botón dentro de la barra de filtros (Limpiar filtros) mide lo que dice su texto; no se
+ * estira a todo el ancho de la columna de la cuadrícula. */
+.filtros > .btn,
+.filtros > button {
+  justify-self: start;
+}
+
+/* ── Estado vacío: título, pestañas (Mantis 0042) ───────────────────────── */
+.estado-vista__titulo {
+  color: var(--sg-navy);
+  font-family: var(--sg-font-titulo);
+  font-weight: 700;
+}
+
+/* Píldora blanca con borde; la pestaña activa va en navy con texto blanco. */
+.pestanas {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-self: start;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-tabs);
+  background: var(--sg-card);
+}
+
+.pestana {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.9rem;
+  border: 0;
+  border-radius: calc(var(--sg-radius-tabs) - 4px);
+  background: transparent;
+  color: var(--sg-ink-muted);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--sg-transition),
+    color var(--sg-transition);
+
+  &:hover:not([aria-selected='true']) {
+    background: var(--sg-field);
+    color: var(--sg-ink);
+  }
+
+  &[aria-selected='true'] {
+    background: var(--sg-navy);
+    color: #fff;
+  }
 }

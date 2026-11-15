@@ -292,7 +292,7 @@ describe('ConclusionesPage', () => {
       await iniciarConSeleccion([ra(1)], RESULTADO_SIN_DATOS);
 
       expect(html.textContent).toContain('Sin datos suficientes');
-      expect(html.textContent).toContain('Todavía no hay suficientes calificaciones');
+      expect(html.textContent).toContain('Sin datos suficientes para generar una conclusión');
       expect(html.textContent).toContain('2');
       expect(html.textContent).toContain('no es un error');
       expect(boton(html, 'Crear acción de mejora')).toBeUndefined();

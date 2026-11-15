@@ -24,12 +24,6 @@
   font-weight: 600;
 }
 
-@media (max-width: 40rem) {
-  .barra--selectores {
-    grid-template-columns: 1fr;
-  }
-}
-
 .barra--busqueda {
   background: var(--sg-field);
 }
@@ -145,9 +139,4 @@ tbody tr:hover {
   font-size: 0.8125rem;
 }
 
-.estado-vista__titulo {
-  color: var(--sg-navy);
-  font-family: var(--sg-font-titulo);
-  font-weight: 700;
-}
 

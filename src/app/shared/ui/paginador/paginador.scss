@@ -30,6 +30,7 @@
 
 .paginador__nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
 }
