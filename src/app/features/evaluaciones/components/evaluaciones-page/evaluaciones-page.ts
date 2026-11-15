@@ -27,6 +27,7 @@ import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confi
 import { OpcionFacultad, facultadesDe } from '../../../../shared/filtros/filtro-por-facultad';
 import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
+import { Paginador } from '../../../../shared/ui/paginador/paginador';
 import { ResultadoAprendizaje } from '../../../resultadosaprendizaje/models/resultado-aprendizaje.model';
 import { marcarRefrescoSilencioso } from '../../../resultadosaprendizaje/services/consulta-con-refresco';
 import { ResultadoAprendizajeService } from '../../../resultadosaprendizaje/services/resultado-aprendizaje.service';
@@ -49,7 +50,6 @@ import {
   EvaluacionFormDialog,
   ResultadoFormularioEvaluacion,
 } from '../evaluacion-form-dialog/evaluacion-form-dialog';
-import { PaginacionTabla } from '../paginacion-tabla/paginacion-tabla';
 
 interface Presentacion {
   etiqueta: string;
@@ -124,7 +124,7 @@ function cargar<T>(fuente: Observable<T>, silencioso = false): Observable<Carga<
  */
 @Component({
   selector: 'app-evaluaciones-page',
-  imports: [ChipEstado, DialogoConfirmacion, EvaluacionFormDialog, Icono, PaginacionTabla],
+  imports: [ChipEstado, DialogoConfirmacion, EvaluacionFormDialog, Icono, Paginador],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './evaluaciones-page.html',
   styleUrl: './evaluaciones-page.scss',
@@ -138,7 +138,6 @@ export class EvaluacionesPage {
   protected readonly presentacion = PRESENTACION_EVALUACION;
   protected readonly motivoSinDisponible = MOTIVO_SIN_DISPONIBLE;
   protected readonly motivoReactivar = MOTIVO_REACTIVAR;
-  protected readonly tamanos = TAMANOS_PAGINA;
 
   // ── Catálogos de los selectores ─────────────────────────────────────
   protected readonly cargandoCatalogos = signal(true);

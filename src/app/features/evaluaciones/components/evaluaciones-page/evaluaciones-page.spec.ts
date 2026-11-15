@@ -324,9 +324,9 @@ describe('EvaluacionesPage', () => {
     );
 
     expect(html.querySelectorAll('tbody tr').length).toBe(5);
-    expect(html.textContent).toContain('Mostrando 1–5 de 7 evaluaciones');
+    expect(html.textContent).toContain('Página 1 de 2');
 
-    const tamano = html.querySelector('.paginacion select') as HTMLSelectElement;
+    const tamano = html.querySelector('.paginador select') as HTMLSelectElement;
     tamano.value = '10';
     tamano.dispatchEvent(new Event('change'));
     await fixture.whenStable();
@@ -443,7 +443,7 @@ describe('EvaluacionesPage', () => {
     it('conserva la página y el tamaño elegidos', async () => {
       const siete = Array.from({ length: 7 }, (_, i) => evaluacion(i + 1));
       await iniciar(resumen(siete, 70));
-      boton(html, 'Siguiente ›').click();
+      boton(html, 'Siguiente').click();
       await fixture.whenStable();
 
       await refrescar();

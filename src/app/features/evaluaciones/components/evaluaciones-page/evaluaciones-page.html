@@ -325,12 +325,10 @@
             </table>
           </div>
 
-          <app-paginacion-tabla
-            elementos="evaluaciones"
+          <app-paginador
             [total]="filas().length"
             [pagina]="paginaActual()"
-            [tamano]="tamanoPagina()"
-            [tamanos]="tamanos"
+            [tamanoPagina]="tamanoPagina()"
             (cambioPagina)="irAPagina($event)"
             (cambioTamano)="cambiarTamano($event)"
           />

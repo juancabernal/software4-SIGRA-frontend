@@ -37,6 +37,24 @@
     } @else {
       <div class="filtros">
         <div class="filtro">
+          <label for="selector-semestre">Semestre</label>
+          @if (semestres().estado === 'cargando') {
+            <p class="estado-inline" role="status">Cargando semestres…</p>
+          } @else if (errorCarga(semestres()); as error) {
+            <p class="estado-inline estado-inline--error" role="alert">{{ error.mensaje }}</p>
+          } @else {
+            <select id="selector-semestre" class="selector" [value]="semestreId()" (change)="alCambiarSemestre($event)">
+              <option value="">Selecciona un semestre</option>
+              @for (s of listaSemestres(); track s.id) {
+                <option [value]="s.id" [selected]="s.id === semestreId()">
+                  {{ s.codigo }}{{ s.estado === 'ACTIVO' ? ' (activo)' : '' }}
+                </option>
+              }
+            </select>
+          }
+        </div>
+
+        <div class="filtro">
           <label for="selector-facultad">Facultad</label>
           <select id="selector-facultad" class="selector" [value]="facultadId()" (change)="alCambiarFacultad($event)">
             <option value="" [selected]="facultadId() === ''">Todas las facultades</option>
@@ -84,24 +102,6 @@
               @for (ra of resultadosActivos(); track ra.id) {
                 <option [value]="ra.id">
                   {{ ra.codigo }} · {{ ra.descripcion }}
-                </option>
-              }
-            </select>
-          }
-        </div>
-
-        <div class="filtro">
-          <label for="selector-semestre">Semestre</label>
-          @if (semestres().estado === 'cargando') {
-            <p class="estado-inline" role="status">Cargando semestres…</p>
-          } @else if (errorCarga(semestres()); as error) {
-            <p class="estado-inline estado-inline--error" role="alert">{{ error.mensaje }}</p>
-          } @else {
-            <select id="selector-semestre" class="selector" [value]="semestreId()" (change)="alCambiarSemestre($event)">
-              <option value="">Selecciona un semestre</option>
-              @for (s of listaSemestres(); track s.id) {
-                <option [value]="s.id" [selected]="s.id === semestreId()">
-                  {{ s.codigo }}{{ s.estado === 'ACTIVO' ? ' (activo)' : '' }}
                 </option>
               }
             </select>
@@ -227,10 +227,10 @@
                             @if (f.fueraDeFecha) {
                               <span
                                 class="fuera-de-fecha"
-                                title="Registrada o modificada después de la fecha tentativa"
+                                title="Registrado fuera de fecha"
                               >
                                 <app-icono nombre="advertencia" [tamano]="16" />
-                                <span class="solo-lectores">Fuera de la fecha tentativa</span>
+                                <span class="solo-lectores">Registrado fuera de fecha</span>
                               </span>
                             }
                           }
