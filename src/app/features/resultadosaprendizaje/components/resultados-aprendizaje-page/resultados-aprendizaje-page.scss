@@ -1,35 +1,5 @@
 // Mismos tokens (--sg-*) y medidas que el resto de pantallas del sistema (styles.scss).
 
-.pagina {
-  display: grid;
-  gap: 1.25rem;
-  max-width: 64rem;
-  margin: 0 auto;
-  padding: clamp(1.25rem, 4vw, 1.5rem);
-}
-
-.cabecera {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem 1.5rem;
-}
-
-h1 {
-  margin: 0;
-  color: var(--sg-navy);
-  font-size: clamp(1.375rem, 1.2rem + 0.8vw, 1.5rem);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.cabecera__sub {
-  margin: 0.35rem 0 0;
-  color: var(--sg-ink-muted);
-  font-size: 0.875rem;
-}
-
 .tarjeta {
   border: 1px solid var(--sg-border);
   border-radius: var(--sg-radius-card);
@@ -52,72 +22,6 @@ h1 {
   color: var(--sg-ink-body);
   font-size: 0.875rem;
   font-weight: 600;
-}
-
-.selector {
-  flex: 1 1 18rem;
-  max-width: 32rem;
-  padding: 0.55rem 0.75rem;
-  border: 1px solid var(--sg-border);
-  border-radius: var(--sg-radius-control);
-  background: var(--sg-field);
-  color: var(--sg-ink-body);
-  font: inherit;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-
-.buscador {
-  display: flex;
-  flex: 1 1 14rem;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0 0.75rem;
-  border: 1px solid var(--sg-border);
-  border-radius: var(--sg-radius-control);
-  background: var(--sg-field);
-  color: var(--sg-ink-soft);
-
-  &:focus-within {
-    border-color: var(--sg-navy);
-    background: var(--sg-card);
-  }
-
-  input {
-    flex: 1;
-    min-width: 0;
-    padding: 0.55rem 0;
-    border: 0;
-    background: transparent;
-    color: var(--sg-ink);
-    font: inherit;
-    font-size: 0.875rem;
-
-    &:focus-visible {
-      outline: none;
-    }
-
-    &::placeholder {
-      color: var(--sg-ink-muted);
-    }
-  }
-}
-
-.barra--selectores {
-  display: grid;
-  grid-template-columns: minmax(12rem, 1fr) minmax(16rem, 2fr);
-  align-items: end;
-}
-
-.filtro {
-  display: grid;
-  gap: 0.35rem;
-  min-width: 0;
-
-  .selector {
-    width: 100%;
-    max-width: none;
-  }
 }
 
 @media (max-width: 40rem) {
@@ -150,51 +54,8 @@ h1 {
 }
 
 // ── Avisos ──
-.aviso-zona:empty {
-  display: none;
-}
-
-.aviso {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.7rem 0.9rem;
-  border-radius: var(--sg-radius-control);
-  background: var(--sg-ok-bg);
-  color: color-mix(in srgb, var(--sg-ok-fg) 55%, black);
-  font-size: 0.875rem;
-  font-weight: 500;
-
-  span {
-    flex: 1;
-  }
-}
-
-.aviso--error {
-  background: var(--sg-error-bg);
-  color: var(--sg-error-fg);
-}
-
-.aviso__cerrar {
-  display: inline-grid;
-  place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border: 0;
-  border-radius: var(--sg-radius-micro);
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-}
-
 .resumen__registrar {
   margin-left: auto;
-}
-
-// ── Botones ──
-.btn-ghost--peligro:hover:not([aria-disabled='true']) {
-  background: var(--sg-error-bg);
-  color: var(--sg-error-fg);
 }
 
 // aria-disabled: el botón sigue enfocable para que el tooltip explique por qué no está disponible.
@@ -232,36 +93,6 @@ h1 {
 .con-tooltip:focus-within .tooltip {
   opacity: 1;
   visibility: visible;
-}
-
-.tabla-contenedor {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-}
-
-thead th {
-  padding: 0.65rem 1.25rem;
-  background: var(--sg-field);
-  color: var(--sg-ink-muted);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-align: left;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-tbody th,
-tbody td {
-  padding: 0.75rem 1.25rem;
-  border-top: 1px solid var(--sg-divider);
-  text-align: left;
-  vertical-align: middle;
 }
 
 tbody tr:hover {
@@ -314,32 +145,9 @@ tbody tr:hover {
   font-size: 0.8125rem;
 }
 
-.acciones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.estado-vista {
-  display: grid;
-  justify-items: center;
-  gap: 0.5rem;
-  margin: 0;
-  padding: 3rem 1.5rem;
-  color: var(--sg-ink-muted);
-  text-align: center;
-
-  p {
-    margin: 0;
-  }
-}
-
 .estado-vista__titulo {
   color: var(--sg-navy);
   font-family: var(--sg-font-titulo);
   font-weight: 700;
 }
 
-.estado-vista--error {
-  color: var(--sg-error-fg);
-}

@@ -156,6 +156,9 @@ export interface OpcionAsignatura {
   id: string;
   nombre: string;
   estado: 'BORRADOR' | 'ACTIVA' | 'INACTIVA';
+  /** Facultad del programa de la asignatura, para el filtro «Facultad». */
+  facultadId: string;
+  facultadNombre: string;
 }
 
 /**

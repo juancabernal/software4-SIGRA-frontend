@@ -1,0 +1,142 @@
+<div class="panel-reporte" aria-label="Matrículas por programa y semestre">
+  <p class="panel-reporte__sub">Volumen de matrículas por programa académico y semestre</p>
+
+  <form class="filtros" (submit)="$event.preventDefault()" aria-label="Filtros del reporte">
+    <div class="campo">
+      <label for="filtro-semestre-r2">Semestre</label>
+      <select
+        id="filtro-semestre-r2"
+        [value]="semestreSeleccionadoId()"
+        (change)="cambiarSemestre($any($event.target).value)"
+      >
+        <option value="">Todos los semestres</option>
+        @for (semestre of semestres() ?? []; track semestre.id) {
+          <option [value]="semestre.id" [selected]="semestre.id === semestreSeleccionadoId()">
+            {{ semestre.codigo }}
+          </option>
+        }
+      </select>
+    </div>
+    <div class="campo">
+      <label for="filtro-programa-r2">Programa</label>
+      <select
+        id="filtro-programa-r2"
+        [value]="programaId()"
+        (change)="cambiarPrograma($any($event.target).value)"
+      >
+        <option value="">Todos los programas</option>
+        @for (programa of programas(); track programa.id) {
+          <option [value]="programa.id">{{ programa.codigo }} · {{ programa.nombre }}</option>
+        }
+      </select>
+    </div>
+    <div class="campo">
+      <label for="filtro-facultad-r2">Facultad</label>
+      <select
+        id="filtro-facultad-r2"
+        [value]="facultadId()"
+        (change)="cambiarFacultad($any($event.target).value)"
+      >
+        <option value="">Todas las facultades</option>
+        @for (facultad of facultades(); track facultad.id) {
+          <option [value]="facultad.id">{{ facultad.nombre }}</option>
+        }
+      </select>
+    </div>
+  </form>
+
+  <div class="resultado" aria-live="polite" [attr.aria-busy]="carga().estado === 'cargando'">
+    @switch (carga().estado) {
+      @case ('cargando') {
+        <p class="estado-vista" role="status">Cargando reporte…</p>
+      }
+      @case ('error') {
+        @if (carga(); as actual) {
+          @if (actual.estado === 'error') {
+            <div class="estado-vista estado-vista--error" role="alert">
+              <p>{{ actual.error.mensaje }}</p>
+              <button type="button" class="btn" (click)="reintentar()">Reintentar</button>
+            </div>
+          }
+        }
+      }
+      @case ('listo') {
+        @if (carga(); as actual) {
+          @if (actual.estado === 'listo') {
+            <div class="resumen" aria-label="Resumen del reporte">
+              <div class="resumen__tarjeta"><span>Total de matrículas</span><strong>{{ actual.reporte.resumen.totalMatriculas }}</strong></div>
+              <div class="resumen__tarjeta"><span>Activas</span><strong>{{ actual.reporte.resumen.activas }}</strong></div>
+              <div class="resumen__tarjeta"><span>Desvinculadas</span><strong>{{ actual.reporte.resumen.desvinculadas }}</strong></div>
+              <div class="resumen__tarjeta"><span>Estudiantes distintos</span><strong>{{ actual.reporte.resumen.estudiantesDistintos }}</strong></div>
+              <div class="resumen__tarjeta"><span>Programas</span><strong>{{ actual.reporte.resumen.programas }}</strong></div>
+            </div>
+
+            @if (actual.reporte.filas.length === 0) {
+              <div class="estado-vista">
+                <p class="estado-vista__titulo">No hay matrículas registradas para los filtros seleccionados.</p>
+              </div>
+            } @else {
+              <div class="acciones">
+                <button type="button" class="btn" (click)="exportarCsv()">Exportar CSV</button>
+              </div>
+              <div class="tabla-scroll">
+                <table>
+                  <caption class="solo-lectores">Matrículas por programa y semestre</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Semestre</th>
+                      <th scope="col">Programa</th>
+                      <th scope="col">Facultad</th>
+                      <th scope="col" class="num">Activas</th>
+                      <th scope="col" class="num">Desvinculadas</th>
+                      <th scope="col" class="num">Total</th>
+                      <th scope="col" class="num">Estudiantes</th>
+                      <th scope="col" class="num">Asignaturas</th>
+                      <th scope="col" aria-hidden="true"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (fila of actual.reporte.filas; track fila.semestreId + '-' + fila.programaId) {
+                      <tr>
+                        <th scope="row">
+                          {{ fila.semestreCodigo }}
+                          @if (fila.semestreEstado === 'ACTIVO') {
+                            <span class="marca-estado">Activo</span>
+                          }
+                        </th>
+                        <td>{{ fila.programaCodigo }} · {{ fila.programaNombre }}</td>
+                        <td>{{ fila.facultadNombre }}</td>
+                        <td class="num">{{ fila.activas }}</td>
+                        <td class="num">{{ fila.desvinculadas }}</td>
+                        <td class="num"><strong>{{ fila.totalMatriculas }}</strong></td>
+                        <td class="num">{{ fila.estudiantes }}</td>
+                        <td class="num">{{ fila.asignaturas }}</td>
+                        <td class="barra-celda" aria-hidden="true">
+                          <span class="barra" [style.width.%]="mayorTotal() ? fila.totalMatriculas / mayorTotal() * 100 : 0"></span>
+                        </td>
+                      </tr>
+                    }
+                    <tr class="fila-total">
+                      <th scope="row">Total</th>
+                      <td></td>
+                      <td></td>
+                      <td class="num">{{ actual.reporte.resumen.activas }}</td>
+                      <td class="num">{{ actual.reporte.resumen.desvinculadas }}</td>
+                      <td class="num">{{ actual.reporte.resumen.totalMatriculas }}</td>
+                      <td class="num">{{ actual.reporte.resumen.estudiantesDistintos }}</td>
+                      <td class="num">—</td>
+                      <td aria-hidden="true"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="nota">
+                Solo aparecen programas con al menos una matrícula. Un estudiante puede contar en varias filas; el total de estudiantes no los repite.
+              </p>
+            }
+          }
+        }
+      }
+    }
+  </div>
+</div>

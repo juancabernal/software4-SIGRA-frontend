@@ -10,6 +10,8 @@ interface AsignaturaCatalogoDTO {
   id: string;
   nombre: string;
   estado: OpcionAsignatura['estado'];
+  facultadId: string;
+  facultadNombre: string;
 }
 
 interface SemestreCatalogoDTO {
@@ -28,12 +30,23 @@ export class CatalogosMatriculaService {
   private readonly http = inject(HttpClient);
   private readonly sesion = inject(SesionService);
 
-  listarAsignaturas(semestreId?: string): Observable<OpcionAsignatura[]> {
-    const params = semestreId ? new HttpParams().set('semestreId', semestreId) : new HttpParams();
+  /** El backend filtra por semestre y facultad; solo se envían los que tienen valor. */
+  listarAsignaturas(semestreId?: string, facultadId?: string): Observable<OpcionAsignatura[]> {
+    let params = new HttpParams();
+    if (semestreId) params = params.set('semestreId', semestreId);
+    if (facultadId) params = params.set('facultadId', facultadId);
     return this.http
       .get<AsignaturaCatalogoDTO[]>(`${environment.apiUrl}/v1/asignaturas`, { params })
       .pipe(
-        map((asignaturas) => asignaturas.map(({ id, nombre, estado }) => ({ id, nombre, estado }))),
+        map((asignaturas) =>
+          asignaturas.map(({ id, nombre, estado, facultadId, facultadNombre }) => ({
+            id,
+            nombre,
+            estado,
+            facultadId,
+            facultadNombre,
+          })),
+        ),
       );
   }
 

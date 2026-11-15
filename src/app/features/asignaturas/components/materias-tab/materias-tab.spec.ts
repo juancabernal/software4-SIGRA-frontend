@@ -12,6 +12,12 @@ import { MateriasTab, TOOLTIP_ACTIVAR } from './materias-tab';
 
 const URL = `${environment.apiUrl}/v1/asignaturas`;
 const URL_PROGRAMAS = `${environment.apiUrl}/v1/programas`;
+const URL_FACULTADES = `${environment.apiUrl}/v1/facultades`;
+// GET /facultades las devuelve ordenadas por nombre.
+const FACULTADES = [
+  { id: 'f2', nombre: 'Facultad de Derecho', estado: 'ACTIVO' },
+  { id: 'f1', nombre: 'Facultad de Ingeniería', estado: 'ACTIVO' },
+];
 
 const PROGRAMA: ProgramaOpcion = {
   id: 'p1',
@@ -29,6 +35,8 @@ function asignatura(parcial: Partial<Asignatura>): Asignatura {
     nombre: 'Ingeniería de Software IV',
     programaId: 'p1',
     programaNombre: 'Ingeniería de Sistemas',
+    facultadId: 'f1',
+    facultadNombre: 'Facultad de Ingeniería',
     estado: 'BORRADOR',
     cantidadRa: 5,
     ...parcial,
@@ -81,11 +89,15 @@ describe('MateriasTab', () => {
       (b) => b.textContent?.trim() === texto,
     ) as HTMLButtonElement;
 
+  /** Opciones del filtro «Facultad» (GET /facultades, solo Administrador). */
+  const responderFacultades = () => http.expectOne(URL_FACULTADES).flush(FACULTADES);
+
   async function iniciar(
     asignaturas: Asignatura[],
     programas: ProgramaOpcion[] | 'error' = [PROGRAMA],
   ): Promise<TestRequest> {
     await fixture.whenStable();
+    responderFacultades();
     const reqProgramas = http.expectOne(URL_PROGRAMAS);
     if (programas === 'error') {
       reqProgramas.flush(null, { status: 404, statusText: 'Not Found' });
@@ -110,6 +122,7 @@ describe('MateriasTab', () => {
     const cargando = html.querySelector('[role="status"].estado-vista');
     expect(cargando?.textContent).toContain('Cargando materias…');
 
+    responderFacultades();
     http.expectOne(URL_PROGRAMAS).flush([PROGRAMA]);
     const req = listado();
     expect(req.request.params.keys()).toEqual([]);
@@ -141,7 +154,7 @@ describe('MateriasTab', () => {
   it('el selector de estado va entre programa y RA y envía estado al servicio de inmediato', async () => {
     await iniciar([BORRADOR_5]);
     const ids = Array.from(html.querySelectorAll('.barra select.selector')).map((s) => s.id);
-    expect(ids).toEqual(['filtro-programa', 'filtro-estado', 'filtro-ra']);
+    expect(ids).toEqual(['filtro-facultad', 'filtro-programa', 'filtro-estado', 'filtro-ra']);
     expect(html.querySelector('label[for="filtro-estado"]')?.textContent?.trim()).toBe('Estado');
     const opciones = Array.from(html.querySelectorAll('#filtro-estado option'));
     expect(opciones.map((o) => o.textContent?.trim())).toEqual([
@@ -269,6 +282,7 @@ describe('MateriasTab', () => {
 
   it('un error de carga se muestra como alerta y permite reintentar', async () => {
     await fixture.whenStable();
+    responderFacultades();
     http.expectOne(URL_PROGRAMAS).flush([PROGRAMA]);
     listado().flush(null, { status: 0, statusText: 'Unknown Error' });
     await fixture.whenStable();
@@ -611,13 +625,39 @@ describe('MateriasTab', () => {
       programaNombre: 'Ingeniería Civil',
     });
 
-    it('con «Todos los programas» agrupa por programa, en orden alfabético, con el conteo', async () => {
-      await iniciar([BORRADOR_5, ACTIVA, CIVIL]);
+    const PROGRAMA_CIVIL: ProgramaOpcion = {
+      id: 'p2',
+      codigo: 'ICIV',
+      nombre: 'Ingeniería Civil',
+      facultadId: 'f1',
+      facultadNombre: 'Facultad de Ingeniería',
+      estado: 'ACTIVO',
+    };
+    const DERECHO = asignatura({
+      id: 'd1',
+      codigo: 'DER01',
+      nombre: 'Materia Derecho',
+      programaId: 'p3',
+      programaNombre: 'Derecho',
+      facultadId: 'f2',
+      facultadNombre: 'Facultad de Derecho',
+    });
+    const PROGRAMA_DERECHO: ProgramaOpcion = {
+      id: 'p3',
+      codigo: 'DER',
+      nombre: 'Derecho',
+      facultadId: 'f2',
+      facultadNombre: 'Facultad de Derecho',
+      estado: 'ACTIVO',
+    };
+
+    it('con «Todos los programas» agrupa por facultad y programa, en orden alfabético, con el conteo', async () => {
+      await iniciar([BORRADOR_5, ACTIVA, CIVIL], [PROGRAMA, PROGRAMA_CIVIL]);
 
       const encabezados = encabezadosDeGrupo().map((tr) => tr.textContent?.trim());
       expect(encabezados).toEqual([
-        'Ingeniería Civil · 1 materia',
-        'Ingeniería de Sistemas · 2 materias',
+        'Facultad de Ingeniería · Ingeniería Civil · 1 materia',
+        'Facultad de Ingeniería · Ingeniería de Sistemas · 2 materias',
       ]);
 
       // Dentro de cada grupo, orden alfabético por nombre de materia.
@@ -625,6 +665,73 @@ describe('MateriasTab', () => {
         (tr) => tr.querySelector('.nombre')?.textContent,
       );
       expect(nombres).toEqual(['Materia Civil', 'Bruno Activa', 'Bruno Cinco']);
+    });
+
+    it('el filtro de facultad envía facultadId al backend y acota los programas', async () => {
+      await iniciar([BORRADOR_5, CIVIL, DERECHO], [PROGRAMA, PROGRAMA_CIVIL, PROGRAMA_DERECHO]);
+      const opciones = (id: string) =>
+        Array.from(html.querySelectorAll(`#${id} option`)).map((o) => o.textContent?.trim());
+      expect(opciones('filtro-facultad')).toEqual([
+        'Todas las facultades',
+        'Facultad de Derecho',
+        'Facultad de Ingeniería',
+      ]);
+
+      await cambiarSelect('filtro-facultad', 'f2');
+      const req = listado();
+      expect(req.request.params.get('facultadId')).toBe('f2');
+      req.flush([DERECHO]);
+      await fixture.whenStable();
+
+      expect(opciones('filtro-programa')).toEqual(['Todos los programas', 'Derecho']);
+      expect(filasDeDatos().length).toBe(1);
+      expect(fila('DER01')).toBeDefined();
+      expect(encabezadosDeGrupo().map((tr) => tr.textContent?.trim())).toEqual([
+        'Facultad de Derecho · Derecho · 1 materia',
+      ]);
+    });
+
+    it('muestra en pantalla lo que devuelve el backend, sin recortarlo por facultad', async () => {
+      await iniciar([BORRADOR_5], [PROGRAMA, PROGRAMA_DERECHO]);
+      await cambiarSelect('filtro-facultad', 'f2');
+      // Aunque llegue una materia de otra facultad, el filtrado es responsabilidad del backend.
+      listado().flush([BORRADOR_5, DERECHO]);
+      await fixture.whenStable();
+
+      expect(filasDeDatos().length).toBe(2);
+    });
+
+    it('al cambiar de facultad descarta el programa elegido si no pertenece a ella', async () => {
+      await iniciar([BORRADOR_5, DERECHO], [PROGRAMA, PROGRAMA_DERECHO]);
+      await cambiarSelect('filtro-programa', 'p1');
+      listado().flush([BORRADOR_5]);
+      await fixture.whenStable();
+
+      await cambiarSelect('filtro-facultad', 'f2');
+      const req = listado();
+      expect(req.request.params.get('facultadId')).toBe('f2');
+      expect(req.request.params.has('programaId')).toBe(false);
+      req.flush([DERECHO]);
+      await fixture.whenStable();
+
+      expect(filasDeDatos().length).toBe(1);
+      expect(fila('DER01')).toBeDefined();
+      expect((html.querySelector('#filtro-programa') as HTMLSelectElement).value).toBe('');
+    });
+
+    it('«Limpiar filtros» también quita la facultad y vuelve a consultar sin ella', async () => {
+      await iniciar([BORRADOR_5], [PROGRAMA, PROGRAMA_DERECHO]);
+      await cambiarSelect('filtro-facultad', 'f2');
+      listado().flush([]);
+      await fixture.whenStable();
+
+      boton(html, 'Limpiar filtros').click();
+      await fixture.whenStable();
+      const req = listado();
+      expect(req.request.params.has('facultadId')).toBe(false);
+      req.flush([BORRADOR_5]);
+      await fixture.whenStable();
+      expect((html.querySelector('#filtro-facultad') as HTMLSelectElement).value).toBe('');
     });
 
     it('con un programa específico elegido no muestra encabezados', async () => {

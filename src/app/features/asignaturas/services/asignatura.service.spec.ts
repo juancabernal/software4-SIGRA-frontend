@@ -14,6 +14,8 @@ const ASIGNATURA: Asignatura = {
   nombre: 'Bruno Cinco RA',
   programaId: '00000000-0000-4000-a000-0000000000a1',
   programaNombre: 'Programa Bruno Activo',
+  facultadId: '00000000-0000-4000-a000-0000000000f1',
+  facultadNombre: 'Facultad de Humanidades',
   estado: 'BORRADOR',
   cantidadRa: 5,
 };
@@ -49,6 +51,43 @@ describe('AsignaturaService', () => {
     const req = http.expectOne(`${URL}/mias`);
     expect(req.request.method).toBe('GET');
     req.flush([]);
+  });
+
+  it('filtra mis asignaturas por facultad con GET /v1/asignaturas/mias?facultadId=…', () => {
+    service.misAsignaturas('f1').subscribe();
+
+    const req = http.expectOne((r) => r.url === `${URL}/mias`);
+    expect(req.request.params.get('facultadId')).toBe('f1');
+    req.flush([]);
+  });
+
+  it('envía facultadId junto con los demás filtros', () => {
+    service.listar({ facultadId: 'f1', programaId: 'p1' }).subscribe();
+
+    const req = http.expectOne((r) => r.url === URL);
+    expect(req.request.urlWithParams).toBe(`${URL}?facultadId=f1&programaId=p1`);
+    req.flush([]);
+  });
+
+  it('envía semestreId combinado con facultadId', () => {
+    service.listar({ semestreId: 's1', facultadId: 'f1' }).subscribe();
+
+    const req = http.expectOne((r) => r.url === URL);
+    expect(req.request.urlWithParams).toBe(`${URL}?semestreId=s1&facultadId=f1`);
+    req.flush([]);
+  });
+
+  it('propaga el 400 de un facultadId inválido con el mensaje del backend', () => {
+    let status: number | undefined;
+    service.listar({ facultadId: 'no-es-uuid' }).subscribe({ error: (e) => (status = e.status) });
+
+    http
+      .expectOne((r) => r.url === URL)
+      .flush(
+        { status: 400, error: 'BAD_REQUEST', mensaje: 'El parámetro facultadId no es válido' },
+        { status: 400, statusText: 'Bad Request' },
+      );
+    expect(status).toBe(400);
   });
 
   it('envía todos los filtros con valor, con el texto recortado', () => {

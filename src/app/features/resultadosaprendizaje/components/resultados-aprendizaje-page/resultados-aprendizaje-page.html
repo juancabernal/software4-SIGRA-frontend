@@ -1,6 +1,6 @@
 <section class="pagina" aria-labelledby="titulo-ra">
   <header class="cabecera">
-    <div>
+    <div class="cabecera__texto">
       <h1 id="titulo-ra">Gestión de Resultados de Aprendizaje</h1>
       <p class="cabecera__sub">Selecciona una materia para gestionar sus RA</p>
     </div>
@@ -34,7 +34,7 @@
           Reintentar
         </button>
       </div>
-    } @else if (asignaturas().length === 0) {
+    } @else if (asignaturas().length === 0 && !facultadId()) {
       <div class="estado-vista">
         <p class="estado-vista__titulo">No hay materias para gestionar</p>
         <p>
@@ -43,7 +43,24 @@
         </p>
       </div>
     } @else {
-      <div class="barra barra--selectores">
+      <div class="filtros">
+        <div class="filtro">
+          <label for="filtro-facultad">Facultad</label>
+          <select
+            id="filtro-facultad"
+            class="selector"
+            [value]="facultadId()"
+            (change)="alCambiarFacultad($event)"
+          >
+            <option value="" [selected]="facultadId() === ''">Todas las facultades</option>
+            @for (f of facultades(); track f.id) {
+              <option [value]="f.id" [selected]="f.id === facultadId()">
+                {{ f.nombre }}{{ f.estado === 'INACTIVO' ? ' (inactiva)' : '' }}
+              </option>
+            }
+          </select>
+        </div>
+
         <div class="filtro">
           <label for="filtro-programa">Programa</label>
           <select
@@ -69,7 +86,9 @@
             [value]="asignaturaId()"
             (change)="alCambiarAsignatura($event)"
           >
-            <option value="">Selecciona una materia</option>
+            <option value="">
+              {{ asignaturas().length === 0 ? 'Sin materias en esta facultad' : 'Selecciona una materia' }}
+            </option>
             @for (a of asignaturasFiltradas(); track a.id) {
               <option [value]="a.id" [selected]="a.id === asignaturaId()">
                 {{ a.codigo }} · {{ a.nombre }} ({{ presentacionAsignatura[a.estado].etiqueta }})
@@ -256,7 +275,7 @@
                             <span class="con-tooltip">
                               <button
                                 type="button"
-                                class="btn-ghost btn-ghost--peligro"
+                                class="btn btn--peligro btn--pequeno"
                                 [attr.aria-label]="'Inactivar ' + ra.codigo"
                                 [attr.aria-disabled]="puedeInactivar() ? null : 'true'"
                                 [attr.aria-describedby]="

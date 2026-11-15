@@ -14,7 +14,7 @@ cualquier módulo.
 | `.btn`              | Base. También es el estilo "neutro" (azul claro, borde navy).     |
 | `.btn--primario`     | Acción principal de un formulario o diálogo (Registrar, Guardar). |
 | `.btn--secundario`   | Acción secundaria dentro de un diálogo.                           |
-| `.btn--cancelar`     | Específico para "Cancelar" (rojo claro, borde oscuro).            |
+| `.btn--cancelar`     | Específico para "Cancelar" (mismo azul neutro que `.btn`).        |
 | `.btn--peligro`      | Acciones destructivas o de alto riesgo.                           |
 | `.btn--exito`        | Activar / Reactivar (verde azulado).                              |
 | `.btn-ghost`         | Consultar y otras acciones de solo lectura en filas de tabla.     |
@@ -24,6 +24,12 @@ cualquier módulo.
 variante — la altura compacta que ya usan Consultar/Modificar. El ancho sí puede variar según el
 largo del texto (por eso `.btn--pequeno` y `.btn-ghost` solo fijan un `min-width`, no un ancho
 fijo). Nunca definas `padding` o `font-size` propios para un botón: eso rompe la consistencia.
+
+Única excepción: un botón principal que está junto a campos de formulario altos (como
+"Iniciar sesión" en login, junto a los campos de correo/contraseña) puede fijar su propio
+`min-height` para igualar la altura de esos campos. Eso se hace con un `min-height` en el
+`.scss` **del componente**, nunca tocando `.btn--primario` en `styles.scss` — así el ajuste
+queda aislado a esa pantalla y no afecta al resto del sistema.
 
 ## 2. El texto de un botón nunca cambia (Mantis 0000051)
 
@@ -91,8 +97,8 @@ consecuencia de la acción que el usuario acaba de disparar.
 ## 4. Iconos
 
 Cada botón de acción debe llevar su `<app-icono>` correspondiente, coherente con lo que hace
-(`mas` = agregar, `lapiz` = modificar, `prohibido` = inactivar, `check` = activar, etc.). Un botón
-sin icono se ve inconsistente al lado de los demás.
+(`mas` = agregar, `lapiz` = modificar, `prohibido` = inactivar/desvincular/desasignar,
+`check` = activar, etc.). Un botón sin icono se ve inconsistente al lado de los demás.
 
 ## 5. Nada de efectos decorativos
 
@@ -110,3 +116,40 @@ Si agregas o modificas un botón, revisa que:
 - Si es un botón de "+ Registrar", lleve el nombre de la entidad; si es el de enviar dentro del
   diálogo, sea genérico.
 - Tenga su icono.
+
+## Reglas añadidas en 0000042
+
+- **Inactivar siempre es rojo** (`btn btn--peligro btn--pequeno`) en todas las pantallas. No se usa
+  `.btn-ghost` para acciones destructivas.
+- **Hover único.** Todo botón azul (`.btn`, `.btn--secundario`, `.btn--cancelar`) pasa a
+  `--sg-hover-suave` al pasar el cursor: un tono más intenso, con el texto navy siempre legible.
+  Ya no se mezcla con navy (antes el texto de "Modificar" quedaba ilegible).
+- **Registrar ≠ Modificar.** Donde un mismo botón sirve para ambos (planilla de notas), "Registrar"
+  va en navy sólido (`btn--primario`) y "Modificar" en azul claro, además del icono (+ / lápiz).
+
+## Estructura común de pantalla (0000042)
+
+El formato de todas las pantallas se define **una sola vez** en `src/styles.scss`; los componentes
+no lo redefinen:
+
+| Elemento | Clase | Valor |
+|---|---|---|
+| Contenedor | `section.pagina` | ancho máx. 72 rem, separación 1,25 rem |
+| Título | `h1` dentro de `.pagina` | 1,5 rem, navy, negrita |
+| Cabecera | `.cabecera` + `.cabecera__texto` | título y subtítulo a la izquierda, botón principal a la derecha |
+| Avisos | `.aviso`, `.aviso--error`, `.aviso-zona` | igual en todo el sistema |
+| Vacío / cargando / error | `.estado-vista`, `.estado-vista--error` | una sola forma |
+| Tablas | `table`, `thead th`, `tbody td`, `.tabla-contenedor` | mismo relleno y encabezado |
+| Buscador y selector | `.buscador`, `.selector` | mismo estilo |
+
+Plantilla de cabecera:
+
+```html
+<header class="cabecera">
+  <div class="cabecera__texto">
+    <h1 id="titulo-x">Título</h1>
+    <p>Subtítulo breve.</p>
+  </div>
+  <button type="button" class="btn btn--primario">Registrar algo</button>
+</header>
+```

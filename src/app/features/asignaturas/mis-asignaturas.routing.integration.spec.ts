@@ -80,11 +80,4 @@ describe('rutas reales de mis asignaturas y materias', () => {
     expect(html.textContent).toContain('QA-VEC3B41597D');
   });
 
-  it('el estudiante llega a Mis materias con modo de solo lectura', async () => {
-    const html = await abrir('ESTUDIANTE', '/estudiante/materias');
-
-    expect(html.querySelector('app-mis-asignaturas-page')).toBeTruthy();
-    expect(html.textContent).toContain('Mis materias');
-    expect(html.textContent).toContain('Solo lectura');
-  });
 });

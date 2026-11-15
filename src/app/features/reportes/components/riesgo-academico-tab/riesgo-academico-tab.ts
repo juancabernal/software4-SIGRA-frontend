@@ -6,13 +6,12 @@ import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-e
 import { SesionService } from '../../../../core/services/sesion';
 import { BadgeNivelLogro } from '../../../../shared/ui/badge-nivel-logro/badge-nivel-logro';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
+import { OpcionFacultad, facultadesDe } from '../../../../shared/filtros/filtro-por-facultad';
 import { Asignatura } from '../../../asignaturas/models/asignatura.model';
 import { AsignaturaService } from '../../../asignaturas/services/asignatura.service';
-import { formatearNota } from '../../../estadisticas/models/nivel-logro-formato';
 import { Facultad } from '../../../facultades/models/facultad.model';
 import { FacultadService } from '../../../facultades/services/facultad.service';
-import { Programa } from '../../../programas/models/programa.model';
-import { ProgramaService } from '../../../programas/services/programa.service';
+import { formatearNota } from '../../../estadisticas/models/nivel-logro-formato';
 import { SemestreService } from '../../../semestres/services/semestre.service';
 import {
   FiltrosRiesgoAcademico,
@@ -44,10 +43,9 @@ const UMBRALES = [
 export class RiesgoAcademicoTab {
   private readonly reportes = inject(ReporteService);
   private readonly asignaturaService = inject(AsignaturaService);
-  private readonly facultadService = inject(FacultadService);
-  private readonly programaService = inject(ProgramaService);
   private readonly semestreService = inject(SemestreService);
   private readonly sesion = inject(SesionService);
+  private readonly facultadService = inject(FacultadService);
 
   protected readonly umbrales = UMBRALES;
   protected readonly formatearNota = formatearNota;
@@ -73,61 +71,58 @@ export class RiesgoAcademicoTab {
     { initialValue: [] },
   );
 
-  private readonly programasTodos = toSignal<Programa[], Programa[]>(
-    this.programaService.listar({ estado: 'ACTIVO' }).pipe(catchError(() => of([] as Programa[]))),
-    { initialValue: [] },
+  protected readonly esProfesor = this.sesion.rol() === 'profesor';
+
+  /** El Administrador toma las facultades de GET /facultades; el Profesor no puede consultarlo. */
+  private readonly facultadesCatalogo = toSignal(
+    this.esProfesor
+      ? of([] as Facultad[])
+      : this.facultadService.listar().pipe(catchError(() => of([] as Facultad[]))),
+    { initialValue: [] as Facultad[] },
   );
 
-  private readonly facultadesTodas = toSignal<Facultad[], Facultad[]>(
-    this.facultadService.listar({ estado: 'ACTIVO' }).pipe(catchError(() => of([] as Facultad[]))),
-    { initialValue: [] },
+  /** Opciones de «Facultad»: el catálogo para el Administrador, las de sus asignaturas para el Profesor. */
+  protected readonly facultades = computed<OpcionFacultad[]>(() =>
+    this.esProfesor
+      ? facultadesDe(this.asignaturas())
+      : this.facultadesCatalogo().map((f) => ({ id: f.id, nombre: f.nombre })),
   );
 
-  /** Programas del alcance del rol (profesor: solo los de sus asignaturas). */
-  private readonly programasAlcance = computed(() => {
-    const todos = this.programasTodos();
-    if (this.sesion.rol() !== 'profesor') {
-      return todos;
-    }
-    const ids = new Set(this.asignaturas().map((a) => a.programaId));
-    return todos.filter((p) => ids.has(p.id));
-  });
-
-  protected readonly facultades = computed(() => {
-    const facultades = this.facultadesTodas();
-    if (this.sesion.rol() !== 'profesor') {
-      return [...facultades].sort((a, b) => a.nombre.localeCompare(b.nombre));
-    }
-    const ids = new Set(this.programasAlcance().map((p) => p.facultadId));
-    return facultades
-      .filter((f) => ids.has(f.id))
-      .sort((a, b) => a.nombre.localeCompare(b.nombre));
-  });
-
+  /** Programas de las asignaturas visibles, acotados a la facultad elegida. */
   protected readonly programas = computed(() => {
     const facultad = this.facultadId();
-    return this.programasAlcance()
-      .filter((p) => !facultad || p.facultadId === facultad)
-      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const porId = new Map<string, string>();
+    for (const asignatura of this.asignaturas()) {
+      if (!facultad || asignatura.facultadId === facultad) {
+        porId.set(asignatura.programaId, asignatura.programaNombre);
+      }
+    }
+    return [...porId].map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
   });
 
   protected readonly asignaturasDelPrograma = computed(() => {
-    const programa = this.programaId();
     const facultad = this.facultadId();
-    const programasFacultad = new Set(
-      this.programasAlcance()
-        .filter((p) => !facultad || p.facultadId === facultad)
-        .map((p) => p.id),
-    );
+    const programa = this.programaId();
     return this.asignaturas()
-      .filter((a) => {
-        if (programa) {
-          return a.programaId === programa;
-        }
-        return !facultad || programasFacultad.has(a.programaId);
-      })
+      .filter((a) => (!facultad || a.facultadId === facultad) && (!programa || a.programaId === programa))
       .sort((a, b) => a.codigo.localeCompare(b.codigo));
   });
+
+  /** Al cambiar de facultad se descartan el programa y la asignatura que no pertenecen a ella. */
+  protected cambiarFacultad(valor: string): void {
+    this.facultadId.set(valor);
+    if (!valor) {
+      return;
+    }
+    const delPrograma = this.asignaturas().find((a) => a.programaId === this.programaId());
+    if (delPrograma && delPrograma.facultadId !== valor) {
+      this.programaId.set('');
+    }
+    const asignatura = this.asignaturas().find((a) => a.id === this.asignaturaId());
+    if (asignatura && asignatura.facultadId !== valor) {
+      this.asignaturaId.set('');
+    }
+  }
 
   private readonly filtros = computed<FiltrosRiesgoAcademico>(() => ({
     semestreId: this.semestreId() || undefined,
@@ -155,23 +150,6 @@ export class RiesgoAcademicoTab {
     this.semestreId.set(valor);
   }
 
-  protected cambiarFacultad(valor: string): void {
-    this.facultadId.set(valor);
-    const programa = this.programasAlcance().find((p) => p.id === this.programaId());
-    if (valor && programa && programa.facultadId !== valor) {
-      this.programaId.set('');
-      this.asignaturaId.set('');
-      return;
-    }
-    const asignatura = this.asignaturas().find((a) => a.id === this.asignaturaId());
-    if (valor && asignatura) {
-      const prog = this.programasAlcance().find((p) => p.id === asignatura.programaId);
-      if (!prog || prog.facultadId !== valor) {
-        this.asignaturaId.set('');
-      }
-    }
-  }
-
   protected cambiarPrograma(valor: string): void {
     this.programaId.set(valor);
     const asignatura = this.asignaturas().find((a) => a.id === this.asignaturaId());
@@ -190,8 +168,8 @@ export class RiesgoAcademicoTab {
   }
 
   protected limpiarFiltros(): void {
-    this.semestreId.set('');
     this.facultadId.set('');
+    this.semestreId.set('');
     this.programaId.set('');
     this.asignaturaId.set('');
     this.minRaNoAlcanzados.set(1);

@@ -1,0 +1,80 @@
+// Mismos tokens (--sg-*) y medidas que el resto de pantallas del sistema (styles.scss).
+
+.tarjeta {
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-card);
+  background: var(--sg-card);
+  box-shadow: var(--sg-shadow-card);
+  overflow: hidden;
+}
+
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--sg-divider);
+}
+
+.barra--acciones {
+  justify-content: flex-end;
+}
+
+.estado-inline {
+  flex: 1 1 18rem;
+  margin: 0;
+  color: var(--sg-ink-muted);
+  font-size: 0.875rem;
+}
+
+.estado-inline--error {
+  color: var(--sg-error-fg);
+}
+
+// ── Avisos ──
+// ── Botones ──
+[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.resultado {
+  padding: 0;
+}
+
+// ── Rendimiento de todos los RA de la materia ──
+.seccion + .seccion {
+  border-top: 1px solid var(--sg-divider);
+}
+
+.seccion__titulo {
+  margin: 0;
+  padding: 1.25rem 1.25rem 0;
+  color: var(--sg-navy);
+  font-family: var(--sg-font-titulo);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.seccion__cuerpo {
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.estado-inline--fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+
+  p {
+    margin: 0;
+  }
+}
+
+.estado-vista__titulo {
+  color: var(--sg-navy);
+  font-family: var(--sg-font-titulo);
+  font-weight: 700;
+}
+

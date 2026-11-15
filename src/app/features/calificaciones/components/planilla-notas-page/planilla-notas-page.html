@@ -1,6 +1,6 @@
 <section class="pagina" aria-labelledby="titulo-notas">
   <header class="cabecera">
-    <div>
+    <div class="cabecera__texto">
       <h1 id="titulo-notas">Registro de notas y observaciones</h1>
       <p class="cabecera__sub">Planilla de notas por evaluación</p>
     </div>
@@ -37,10 +37,22 @@
     } @else {
       <div class="filtros">
         <div class="filtro">
+          <label for="selector-facultad">Facultad</label>
+          <select id="selector-facultad" class="selector" [value]="facultadId()" (change)="alCambiarFacultad($event)">
+            <option value="" [selected]="facultadId() === ''">Todas las facultades</option>
+            @for (f of facultades(); track f.id) {
+              <option [value]="f.id" [selected]="f.id === facultadId()">{{ f.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filtro">
           <label for="selector-materia">Materia</label>
           <select id="selector-materia" class="selector" [value]="asignaturaId()" (change)="alCambiarAsignatura($event)">
-            <option value="">Selecciona una materia</option>
-            @for (a of listaAsignaturas(); track a.id) {
+            <option value="">
+              {{ listaMaterias().length === 0 ? 'Sin materias en esta facultad' : 'Selecciona una materia' }}
+            </option>
+            @for (a of listaMaterias(); track a.id) {
               <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
             }
           </select>
@@ -227,6 +239,7 @@
                           <button
                             type="button"
                             class="btn btn--fila"
+                            [class.btn--primario]="!f.calificacionId"
                             [attr.aria-disabled]="puedeEditar(f) ? null : 'true'"
                             [attr.title]="
                               puedeEditar(f)

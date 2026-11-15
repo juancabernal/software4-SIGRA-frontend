@@ -1,10 +1,12 @@
 <section class="pagina" aria-labelledby="titulo-evaluaciones">
   <header class="cabecera">
-    <h1 id="titulo-evaluaciones">Evaluaciones por RA</h1>
-    <p class="cabecera__sub">
-      Organiza las evaluaciones de cada resultado de aprendizaje. Las activas de un RA no pueden
-      sumar más del 100 % en el semestre.
-    </p>
+    <div class="cabecera__texto">
+      <h1 id="titulo-evaluaciones">Evaluaciones por RA</h1>
+      <p class="cabecera__sub">
+        Organiza las evaluaciones de cada resultado de aprendizaje. Las activas de un RA no pueden
+        sumar más del 100 % en el semestre.
+      </p>
+    </div>
   </header>
 
   <div class="aviso-zona" role="status" aria-live="polite">
@@ -53,6 +55,21 @@
         </div>
 
         <div class="filtro">
+          <label for="selector-facultad">Facultad</label>
+          <select
+            id="selector-facultad"
+            [disabled]="!semestreId() || facultades().length === 0"
+            [value]="facultadId()"
+            (change)="alCambiarFacultad($event)"
+          >
+            <option value="" [selected]="facultadId() === ''">Todas las facultades</option>
+            @for (f of facultades(); track f.id) {
+              <option [value]="f.id" [selected]="f.id === facultadId()">{{ f.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filtro">
           <label for="selector-materia">Materia</label>
           <select
             id="selector-materia"
@@ -60,7 +77,7 @@
             [value]="asignaturaId()"
             (change)="alCambiarAsignatura($event)"
           >
-            <option value="">{{ !semestreId() ? 'Elige primero un semestre' : cargandoAsignaturas() ? 'Cargando…' : asignaturas().length === 0 ? 'Sin materias en este semestre' : 'Selecciona una materia' }}</option>
+            <option value="">{{ !semestreId() ? 'Elige primero un semestre' : cargandoAsignaturas() ? 'Cargando…' : asignaturas().length === 0 ? (facultadId() ? 'Sin materias en esta facultad' : 'Sin materias en este semestre') : 'Selecciona una materia' }}</option>
             @for (a of asignaturas(); track a.id) {
               <option [value]="a.id" [selected]="a.id === asignaturaId()">
                 {{ a.codigo }} · {{ a.nombre }}
@@ -266,7 +283,7 @@
                             </button>
                             <button
                               type="button"
-                              class="btn-ghost btn-ghost--peligro"
+                              class="btn btn--peligro btn--pequeno"
                               [attr.aria-label]="'Inactivar ' + e.nombre"
                               (click)="pedirInactivar(e)"
                             >

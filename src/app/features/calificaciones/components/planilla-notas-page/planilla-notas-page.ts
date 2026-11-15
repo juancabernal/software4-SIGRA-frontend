@@ -1,8 +1,18 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { Observable, catchError, combineLatest, map, of, startWith, switchMap } from 'rxjs';
+import {
+  Observable,
+  Subscription,
+  catchError,
+  combineLatest,
+  map,
+  of,
+  startWith,
+  switchMap,
+} from 'rxjs';
 
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
+import { facultadesDe } from '../../../../shared/filtros/filtro-por-facultad';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
 import { Asignatura } from '../../../asignaturas/models/asignatura.model';
@@ -59,6 +69,14 @@ export class PlanillaNotasPage {
   protected readonly resultadoAprendizajeId = signal('');
   protected readonly semestreId = signal('');
   protected readonly evaluacionId = signal('');
+
+  // ── Filtro de facultad (lo aplica el backend: GET /asignaturas?facultadId=…) ─────────
+  protected readonly facultadId = signal('');
+  /** Opciones sacadas de todas las materias del profesor, que no puede consultar GET /facultades. */
+  protected readonly facultades = computed(() => facultadesDe(this.listaAsignaturas()));
+  /** Materias que devolvió el backend para la facultad elegida; null sin facultad. */
+  private readonly materiasDeFacultad = signal<Asignatura[] | null>(null);
+  private consultaFacultad: Subscription | undefined;
 
   private readonly cargaRa = toSignal(
     toObservable(this.asignaturaId).pipe(
@@ -119,6 +137,9 @@ export class PlanillaNotasPage {
   }
 
   protected cargarAsignaturas(): void {
+    this.consultaFacultad?.unsubscribe();
+    this.facultadId.set('');
+    this.materiasDeFacultad.set(null);
     this.asignaturas.set({ estado: 'cargando' });
     this.asignaturaService.listar().subscribe({
       next: (lista) => this.asignaturas.set({ estado: 'listo', valor: lista }),
@@ -142,6 +163,37 @@ export class PlanillaNotasPage {
 
   protected listaAsignaturas(): Asignatura[] {
     return valorDe(this.asignaturas(), []);
+  }
+
+  /** Materias del selector: las de la facultad elegida, o todas si no hay facultad. */
+  protected listaMaterias(): Asignatura[] {
+    return this.materiasDeFacultad() ?? this.listaAsignaturas();
+  }
+
+  /**
+   * Pide al backend las materias de la facultad. Si la materia elegida es de otra facultad, se
+   * descartan la materia, el RA y la evaluación.
+   */
+  protected alCambiarFacultad(evento: Event): void {
+    const facultadId = valorDeSelector(evento);
+    const elegida = this.listaAsignaturas().find((a) => a.id === this.asignaturaId());
+    if (facultadId && elegida && elegida.facultadId !== facultadId) {
+      this.asignaturaId.set('');
+      this.resultadoAprendizajeId.set('');
+      this.evaluacionId.set('');
+    }
+    this.facultadId.set(facultadId);
+
+    this.consultaFacultad?.unsubscribe();
+    if (!facultadId) {
+      this.materiasDeFacultad.set(null);
+      return;
+    }
+    this.consultaFacultad = this.asignaturaService.listar({ facultadId }).subscribe({
+      next: (lista) => this.materiasDeFacultad.set(lista),
+      error: (error: unknown) =>
+        this.asignaturas.set({ estado: 'error', error: mensajeDeError(error) }),
+    });
   }
 
   protected listaSemestres(): Semestre[] {

@@ -21,9 +21,10 @@ export class CatalogosEvaluacionService {
    * Materias ACTIVAS, ordenadas por código: solo en ellas se crean evaluaciones. Mientras no exista
    * la sesión (RF-05) se listan todas; luego se cambiará por «mis asignaturas» del profesor.
    */
-  listarAsignaturasActivas(semestreId?: string): Observable<AsignaturaOpcion[]> {
+  listarAsignaturasActivas(semestreId?: string, facultadId?: string): Observable<AsignaturaOpcion[]> {
     let params = new HttpParams().set('estado', 'ACTIVA');
     if (semestreId) params = params.set('semestreId', semestreId);
+    if (facultadId) params = params.set('facultadId', facultadId);
     return this.http
       .get<AsignaturaOpcion[]>(`${this.apiUrl}/asignaturas`, { params })
       .pipe(map((lista) => [...lista].sort((a, b) => a.codigo.localeCompare(b.codigo))));

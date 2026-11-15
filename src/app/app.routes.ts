@@ -5,9 +5,6 @@ import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { roleGuard, rootRedirectGuard } from './core/guards/role.guard';
 
-const pendiente = () =>
-  import('./shared/ui/modulo-pendiente/modulo-pendiente').then((m) => m.ModuloPendiente);
-
 const profesor = { canActivate: [roleGuard], data: { roles: ['PROFESOR'] as const } };
 const administrador = {
   canActivate: [roleGuard],
@@ -54,7 +51,7 @@ export const routes: Routes = [
           import('./features/asignaturas/components/mis-asignaturas-page/mis-asignaturas-page').then(
             (m) => m.MisAsignaturasPage,
           ),
-        title: 'Mis asignaturas · SIGRA',
+        title: 'Mis materias · SIGRA',
         data: {
           ...profesor.data,
           vista: 'PROFESOR',
@@ -93,18 +90,54 @@ export const routes: Routes = [
         title: 'Registro de notas y observaciones · SIGRA',
       },
       {
-        // RF-16: consulta de conclusiones (desempeño insuficiente) por materia, RA y semestre.
-        ...profesor,
+        // Mantis 0000048: la ruta vieja sigue llevando a la primera de las tres páginas de estadísticas.
         path: 'profesor/estadisticas',
+        pathMatch: 'full',
+        redirectTo: 'profesor/estadisticas/niveles-logro',
+      },
+      {
+        // RF-14 / RF-15: nivel de logro y rendimiento del RA por semestre.
+        ...profesor,
+        path: 'profesor/estadisticas/niveles-logro',
         loadComponent: () =>
-          import('./features/estadisticas/components/estadisticas-page/estadisticas-page').then(
-            (m) => m.EstadisticasPage,
+          import('./features/estadisticas/components/niveles-logro-page/niveles-logro-page').then(
+            (m) => m.NivelesLogroPage,
           ),
-        title: 'Estadísticas y ciclo de mejora · SIGRA',
+        title: 'Niveles de logro · SIGRA',
         data: {
           ...profesor.data,
-          titulo: 'Estadísticas y ciclo de mejora',
-          subtitulo: 'Distribución de logro por RA y acciones de mejora',
+          titulo: 'Niveles de logro',
+          subtitulo: 'Distribución de logro y rendimiento por RA',
+        },
+      },
+      {
+        // RF-16: conclusión (desempeño insuficiente) por materia, RA y semestre.
+        ...profesor,
+        path: 'profesor/estadisticas/conclusiones',
+        loadComponent: () =>
+          import('./features/estadisticas/components/conclusiones-page/conclusiones-page').then(
+            (m) => m.ConclusionesPage,
+          ),
+        title: 'Conclusiones · SIGRA',
+        data: {
+          ...profesor.data,
+          titulo: 'Conclusiones',
+          subtitulo: 'Conclusión de desempeño por RA y semestre',
+        },
+      },
+      {
+        // RF-17 / RF-18: acciones de mejora y su conversión en evaluación.
+        ...profesor,
+        path: 'profesor/estadisticas/acciones-mejora',
+        loadComponent: () =>
+          import('./features/estadisticas/components/acciones-mejora-page/acciones-mejora-page').then(
+            (m) => m.AccionesMejoraPage,
+          ),
+        title: 'Acciones de mejora · SIGRA',
+        data: {
+          ...profesor.data,
+          titulo: 'Acciones de mejora',
+          subtitulo: 'Acciones registradas por RA y semestre',
         },
       },
       {
@@ -123,13 +156,11 @@ export const routes: Routes = [
       {
         ...profesor,
         path: 'profesor/historial',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import('./features/auditoria/components/historial-auditoria-page/historial-auditoria-page').then(
+            (m) => m.HistorialAuditoriaPage,
+          ),
         title: 'Mi historial · SIGRA',
-        data: {
-          ...profesor.data,
-          titulo: 'Mi historial',
-          subtitulo: 'Registro de auditoría · solo lectura · acotado a tus asignaturas',
-        },
       },
 
       // ── Administrador ───────────────────────────────────────────────
@@ -229,38 +260,75 @@ export const routes: Routes = [
         ...estudiante,
         path: 'estudiante/materias',
         loadComponent: () =>
-          import('./features/asignaturas/components/mis-asignaturas-page/mis-asignaturas-page').then(
-            (m) => m.MisAsignaturasPage,
+          import('./features/estudiante/components/materias-page/materias-page').then(
+            (m) => m.MisMateriasPage,
           ),
         title: 'Mis asignaturas · SIGRA',
         data: {
           ...estudiante.data,
-          vista: 'ESTUDIANTE',
-          titulo: 'Mis asignaturas',
-          subtitulo: 'Semestre en curso · vista de estudiante · solo lectura',
+          titulo: 'Mis materias',
+          subtitulo: 'Materias asociadas a tu registro académico · solo lectura',
+          requisito: 'RF-22',
+        },
+      },
+      {
+        ...estudiante,
+        path: 'estudiante/materias/:matriculaId',
+        loadComponent: () =>
+          import('./features/estudiante/components/detalle-page/detalle-page').then(
+            (m) => m.MateriaDetallePage,
+          ),
+        title: 'Detalle de materia · SIGRA',
+        data: {
+          ...estudiante.data,
+          titulo: 'Detalle de materia',
+          subtitulo: 'Evaluaciones y resultados de aprendizaje · solo lectura',
           requisito: 'RF-22',
         },
       },
       {
         ...estudiante,
         path: 'estudiante/progreso',
-        loadComponent: pendiente,
+        loadComponent: () =>
+          import('./features/estudiante/components/progreso-page/progreso-page').then(
+            (m) => m.MiProgresoPage,
+          ),
         title: 'Mi progreso · SIGRA',
         data: {
           ...estudiante.data,
           titulo: 'Mi progreso',
-          subtitulo: 'Detalle de asignatura y avance por RA · solo lectura',
+          subtitulo: 'Avance de tus materias en curso · solo lectura',
+          requisito: 'RF-22',
         },
       },
       {
         ...estudiante,
-        path: 'estudiante/progreso/calificaciones',
-        loadComponent: pendiente,
-        title: 'Calificaciones y observaciones · SIGRA',
+        path: 'estudiante/historial',
+        loadComponent: () =>
+          import('./features/estudiante/components/historial-page/historial-page').then(
+            (m) => m.MiHistorialPage,
+          ),
+        title: 'Mi historial · SIGRA',
         data: {
           ...estudiante.data,
-          titulo: 'Calificaciones y observaciones',
-          subtitulo: 'Notas y observaciones recibidas · solo lectura',
+          titulo: 'Mi historial',
+          subtitulo: 'Materias cursadas y desvinculadas · solo lectura',
+          requisito: 'RF-22',
+        },
+      },
+      {
+        // «Reportes por facultad»: el estudiante ve su propio desempeño agrupado por facultad.
+        ...estudiante,
+        path: 'estudiante/reportes-facultad',
+        loadComponent: () =>
+          import('./features/reportes/components/reportes-facultad/reportes-facultad').then(
+            (m) => m.ReportesFacultad,
+          ),
+        title: 'Reportes por facultad · SIGRA',
+        data: {
+          ...estudiante.data,
+          titulo: 'Reportes por facultad',
+          subtitulo: 'Tu desempeño por facultad, programa y materia · solo lectura',
         },
       },
     ],

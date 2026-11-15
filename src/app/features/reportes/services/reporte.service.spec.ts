@@ -56,17 +56,32 @@ describe('ReporteService', () => {
     req.flush(VACIO);
   });
 
-  it('consulta GET /v1/reportes/riesgo-academico con umbral y facultad', () => {
+  it('envía facultadId en el reporte de rendimiento por RA', () => {
+    service.rendimientoRa({ facultadId: 'f1', programaId: 'p1' }).subscribe();
+
+    const req = http.expectOne((r) => r.url === URL);
+    expect(req.request.params.get('facultadId')).toBe('f1');
+    expect(req.request.params.get('programaId')).toBe('p1');
+    req.flush(VACIO);
+  });
+
+  it('envía facultadId en el reporte de riesgo académico', () => {
+    service.riesgoAcademico({ facultadId: 'f2', minRaNoAlcanzados: 2 }).subscribe();
+
+    const req = http.expectOne((r) => r.url === URL_RIESGO);
+    expect(req.request.params.get('facultadId')).toBe('f2');
+    expect(req.request.params.get('minRaNoAlcanzados')).toBe('2');
+    req.flush(VACIO_RIESGO);
+  });
+
+  it('consulta GET /v1/reportes/riesgo-academico con umbral', () => {
     let resultado: RiesgoAcademicoReporte | undefined;
-    service
-      .riesgoAcademico({ minRaNoAlcanzados: 2, asignaturaId: 'a1', facultadId: 'f1' })
-      .subscribe((r) => (resultado = r));
+    service.riesgoAcademico({ minRaNoAlcanzados: 2, asignaturaId: 'a1' }).subscribe((r) => (resultado = r));
 
     const req = http.expectOne((r) => r.url === URL_RIESGO);
     expect(req.request.method).toBe('GET');
     expect(req.request.params.get('minRaNoAlcanzados')).toBe('2');
     expect(req.request.params.get('asignaturaId')).toBe('a1');
-    expect(req.request.params.get('facultadId')).toBe('f1');
     req.flush(VACIO_RIESGO);
     expect(resultado).toEqual(VACIO_RIESGO);
   });
