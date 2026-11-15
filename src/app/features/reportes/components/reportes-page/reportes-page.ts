@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, ElementRef, signal, viewChildren } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, signal, viewChildren } from '@angular/core';
 
+import { SesionService } from '../../../../core/services/sesion';
 import { Icono } from '../../../../shared/ui/icono/icono';
 import { MatriculasProgramaSemestreTab } from '../matriculas-programa-semestre-tab/matriculas-programa-semestre-tab';
 import { RendimientoRaTab } from '../rendimiento-ra-tab/rendimiento-ra-tab';
@@ -34,7 +35,11 @@ export const PESTANAS: readonly Pestana[] = [
   styleUrl: './reportes-page.scss',
 })
 export class ReportesPage {
-  protected readonly pestanas = PESTANAS;
+  private readonly sesion = inject(SesionService);
+  protected readonly rol = this.sesion.rol;
+  protected readonly pestanas = computed(() =>
+    PESTANAS.filter((pestana) => this.rol() === 'admin' || pestana.id !== 'matriculas-programa-semestre'),
+  );
   protected readonly activa = signal<IdPestana>('rendimiento-ra');
 
   private readonly botones = viewChildren<ElementRef<HTMLButtonElement>>('pestana');
@@ -44,7 +49,8 @@ export class ReportesPage {
   }
 
   protected alTeclear(evento: KeyboardEvent, indice: number): void {
-    const total = this.pestanas.length;
+    const pestanas = this.pestanas();
+    const total = pestanas.length;
     let destino: number;
     switch (evento.key) {
       case 'ArrowRight':
@@ -63,7 +69,7 @@ export class ReportesPage {
         return;
     }
     evento.preventDefault();
-    this.activa.set(this.pestanas[destino].id);
+    this.activa.set(pestanas[destino].id);
     this.botones()[destino]?.nativeElement.focus();
   }
 }
