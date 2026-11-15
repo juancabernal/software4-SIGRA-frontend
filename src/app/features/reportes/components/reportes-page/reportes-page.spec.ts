@@ -16,6 +16,7 @@ describe('ReportesPage', () => {
   const seleccionada = () => pestanas().find((p) => p.getAttribute('aria-selected') === 'true');
 
   beforeEach(async () => {
+    rol.set('admin');
     TestBed.configureTestingModule({
       imports: [ReportesPage],
       providers: [
@@ -66,19 +67,41 @@ describe('ReportesPage', () => {
           },
           filas: [],
         });
+      } else if (req.request.url.includes('/reportes/trazabilidad-uso/profesor')) {
+        req.flush({
+          desde: '2026-07-01',
+          hasta: '2026-12-15',
+          semestreId: null,
+          semestreCodigo: null,
+          propia: { totalEventos: 0, ultimaActividad: null, acciones: [] },
+          resumenEstudiantes: { total: 0, conActividad: 0, sinActividad: 0, ingresos: 0 },
+          estudiantes: [],
+          mensaje: null,
+        });
+      } else if (req.request.url.includes('/reportes/trazabilidad-uso')) {
+        req.flush({
+          desde: '2026-10-17',
+          hasta: '2026-11-15',
+          semestreId: null,
+          semestreCodigo: null,
+          rol: null,
+          resumen: { totalEventos: 0, usuariosActivos: 0, loginsExitosos: 0, loginsFallidos: 0 },
+          porRol: [],
+        });
       } else {
         req.flush([]);
       }
     });
   }
 
-  it('muestra el título y las cuatro pestañas en orden', () => {
+  it('muestra el título y las cinco pestañas del administrador en orden', () => {
     expect(html.querySelector('h1')?.textContent).toContain('Reportes');
     expect(pestanas().map((p) => p.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
       'Rendimiento por RA',
       'Riesgo académico',
       'Reportes por facultad',
       'Matrículas por programa',
+      'Trazabilidad por rol',
     ]);
   });
 
@@ -108,7 +131,38 @@ describe('ReportesPage', () => {
     expect(html.querySelector('app-matriculas-programa-semestre-tab')).not.toBeNull();
   });
 
-  it('oculta Matrículas por programa para el profesor', () => {
+  it('muestra R7 al administrador con la vista general', async () => {
+    pestanas()[4].click();
+    fixture.detectChanges();
+    flushPendientes();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    flushPendientes();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(html.querySelector('app-trazabilidad-uso-tab')).not.toBeNull();
+    expect(html.querySelector('#filtro-rol-r7')).not.toBeNull();
+  });
+
+  it('muestra R7 al profesor con su vista propia', async () => {
+    rol.set('profesor');
+    fixture.detectChanges();
+    pestanas()[3].click();
+    fixture.detectChanges();
+    flushPendientes();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    flushPendientes();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(html.querySelector('app-trazabilidad-uso-tab')).not.toBeNull();
+    expect(html.querySelector('#filtro-rol-r7')).toBeNull();
+    expect(html.textContent).toContain('Actividad de mis estudiantes');
+  });
+
+  it('oculta Matrículas por programa al profesor y le deja Trazabilidad por rol', () => {
     rol.set('profesor');
     fixture.detectChanges();
 
@@ -116,6 +170,7 @@ describe('ReportesPage', () => {
       'Rendimiento por RA',
       'Riesgo académico',
       'Reportes por facultad',
+      'Trazabilidad por rol',
     ]);
     expect(html.querySelector('app-matriculas-programa-semestre-tab')).toBeNull();
     expect(http.match((req) => req.url.includes('/reportes/matriculas-programa-semestre'))).toHaveLength(0);
