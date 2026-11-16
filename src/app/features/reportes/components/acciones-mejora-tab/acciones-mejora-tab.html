@@ -1,0 +1,71 @@
+<section class="reporte-r4" aria-labelledby="titulo-r4">
+  <header>
+    <h2 id="titulo-r4">Estado de acciones de mejora y su conversión</h2>
+    <p>Seguimiento de las acciones propuestas y su conversión en evaluaciones.</p>
+  </header>
+  <form class="filtros" (submit)="$event.preventDefault()" aria-label="Filtros de acciones de mejora">
+    <div class="campo">
+      <label for="semestre-r4">Semestre</label>
+      <select id="semestre-r4" [value]="filtros().semestreId ?? ''" (change)="cambiarSemestre($any($event.target).value)">
+        <option value="">Todos los semestres</option>
+        @for (opcion of semestres(); track opcion.id) { <option [value]="opcion.id">{{ opcion.nombre }}</option> }
+      </select>
+    </div>
+    <div class="campo">
+      <label for="asignatura-r4">Asignatura</label>
+      <select id="asignatura-r4" [value]="filtros().asignaturaId ?? ''" (change)="cambiarAsignatura($any($event.target).value)">
+        <option value="">Todas las asignaturas</option>
+        @for (opcion of asignaturas(); track opcion.id) { <option [value]="opcion.id">{{ opcion.nombre }}</option> }
+      </select>
+    </div>
+    <div class="campo">
+      <label for="ra-r4">Resultado de aprendizaje</label>
+      <select id="ra-r4" [disabled]="!filtros().asignaturaId" [value]="filtros().resultadoAprendizajeId ?? ''" (change)="cambiarRa($any($event.target).value)">
+        <option value="">Todos los RA</option>
+        @for (opcion of resultados(); track opcion.id) { <option [value]="opcion.id">{{ opcion.nombre }}</option> }
+      </select>
+    </div>
+    <div class="campo">
+      <label for="estado-r4">Conversión</label>
+      <select id="estado-r4" [value]="filtros().convertida === undefined ? '' : filtros().convertida ? 'true' : 'false'" (change)="cambiarEstado($any($event.target).value)">
+        <option value="">Todos los estados</option><option value="true">Convertida</option><option value="false">Sin convertir</option>
+      </select>
+    </div>
+  </form>
+  <p class="nota">El semestre corresponde a la conclusión de origen. Los filtros muestran opciones con acciones registradas; los conteos reflejan los filtros aplicados.</p>
+  <button type="button" class="btn" (click)="actualizar()">Actualizar reporte</button>
+  <div aria-live="polite" [attr.aria-busy]="carga().estado === 'cargando'">
+    @let actual = carga();
+    @if (actual.estado === 'cargando') { <p role="status">Cargando reporte…</p> }
+    @if (actual.estado === 'error') {
+      <div role="alert"><p>{{ actual.mensaje }}</p><button type="button" class="btn" (click)="actualizar()">Reintentar</button></div>
+    }
+    @if (actual.estado === 'listo') {
+      <div class="resumen">
+        <article><span>Total de acciones</span><strong>{{ actual.reporte.resumen.total }}</strong></article>
+        <article><span>Convertidas</span><strong>{{ actual.reporte.resumen.convertidas }}</strong></article>
+        <article><span>Sin convertir</span><strong>{{ actual.reporte.resumen.sinConvertir }}</strong></article>
+        <article><span>Conversión</span><strong>{{ actual.reporte.resumen.porcentajeConversion | number:'1.0-2' }} %</strong></article>
+      </div>
+      @if (actual.reporte.filas.length === 0) { <p class="vacio">No hay acciones de mejora para los filtros seleccionados.</p> }
+      @else {
+        <div class="tabla-scroll">
+          <table>
+            <caption>Acciones de mejora y estado de conversión</caption>
+            <thead><tr><th scope="col">Acción</th><th scope="col">Asignatura</th><th scope="col">RA</th><th scope="col">Semestre</th><th scope="col">Fecha de propuesta</th><th scope="col">Estado</th></tr></thead>
+            <tbody>
+              @for (fila of actual.reporte.filas; track fila.id) {
+                <tr><td><strong>{{ fila.nombre }}</strong><p>{{ fila.descripcion }}</p></td>
+                  <td>{{ fila.asignaturaCodigo }} · {{ fila.asignaturaNombre }}</td>
+                  <td>{{ fila.resultadoAprendizajeCodigo }}</td><td>{{ fila.semestreCodigo }}</td>
+                  <td>{{ fila.fechaPropuesta | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td><span class="estado" [class.convertida]="fila.convertida">{{ fila.convertida ? 'Convertida' : 'Sin convertir' }}</span></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+  </div>
+</section>

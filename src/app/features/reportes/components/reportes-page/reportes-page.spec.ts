@@ -16,6 +16,7 @@ describe('ReportesPage', () => {
   const seleccionada = () => pestanas().find((p) => p.getAttribute('aria-selected') === 'true');
 
   beforeEach(async () => {
+    rol.set('admin');
     TestBed.configureTestingModule({
       imports: [ReportesPage],
       providers: [
@@ -41,7 +42,9 @@ describe('ReportesPage', () => {
 
   function flushPendientes(): void {
     http.match(() => true).forEach((req) => {
-      if (req.request.url.includes('/reportes/rendimiento-ra')) {
+      if (req.request.url.includes('/reportes/acciones-mejora')) {
+        req.flush({ resumen: { total: 0, convertidas: 0, sinConvertir: 0, porcentajeConversion: 0 }, filas: [] });
+      } else if (req.request.url.includes('/reportes/rendimiento-ra')) {
         req.flush({ semestreId: null, semestreCodigo: null, asignaturas: [], mensaje: 'Sin datos disponibles' });
       } else if (req.request.url.includes('/reportes/riesgo-academico')) {
         req.flush({
@@ -72,13 +75,14 @@ describe('ReportesPage', () => {
     });
   }
 
-  it('muestra el título y las cuatro pestañas en orden', () => {
+  it('muestra el título y las cinco pestañas en orden', () => {
     expect(html.querySelector('h1')?.textContent).toContain('Reportes');
     expect(pestanas().map((p) => p.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
       'Rendimiento por RA',
       'Riesgo académico',
       'Reportes por facultad',
       'Matrículas por programa',
+      'Acciones de mejora',
     ]);
   });
 
@@ -116,8 +120,31 @@ describe('ReportesPage', () => {
       'Rendimiento por RA',
       'Riesgo académico',
       'Reportes por facultad',
+      'Acciones de mejora',
     ]);
     expect(html.querySelector('app-matriculas-programa-semestre-tab')).toBeNull();
     expect(http.match((req) => req.url.includes('/reportes/matriculas-programa-semestre'))).toHaveLength(0);
+  });
+
+  it('permite al profesor abrir el reporte de acciones de mejora', async () => {
+    rol.set('profesor');
+    fixture.detectChanges();
+    const boton = pestanas().find(p => p.textContent?.includes('Acciones de mejora'))!;
+    boton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    flushPendientes();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(html.querySelector('app-acciones-mejora-tab')).not.toBeNull();
+    expect(html.textContent).toContain('No hay acciones de mejora');
+  });
+
+  it('oculta el R4 al estudiante', () => {
+    rol.set('estudiante');
+    fixture.detectChanges();
+    expect(pestanas().some(p => p.textContent?.includes('Acciones de mejora'))).toBe(false);
+    expect(html.querySelector('app-acciones-mejora-tab')).toBeNull();
+    expect(http.match(req => req.url.endsWith('/reportes/acciones-mejora'))).toHaveLength(0);
   });
 });
