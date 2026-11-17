@@ -1,3 +1,4 @@
+import { AccionesMejoraTab } from '../acciones-mejora-tab/acciones-mejora-tab';
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, signal, viewChildren } from '@angular/core';
 
 import { SesionService } from '../../../../core/services/sesion';
@@ -7,7 +8,7 @@ import { RendimientoRaTab } from '../rendimiento-ra-tab/rendimiento-ra-tab';
 import { ReportesFacultad } from '../reportes-facultad/reportes-facultad';
 import { RiesgoAcademicoTab } from '../riesgo-academico-tab/riesgo-academico-tab';
 
-type IdPestana = 'rendimiento-ra' | 'riesgo-academico' | 'por-facultad' | 'matriculas-programa-semestre';
+type IdPestana = 'acciones-mejora' | 'rendimiento-ra' | 'riesgo-academico' | 'por-facultad' | 'matriculas-programa-semestre';
 
 interface Pestana {
   id: IdPestana;
@@ -20,6 +21,7 @@ export const PESTANAS: readonly Pestana[] = [
   { id: 'riesgo-academico', etiqueta: 'Riesgo académico', icono: 'advertencia' },
   { id: 'por-facultad', etiqueta: 'Reportes por facultad', icono: 'edificio' },
   { id: 'matriculas-programa-semestre', etiqueta: 'Matrículas por programa', icono: 'personas' },
+  { id: 'acciones-mejora', etiqueta: 'Acciones de mejora', icono: 'barras' },
 ];
 
 /**
@@ -29,7 +31,7 @@ export const PESTANAS: readonly Pestana[] = [
  */
 @Component({
   selector: 'app-reportes-page',
-  imports: [Icono, MatriculasProgramaSemestreTab, RendimientoRaTab, ReportesFacultad, RiesgoAcademicoTab],
+  imports: [AccionesMejoraTab, Icono, MatriculasProgramaSemestreTab, RendimientoRaTab, ReportesFacultad, RiesgoAcademicoTab],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reportes-page.html',
   styleUrl: './reportes-page.scss',
@@ -38,7 +40,7 @@ export class ReportesPage {
   private readonly sesion = inject(SesionService);
   protected readonly rol = this.sesion.rol;
   protected readonly pestanas = computed(() =>
-    PESTANAS.filter((pestana) => this.rol() === 'admin' || pestana.id !== 'matriculas-programa-semestre'),
+    PESTANAS.filter((pestana) => pestana.id === 'acciones-mejora' ? ['admin', 'profesor'].includes(this.rol() ?? '') : this.rol() === 'admin' || pestana.id !== 'matriculas-programa-semestre'),
   );
   protected readonly activa = signal<IdPestana>('rendimiento-ra');
 
