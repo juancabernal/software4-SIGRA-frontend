@@ -1,3 +1,4 @@
+import { AccionesMejoraTab } from '../acciones-mejora-tab/acciones-mejora-tab';
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, signal, viewChildren } from '@angular/core';
 
 import { Rol } from '../../../../core/models/rol';
@@ -14,6 +15,7 @@ type IdPestana =
   | 'riesgo-academico'
   | 'por-facultad'
   | 'matriculas-programa-semestre'
+  | 'acciones-mejora'
   | 'trazabilidad-uso';
 
 interface Pestana {
@@ -29,6 +31,7 @@ export const PESTANAS: readonly Pestana[] = [
   { id: 'riesgo-academico', etiqueta: 'Riesgo académico', icono: 'advertencia' },
   { id: 'por-facultad', etiqueta: 'Reportes por facultad', icono: 'edificio' },
   { id: 'matriculas-programa-semestre', etiqueta: 'Matrículas por programa', icono: 'personas', roles: ['admin'] },
+  { id: 'acciones-mejora', etiqueta: 'Acciones de mejora', icono: 'barras', roles: ['admin', 'profesor'] },
   { id: 'trazabilidad-uso', etiqueta: 'Trazabilidad por rol', icono: 'reloj', roles: ['admin', 'profesor'] },
 ];
 
@@ -41,6 +44,7 @@ export const PESTANAS: readonly Pestana[] = [
 @Component({
   selector: 'app-reportes-page',
   imports: [
+    AccionesMejoraTab,
     Icono,
     MatriculasProgramaSemestreTab,
     RendimientoRaTab,

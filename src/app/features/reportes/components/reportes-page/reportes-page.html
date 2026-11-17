@@ -35,6 +35,9 @@
     [attr.aria-labelledby]="'pestana-' + activa()"
   >
     @switch (activa()) {
+      @case ('acciones-mejora') {
+        @if (rol() === 'admin' || rol() === 'profesor') { <app-acciones-mejora-tab /> }
+      }
       @case ('rendimiento-ra') {
         <app-rendimiento-ra-tab />
       }
