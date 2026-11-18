@@ -84,7 +84,7 @@
                 }
               </div>
             }
-            @for (asignatura of c.reporte.asignaturas; track asignatura.asignaturaId) {
+            @for (asignatura of paginacion.filas(); track asignatura.asignaturaId) {
               <details class="tarjeta plegable" [open]="$first">
                 <summary class="plegable__resumen">
                   <h2 class="tarjeta__titulo" [id]="'asig-' + asignatura.asignaturaId">
@@ -147,6 +147,15 @@
                   </table>
                 </div>
               </details>
+            }
+            @if (paginacion.total() > 0) {
+              <app-paginador
+                [total]="paginacion.total()"
+                [pagina]="paginacion.pagina()"
+                [tamanoPagina]="paginacion.tamanoPagina()"
+                (cambioPagina)="paginacion.irA($event)"
+                (cambioTamano)="paginacion.cambiarTamano($event)"
+              />
             }
           }
         }

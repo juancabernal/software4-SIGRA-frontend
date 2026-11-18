@@ -15,6 +15,8 @@ import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-e
 import { facultadesDe } from '../../../../shared/filtros/filtro-por-facultad';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
+import { Paginador } from '../../../../shared/ui/paginador/paginador';
+import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 import { Asignatura } from '../../../asignaturas/models/asignatura.model';
 import { AsignaturaService } from '../../../asignaturas/services/asignatura.service';
 import { ResultadoAprendizaje } from '../../../resultadosaprendizaje/models/resultado-aprendizaje.model';
@@ -47,7 +49,7 @@ const DURACION_AVISO_MS = 6000;
  */
 @Component({
   selector: 'app-planilla-notas-page',
-  imports: [CalificacionFormDialog, ChipEstado, Icono],
+  imports: [CalificacionFormDialog, ChipEstado, Icono, Paginador],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './planilla-notas-page.html',
   styleUrl: './planilla-notas-page.scss',
@@ -124,6 +126,9 @@ export class PlanillaNotasPage {
   protected readonly estadoPlanilla = computed(() => this.cargaPlanilla().estado);
   protected readonly errorPlanilla = computed(() => errorDe(this.cargaPlanilla()));
   protected readonly planilla = computed(() => valorDe<PlanillaCalificaciones | null>(this.cargaPlanilla(), null));
+  private readonly filasPlanilla = computed(() => this.planilla()?.filas ?? []);
+  /** Paginación en cliente, igual que en «Materias». */
+  protected readonly paginacion = paginarEnCliente(this.filasPlanilla);
   protected readonly evaluacionActiva = computed(() => this.planilla()?.estadoEvaluacion === 'ACTIVA');
 
   // ── Diálogo ──────────────────────────────────────────────────────────
@@ -175,6 +180,7 @@ export class PlanillaNotasPage {
    * descartan la materia, el RA y la evaluación.
    */
   protected alCambiarFacultad(evento: Event): void {
+    this.paginacion.reiniciar();
     const facultadId = valorDeSelector(evento);
     const elegida = this.listaAsignaturas().find((a) => a.id === this.asignaturaId());
     if (facultadId && elegida && elegida.facultadId !== facultadId) {
@@ -205,22 +211,26 @@ export class PlanillaNotasPage {
   }
 
   protected alCambiarAsignatura(evento: Event): void {
+    this.paginacion.reiniciar();
     this.asignaturaId.set(valorDeSelector(evento));
     this.resultadoAprendizajeId.set('');
     this.evaluacionId.set('');
   }
 
   protected alCambiarRa(evento: Event): void {
+    this.paginacion.reiniciar();
     this.resultadoAprendizajeId.set(valorDeSelector(evento));
     this.evaluacionId.set('');
   }
 
   protected alCambiarSemestre(evento: Event): void {
+    this.paginacion.reiniciar();
     this.semestreId.set(valorDeSelector(evento));
     this.evaluacionId.set('');
   }
 
   protected alCambiarEvaluacion(evento: Event): void {
+    this.paginacion.reiniciar();
     this.evaluacionId.set(valorDeSelector(evento));
   }
 

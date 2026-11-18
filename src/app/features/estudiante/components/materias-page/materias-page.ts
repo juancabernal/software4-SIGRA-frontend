@@ -4,6 +4,8 @@ import { catchError, finalize, of } from 'rxjs';
 
 import { mensajeDeError, MensajeError } from '../../../../core/http/mensaje-de-error';
 import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
+import { Paginador } from '../../../../shared/ui/paginador/paginador';
+import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 import {
   ETIQUETA_SITUACION,
   formatearFecha,
@@ -21,7 +23,7 @@ const VARIANTE: Readonly<Record<SituacionMateria, VarianteChip>> = {
 
 @Component({
   selector: 'app-mis-materias-page',
-  imports: [RouterLink, ChipEstado],
+  imports: [RouterLink, ChipEstado, Paginador],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './materias-page.html',
   styleUrl: './materias-page.scss',
@@ -31,6 +33,8 @@ export class MisMateriasPage {
   protected readonly cargando = signal(true);
   protected readonly error = signal<MensajeError | null>(null);
   protected readonly materias = signal<MiMateria[]>([]);
+  /** Paginación en cliente, igual que en «Materias». */
+  protected readonly paginacion = paginarEnCliente(this.materias);
   protected readonly etiquetas = ETIQUETA_SITUACION;
   protected readonly variantes = VARIANTE;
   protected readonly formatearFecha = formatearFecha;

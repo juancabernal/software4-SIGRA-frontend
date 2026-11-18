@@ -17,7 +17,7 @@
     <p class="estado-vista">Aún no tienes asignaturas matriculadas</p>
   } @else {
     <div class="tarjetas" role="list">
-      @for (materia of materias(); track materia.matriculaId) {
+      @for (materia of paginacion.filas(); track materia.matriculaId) {
         <article class="tarjeta" role="listitem">
           <div class="cabecera-tarjeta">
             <div>
@@ -46,5 +46,12 @@
         </article>
       }
     </div>
+    <app-paginador
+      [total]="paginacion.total()"
+      [pagina]="paginacion.pagina()"
+      [tamanoPagina]="paginacion.tamanoPagina()"
+      (cambioPagina)="paginacion.irA($event)"
+      (cambioTamano)="paginacion.cambiarTamano($event)"
+    />
   }
 </section>

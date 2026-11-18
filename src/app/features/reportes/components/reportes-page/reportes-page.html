@@ -3,7 +3,7 @@
     <div class="cabecera__texto">
       <h1 id="titulo-reportes">Reportes</h1>
       <p class="cabecera__sub">
-        Consultas de solo lectura sobre rendimiento, riesgo académico y comparativo por facultad
+        Consultas de solo lectura sobre rendimiento, riesgo académico, comparativo por facultad y uso del sistema
       </p>
     </div>
   </header>
@@ -50,6 +50,11 @@
       @case ('matriculas-programa-semestre') {
         @if (rol() === 'admin') {
           <app-matriculas-programa-semestre-tab />
+        }
+      }
+      @case ('trazabilidad-uso') {
+        @if (rol() === 'admin' || rol() === 'profesor') {
+          <app-trazabilidad-uso-tab [vista]="rol() === 'admin' ? 'admin' : 'profesor'" />
         }
       }
     }

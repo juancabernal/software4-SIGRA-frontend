@@ -4,6 +4,8 @@ import { catchError, finalize, of } from 'rxjs';
 
 import { mensajeDeError, MensajeError } from '../../../../core/http/mensaje-de-error';
 import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
+import { Paginador } from '../../../../shared/ui/paginador/paginador';
+import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 import {
   ETIQUETA_SITUACION,
   formatearFecha,
@@ -21,7 +23,7 @@ const VARIANTE: Readonly<Record<SituacionMateria, VarianteChip>> = {
 
 @Component({
   selector: 'app-mi-historial-page',
-  imports: [RouterLink, ChipEstado],
+  imports: [RouterLink, ChipEstado, Paginador],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './historial-page.html',
   styleUrl: './historial-page.scss',
@@ -31,9 +33,11 @@ export class MiHistorialPage {
   protected readonly cargando = signal(true);
   protected readonly error = signal<MensajeError | null>(null);
   protected readonly materias = signal<MiMateria[]>([]);
+  /** Se pagina por materia; la página actual se agrupa por semestre. */
+  protected readonly paginacion = paginarEnCliente(this.materias);
   protected readonly grupos = computed(() => {
     const grupos: { semestre: string; materias: MiMateria[] }[] = [];
-    for (const materia of this.materias()) {
+    for (const materia of this.paginacion.filas()) {
       const grupo = grupos.find((item) => item.semestre === materia.semestreCodigo);
       if (grupo) {
         grupo.materias.push(materia);

@@ -4,6 +4,8 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, map, of, startWith, switchMap } from 'rxjs';
 
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
+import { Paginador } from '../../../../shared/ui/paginador/paginador';
+import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 import { Facultad } from '../../../facultades/models/facultad.model';
 import { FacultadService } from '../../../facultades/services/facultad.service';
 import { Programa } from '../../../programas/models/programa.model';
@@ -24,6 +26,7 @@ type Carga =
 
 @Component({
   selector: 'app-matriculas-programa-semestre-tab',
+  imports: [Paginador],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './matriculas-programa-semestre-tab.html',
   styleUrl: './matriculas-programa-semestre-tab.scss',
@@ -89,6 +92,13 @@ export class MatriculasProgramaSemestreTab {
     { initialValue: { estado: 'cargando' } },
   );
 
+  private readonly filasReporte = computed(() => {
+    const carga = this.carga();
+    return carga.estado === 'listo' ? carga.reporte.filas : [];
+  });
+  /** Paginación en cliente, igual que en «Materias». La fila Total sigue sumando todo el reporte. */
+  protected readonly paginacion = paginarEnCliente(this.filasReporte);
+
   protected readonly mayorTotal = computed(() => {
     const actual = this.carga();
     return actual.estado === 'listo'
@@ -97,14 +107,17 @@ export class MatriculasProgramaSemestreTab {
   });
 
   protected cambiarSemestre(valor: string): void {
+    this.paginacion.reiniciar();
     this.semestreId.set(valor);
   }
 
   protected cambiarPrograma(valor: string): void {
+    this.paginacion.reiniciar();
     this.programaId.set(valor);
   }
 
   protected cambiarFacultad(valor: string): void {
+    this.paginacion.reiniciar();
     this.facultadId.set(valor);
   }
 

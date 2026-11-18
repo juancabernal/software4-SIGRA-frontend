@@ -6,6 +6,8 @@ import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-e
 import { SesionService } from '../../../../core/services/sesion';
 import { BadgeNivelLogro } from '../../../../shared/ui/badge-nivel-logro/badge-nivel-logro';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
+import { Paginador } from '../../../../shared/ui/paginador/paginador';
+import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 import { OpcionFacultad, facultadesDe } from '../../../../shared/filtros/filtro-por-facultad';
 import { Asignatura } from '../../../asignaturas/models/asignatura.model';
 import { AsignaturaService } from '../../../asignaturas/services/asignatura.service';
@@ -36,7 +38,7 @@ const UMBRALES = [
 @Component({
   selector: 'app-riesgo-academico-tab',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BadgeNivelLogro, ChipEstado],
+  imports: [BadgeNivelLogro, ChipEstado, Paginador],
   templateUrl: './riesgo-academico-tab.html',
   styleUrl: './riesgo-academico-tab.scss',
 })
@@ -110,6 +112,7 @@ export class RiesgoAcademicoTab {
 
   /** Al cambiar de facultad se descartan el programa y la asignatura que no pertenecen a ella. */
   protected cambiarFacultad(valor: string): void {
+    this.paginacion.reiniciar();
     this.facultadId.set(valor);
     if (!valor) {
       return;
@@ -146,11 +149,20 @@ export class RiesgoAcademicoTab {
     { initialValue: { estado: 'cargando' } },
   );
 
+  private readonly estudiantesReporte = computed(() => {
+    const carga = this.carga();
+    return carga.estado === 'listo' ? carga.reporte.estudiantes : [];
+  });
+  /** Paginación en cliente, igual que en «Materias». */
+  protected readonly paginacion = paginarEnCliente(this.estudiantesReporte);
+
   protected cambiarSemestre(valor: string): void {
+    this.paginacion.reiniciar();
     this.semestreId.set(valor);
   }
 
   protected cambiarPrograma(valor: string): void {
+    this.paginacion.reiniciar();
     this.programaId.set(valor);
     const asignatura = this.asignaturas().find((a) => a.id === this.asignaturaId());
     if (valor && asignatura && asignatura.programaId !== valor) {
@@ -159,15 +171,18 @@ export class RiesgoAcademicoTab {
   }
 
   protected cambiarAsignatura(valor: string): void {
+    this.paginacion.reiniciar();
     this.asignaturaId.set(valor);
   }
 
   protected cambiarUmbral(valor: string): void {
+    this.paginacion.reiniciar();
     const n = Number(valor);
     this.minRaNoAlcanzados.set(Number.isFinite(n) && n >= 1 ? n : 1);
   }
 
   protected limpiarFiltros(): void {
+    this.paginacion.reiniciar();
     this.facultadId.set('');
     this.semestreId.set('');
     this.programaId.set('');

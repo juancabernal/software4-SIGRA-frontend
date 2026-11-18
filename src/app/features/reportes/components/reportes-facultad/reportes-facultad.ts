@@ -5,6 +5,8 @@ import { catchError, map, of, startWith, switchMap } from 'rxjs';
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
 import { SesionService } from '../../../../core/services/sesion';
 import { Icono } from '../../../../shared/ui/icono/icono';
+import { Paginador } from '../../../../shared/ui/paginador/paginador';
+import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 import { formatearNota, formatearPorcentaje } from '../../../estadisticas/models/nivel-logro-formato';
 import { NivelLogroService } from '../../../estadisticas/services/nivel-logro.service';
 import { Semestre } from '../../../semestres/models/semestre.model';
@@ -71,7 +73,7 @@ const ETIQUETA_NIVEL_AGRUPACION: Readonly<Record<NivelAgrupacion, string>> = {
  */
 @Component({
   selector: 'app-reportes-facultad',
-  imports: [Icono],
+  imports: [Icono, Paginador],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reportes-facultad.html',
   styleUrl: './reportes-facultad.scss',
@@ -164,6 +166,9 @@ export class ReportesFacultad {
     );
   });
 
+  /** Paginación en cliente, igual que en «Materias». */
+  protected readonly paginacion = paginarEnCliente(this.filas);
+
   protected readonly resumen = computed(() => {
     const datos = this.datos();
     return datos ? resumenGeneral(datos, this.rangos()) : null;
@@ -172,12 +177,14 @@ export class ReportesFacultad {
   protected readonly semestreCodigo = computed(() => this.datos()?.semestreCodigo ?? null);
 
   protected cambiarSemestre(valor: string): void {
+    this.paginacion.reiniciar();
     this.facultad.set(null);
     this.programa.set(null);
     this.semestreId.set(valor);
   }
 
   protected abrir(fila: FilaReporteFacultad): void {
+    this.paginacion.reiniciar();
     if (this.nivel() === 'FACULTAD') {
       this.facultad.set({ id: fila.id, nombre: fila.nombre });
     } else if (this.nivel() === 'PROGRAMA') {
@@ -186,11 +193,13 @@ export class ReportesFacultad {
   }
 
   protected irAFacultades(): void {
+    this.paginacion.reiniciar();
     this.facultad.set(null);
     this.programa.set(null);
   }
 
   protected irAProgramas(): void {
+    this.paginacion.reiniciar();
     this.programa.set(null);
   }
 

@@ -204,7 +204,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    @for (f of p.filas; track f.matriculaId) {
+                    @for (f of paginacion.filas(); track f.matriculaId) {
                       <tr [class.fila--retirada]="!f.matriculaActiva">
                         <th scope="row" class="codigo">{{ f.numeroDocumento }}</th>
                         <td class="nombre">
@@ -261,6 +261,13 @@
                   </tbody>
                 </table>
               </div>
+              <app-paginador
+                [total]="paginacion.total()"
+                [pagina]="paginacion.pagina()"
+                [tamanoPagina]="paginacion.tamanoPagina()"
+                (cambioPagina)="paginacion.irA($event)"
+                (cambioTamano)="paginacion.cambiarTamano($event)"
+              />
             }
           }
         }

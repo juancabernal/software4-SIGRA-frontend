@@ -5,6 +5,8 @@ import { catchError, map, of, startWith, switchMap } from 'rxjs';
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
 import { SesionService } from '../../../../core/services/sesion';
 import { BadgeNivelLogro } from '../../../../shared/ui/badge-nivel-logro/badge-nivel-logro';
+import { Paginador } from '../../../../shared/ui/paginador/paginador';
+import { paginarEnCliente } from '../../../../shared/ui/paginador/paginacion-cliente';
 import { OpcionFacultad, facultadesDe } from '../../../../shared/filtros/filtro-por-facultad';
 import { Asignatura } from '../../../asignaturas/models/asignatura.model';
 import { AsignaturaService } from '../../../asignaturas/services/asignatura.service';
@@ -31,7 +33,7 @@ const NIVELES: readonly DistribucionNivel['nivel'][] = ['BAJO', 'MEDIO', 'ALTO',
 @Component({
   selector: 'app-rendimiento-ra-tab',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BadgeNivelLogro],
+  imports: [BadgeNivelLogro, Paginador],
   templateUrl: './rendimiento-ra-tab.html',
   styleUrl: './rendimiento-ra-tab.scss',
 })
@@ -123,12 +125,21 @@ export class RendimientoRaTab {
     { initialValue: { estado: 'cargando' } },
   );
 
+  private readonly asignaturasReporte = computed(() => {
+    const carga = this.carga();
+    return carga.estado === 'listo' ? carga.reporte.asignaturas : [];
+  });
+  /** Paginación en cliente, igual que en «Materias». */
+  protected readonly paginacion = paginarEnCliente(this.asignaturasReporte);
+
   protected cambiarSemestre(valor: string): void {
+    this.paginacion.reiniciar();
     this.semestreId.set(valor);
   }
 
   /** Al cambiar de facultad se descartan el programa y la asignatura que no pertenecen a ella. */
   protected cambiarFacultad(valor: string): void {
+    this.paginacion.reiniciar();
     this.facultadId.set(valor);
     if (!valor) {
       return;
@@ -144,6 +155,7 @@ export class RendimientoRaTab {
   }
 
   protected cambiarPrograma(valor: string): void {
+    this.paginacion.reiniciar();
     this.programaId.set(valor);
     const asignatura = this.asignaturas().find((a) => a.id === this.asignaturaId());
     if (valor && asignatura && asignatura.programaId !== valor) {
@@ -152,10 +164,12 @@ export class RendimientoRaTab {
   }
 
   protected cambiarAsignatura(valor: string): void {
+    this.paginacion.reiniciar();
     this.asignaturaId.set(valor);
   }
 
   protected limpiarFiltros(): void {
+    this.paginacion.reiniciar();
     this.facultadId.set('');
     this.semestreId.set('');
     this.programaId.set('');

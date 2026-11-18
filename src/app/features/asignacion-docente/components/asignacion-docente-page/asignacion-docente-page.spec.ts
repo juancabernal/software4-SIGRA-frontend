@@ -570,7 +570,7 @@ describe('AsignacionDocentePage', () => {
 });
 
 describe('AsignacionDocentePage con muchos profesores', () => {
-  it('muestra solo los primeros resultados y pide acotar la búsqueda', async () => {
+  it('pagina la lista de profesores y vuelve a la página 1 al buscar', async () => {
     TestBed.configureTestingModule({
       imports: [AsignacionDocentePage],
       providers: [provideHttpClient(), provideHttpClientTesting()],
@@ -595,8 +595,15 @@ describe('AsignacionDocentePage con muchos profesores', () => {
     fixture.detectChanges();
 
     const resumen = () => html.querySelector('.resumen-seleccion')?.textContent?.replace(/\s+/g, ' ').trim();
-    expect(html.querySelectorAll('.profesor-opcion').length).toBe(30);
-    expect(resumen()).toBe('Mostrando 30 de 45 profesores. Escribe para acotar la búsqueda.');
+    expect(html.querySelectorAll('.profesor-opcion').length).toBe(10);
+    expect(resumen()).toBe('45 profesor(es)');
+    expect(html.textContent).toContain('Página 1 de 5');
+
+    const siguiente = html.querySelector('button[aria-label="Página siguiente"]') as HTMLButtonElement;
+    siguiente.click();
+    fixture.detectChanges();
+    expect(html.textContent).toContain('Página 2 de 5');
+    expect(html.querySelector('.profesor-opcion__nombre')?.textContent?.trim()).toBe('Profesor 10');
 
     const buscador = html.querySelector('#buscar-profesor') as HTMLInputElement;
     buscador.value = 'Profesor 4';
@@ -606,6 +613,7 @@ describe('AsignacionDocentePage con muchos profesores', () => {
     // «Profesor 4» y «Profesor 40» a «Profesor 44».
     expect(html.querySelectorAll('.profesor-opcion').length).toBe(6);
     expect(resumen()).toBe('6 profesor(es)');
+    expect(html.textContent).toContain('Página 1 de 1');
 
     html.remove();
     http.verify();
