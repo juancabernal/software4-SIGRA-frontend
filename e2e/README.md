@@ -25,7 +25,7 @@ npm run e2e
 
 Antes de ejecutar la compuerta integrada, `npm run e2e:preflight` exige las URL locales, el SHA del
 backend, la versión/seed de PostgreSQL y las tres identidades. Si falta el ambiente, informa
-`BLOCKED`; no se debe interpretar una suite omitida como PASS.
+`BLOCKED`; no se debe interpretar una suite omitida como PASS. Hare este cambio pequeño para probar alguito de los test.
 
 En la CI de release, las identidades `*.bruno@uco.net.co` y su contraseña solo viven dentro del
 PostgreSQL efímero y del job de pruebas; son credenciales de QA ya documentadas en los seeds y no
