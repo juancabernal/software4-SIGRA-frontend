@@ -44,4 +44,16 @@ describe('AuditoriaService', () => {
     expect(req.request.params.get('pagina')).toBe('2');
     req.flush({ contenido: [], pagina: 2, tamano: 25, totalElementos: 0, totalPaginas: 0 });
   });
+
+  it('consultarPropios pide /mis-eventos con los mismos filtros', () => {
+    service.consultarPropios({ desde: '2026-10-01', tipoEntidad: 'CALIFICACION' }, 1, 20).subscribe();
+
+    const req = http.expectOne((r) => r.url === `${URL}/mis-eventos`);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('pagina')).toBe('1');
+    expect(req.request.params.get('tamano')).toBe('20');
+    expect(req.request.params.get('desde')).toBe('2026-10-01');
+    expect(req.request.params.get('tipoEntidad')).toBe('CALIFICACION');
+    expect(req.request.params.has('hasta')).toBe(false);
+  });
 });

@@ -80,6 +80,7 @@ Las vistas se construyen en paralelo con el módulo backend correspondiente. Cad
 | --- | --- | --- |
 | Juan Camilo Bernal | Registro de acción de mejora y conversión a evaluación, mostrando la evaluación generada | RF-17, RF-18 |
 | Santiago Torres | Vista consolidada del profesor, reporte de RA por asignatura, reporte de logro por programa y vista del estudiante con «Sin evaluar» | RF-20, RF-21a/b, RF-22 |
+| Tomás Gómez | Reporte R2 de matrículas por programa y semestre para coordinación académica | R2 |
 
 ### Responsabilidades transversales
 
@@ -287,6 +288,21 @@ La matriz completa, decisiones de seguridad y pendientes de integración están 
 | Estados | Cargando, error con reintento (RNF-17) y vacío («Sin datos disponibles») |
 
 El Estudiante no tiene acceso: el backend responde 403 y la ruta no existe en su menú.
+
+### 0000048 — Estadísticas en tres páginas
+
+La pantalla única de Estadísticas se separó en tres páginas independientes, cada una con su entrada en el panel lateral del profesor. El cambio es de rutas y de estructura: no se tocaron los servicios, los modelos ni los endpoints.
+
+| Página | Ruta | Ícono | Contenido |
+| --- | --- | --- | --- |
+| Niveles de logro | `/profesor/estadisticas/niveles-logro` | barras | Nivel de logro (RF-14, RF-15), rendimiento del RA y «Recalcular» |
+| Conclusiones | `/profesor/estadisticas/conclusiones` | documento | Conclusión del RA (RF-16) y el diálogo para registrar una acción de mejora |
+| Acciones de mejora | `/profesor/estadisticas/acciones-mejora` | check | Lista de acciones (RF-17), «Editar» y «Convertir en evaluación» (RF-18) |
+
+- **Filtros propios.** Cada página tiene su propio filtro Facultad → Materia → Semestre → RA, con el componente `estadisticas-filtros` (`features/estadisticas/components/`). Cada página crea su instancia: la selección no se comparte entre páginas y no hay un servicio de estado.
+- **Rutas.** Las tres llevan el mismo guard de rol que protegía la ruta anterior. `/profesor/estadisticas` redirige a `niveles-logro` por si queda algún enlace antiguo.
+- **Consulta automática.** Cada página consulta sola al completar los filtros, cancela la petición anterior y refresca en segundo plano (Mantis 0000047), pero solo pide lo que muestra.
+- **Pruebas.** Cuatro specs (`estadisticas-filtros`, `niveles-logro-page`, `conclusiones-page` y `acciones-mejora-page`), más las de la tabla de rutas y el menú. Los datos comunes están en `estadisticas-pruebas.ts`.
 
 ---
 

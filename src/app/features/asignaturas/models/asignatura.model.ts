@@ -13,6 +13,9 @@ export interface Asignatura {
   nombre: string;
   programaId: string;
   programaNombre: string;
+  /** Facultad del programa de la asignatura. */
+  facultadId: string;
+  facultadNombre: string;
   estado: EstadoAsignatura;
   cantidadRa: number;
 }
@@ -50,6 +53,9 @@ export const PATRON_NOMBRE_PROHIBIDO = /[\p{Cc}\p{Cf}<>]/u;
 /** Filtros de GET /asignaturas; todos opcionales y combinados con AND en el backend. */
 export interface FiltrosAsignaturas {
   texto?: string;
+  /** Incidencia 0000044: solo asignaturas con actividad en ese semestre. */
+  semestreId?: string;
+  facultadId?: string;
   programaId?: string;
   estado?: EstadoAsignatura;
   raMin?: number;

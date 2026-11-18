@@ -1,0 +1,11 @@
+.cabecera, .ra-cabecera { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+h1, h2, p { margin: 0; }
+h2 { color: var(--sg-ink); font-size: 1.1rem; }
+.cabecera p:last-child, .ra-cabecera > div > p { margin-top: .35rem; color: var(--sg-ink-muted); }
+.codigo { color: var(--sg-ink-muted); font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.tarjeta { display: grid; gap: 1rem; padding: 1.25rem; border: 1px solid var(--sg-border); border-radius: var(--sg-radius-card); background: var(--sg-card); box-shadow: var(--sg-shadow-card); }
+.error { color: var(--sg-error-fg); }
+.aviso { border-left: 3px solid var(--sg-navy); }
+.nota { color: var(--sg-ink-muted); font-size: .9rem; }
+th, td { padding: .65rem; border-bottom: 1px solid var(--sg-divider); text-align: left; vertical-align: top; }
+th { color: var(--sg-ink-muted); font-size: .75rem; text-transform: uppercase; }

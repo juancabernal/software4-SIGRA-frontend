@@ -41,6 +41,8 @@ const MATERIA: AsignaturaOpcion = {
   codigo: 'ISW4',
   nombre: 'Ingeniería de Software IV',
   programaNombre: 'Ingeniería de Sistemas',
+  facultadId: 'f1',
+  facultadNombre: 'Facultad de Ingeniería',
   estado: 'ACTIVA',
 };
 
@@ -168,7 +170,88 @@ describe('EvaluacionesPage', () => {
     await cargarCatalogos();
 
     const ids = Array.from(html.querySelectorAll('.filtros select')).map((s) => s.id);
-    expect(ids).toEqual(['selector-semestre', 'selector-materia', 'selector-ra']);
+    expect(ids).toEqual(['selector-semestre', 'selector-facultad', 'selector-materia', 'selector-ra']);
+  });
+
+  describe('filtro de facultad', () => {
+    const DE_DERECHO: AsignaturaOpcion = {
+      ...MATERIA,
+      id: 'm2',
+      codigo: 'DER1',
+      nombre: 'Derecho Civil',
+      programaNombre: 'Derecho',
+      facultadId: 'f2',
+      facultadNombre: 'Facultad de Derecho',
+    };
+    const materiasDe = (facultadId: string) =>
+      http.expectOne(
+        (r) =>
+          r.url === `${API}/asignaturas` &&
+          r.params.get('semestreId') === 's-actual' &&
+          r.params.get('facultadId') === facultadId,
+      );
+    const textos = (id: string) =>
+      Array.from(selector(id).options).map((o) => o.textContent?.trim());
+
+    it('ofrece las facultades de las materias del semestre, sin duplicados y por nombre', async () => {
+      await cargarCatalogos([MATERIA, DE_DERECHO, { ...MATERIA, id: 'm3', codigo: 'ISW5' }]);
+
+      expect(textos('selector-facultad')).toEqual([
+        'Todas las facultades',
+        'Facultad de Derecho',
+        'Facultad de Ingeniería',
+      ]);
+    });
+
+    it('al elegir una facultad pide al backend sus materias y conserva las opciones', async () => {
+      await cargarCatalogos([MATERIA, DE_DERECHO]);
+
+      await cambiar('selector-facultad', 'f2');
+      materiasDe('f2').flush([DE_DERECHO]);
+      await fixture.whenStable();
+
+      expect(textos('selector-materia')).toEqual(['Selecciona una materia', 'DER1 · Derecho Civil']);
+      expect(textos('selector-facultad').length).toBe(3);
+    });
+
+    it('al cambiar de facultad descarta la materia y el RA elegidos si son de otra', async () => {
+      await cargarCatalogos([MATERIA, DE_DERECHO]);
+      await cambiar('selector-materia', 'm1');
+      http.expectOne(`${API}/asignaturas/m1/resultados-aprendizaje`).flush([ra('RA1')]);
+      await fixture.whenStable();
+
+      await cambiar('selector-facultad', 'f2');
+      materiasDe('f2').flush([DE_DERECHO]);
+      await fixture.whenStable();
+
+      expect(selector('selector-materia').value).toBe('');
+      expect(selector('selector-ra').disabled).toBe(true);
+    });
+
+    it('una facultad sin materias lo indica en el selector de materia', async () => {
+      await cargarCatalogos([MATERIA, DE_DERECHO]);
+      await cambiar('selector-facultad', 'f2');
+      materiasDe('f2').flush([]);
+      await fixture.whenStable();
+
+      expect(textos('selector-materia')).toEqual(['Sin materias en esta facultad']);
+    });
+
+    it('al cambiar de semestre vuelve a «Todas las facultades»', async () => {
+      await cargarCatalogos([MATERIA, DE_DERECHO]);
+      await cambiar('selector-facultad', 'f2');
+      materiasDe('f2').flush([DE_DERECHO]);
+      await fixture.whenStable();
+
+      await cambiar('selector-semestre', 's-pasado');
+      const req = http.expectOne(
+        (r) => r.url === `${API}/asignaturas` && r.params.get('semestreId') === 's-pasado',
+      );
+      expect(req.request.params.has('facultadId')).toBe(false);
+      req.flush([MATERIA]);
+      await fixture.whenStable();
+      expect(selector('selector-facultad').value).toBe('');
+    });
   });
 
   it('muestra un estado vacío si no hay materias activas', async () => {
@@ -241,9 +324,9 @@ describe('EvaluacionesPage', () => {
     );
 
     expect(html.querySelectorAll('tbody tr').length).toBe(5);
-    expect(html.textContent).toContain('Mostrando 1–5 de 7 evaluaciones');
+    expect(html.textContent).toContain('Página 1 de 2');
 
-    const tamano = html.querySelector('.paginacion select') as HTMLSelectElement;
+    const tamano = html.querySelector('.paginador select') as HTMLSelectElement;
     tamano.value = '10';
     tamano.dispatchEvent(new Event('change'));
     await fixture.whenStable();
@@ -360,7 +443,7 @@ describe('EvaluacionesPage', () => {
     it('conserva la página y el tamaño elegidos', async () => {
       const siete = Array.from({ length: 7 }, (_, i) => evaluacion(i + 1));
       await iniciar(resumen(siete, 70));
-      boton(html, 'Siguiente ›').click();
+      boton(html, 'Siguiente').click();
       await fixture.whenStable();
 
       await refrescar();

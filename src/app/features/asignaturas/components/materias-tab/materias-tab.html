@@ -23,6 +23,21 @@
       />
     </div>
 
+    <label class="solo-lectores" for="filtro-facultad">Facultad</label>
+    <select
+      id="filtro-facultad"
+      class="selector"
+      [value]="facultadId()"
+      (change)="alCambiarFacultad($event)"
+    >
+      <option value="">Todas las facultades</option>
+      @for (f of facultades(); track f.id) {
+        <option [value]="f.id" [selected]="f.id === facultadId()">
+          {{ f.nombre }}{{ f.estado === 'INACTIVO' ? ' (inactiva)' : '' }}
+        </option>
+      }
+    </select>
+
     <label class="solo-lectores" for="filtro-programa">Programa</label>
     <select
       id="filtro-programa"
@@ -31,8 +46,8 @@
       (change)="alCambiarPrograma($event)"
     >
       <option value="">Todos los programas</option>
-      @for (programa of programas(); track programa.id) {
-        <option [value]="programa.id">
+      @for (programa of programasDeFacultad(); track programa.id) {
+        <option [value]="programa.id" [selected]="programa.id === programaId()">
           {{ programa.nombre }}{{ programa.estado === 'INACTIVO' ? ' (inactivo)' : '' }}
         </option>
       }

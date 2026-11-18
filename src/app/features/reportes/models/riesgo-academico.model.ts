@@ -28,7 +28,10 @@ export interface EstudianteRiesgo {
   asignaturaId: string;
   asignaturaCodigo: string;
   asignaturaNombre: string;
+  programaId: string;
   programaNombre: string;
+  facultadId: string;
+  facultadNombre: string;
   cantidadRaNoAlcanzados: number;
   severidad: SeveridadRiesgo;
   ras: RaNoAlcanzado[];
@@ -44,6 +47,7 @@ export interface RiesgoAcademicoReporte {
 
 export interface FiltrosRiesgoAcademico {
   semestreId?: string;
+  facultadId?: string;
   programaId?: string;
   asignaturaId?: string;
   minRaNoAlcanzados?: number;

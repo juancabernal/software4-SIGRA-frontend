@@ -1,0 +1,253 @@
+<div class="panel-reporte" aria-label="Trazabilidad de uso por rol">
+  <p class="panel-reporte__sub">
+    @if (vista() === 'admin') {
+      Resumen de actividad por tipo de usuario, sin identificar personas
+    } @else {
+      Tu actividad en el sistema y la de los estudiantes de tus asignaturas
+    }
+  </p>
+
+  <form class="filtros" (submit)="$event.preventDefault()" aria-label="Filtros del reporte">
+    <div class="campo">
+      <label for="filtro-semestre-r7">Semestre</label>
+      <select
+        id="filtro-semestre-r7"
+        [value]="semestreSeleccionadoId()"
+        (change)="cambiarSemestre($any($event.target).value)"
+      >
+        @if (vista() === 'admin') {
+          <option value="">Sin semestre (por fechas)</option>
+        }
+        @for (semestre of semestres() ?? []; track semestre.id) {
+          <option [value]="semestre.id" [selected]="semestre.id === semestreSeleccionadoId()">
+            {{ semestre.codigo }}{{ semestre.estado === 'ACTIVO' ? ' (activo)' : '' }}
+          </option>
+        }
+      </select>
+    </div>
+    <div class="campo">
+      <label for="filtro-desde-r7">Desde</label>
+      <input
+        id="filtro-desde-r7"
+        type="date"
+        [value]="desde()"
+        [attr.min]="semestreSeleccionado()?.fechaInicio ?? null"
+        [attr.max]="hasta() || semestreSeleccionado()?.fechaFin || null"
+        (change)="cambiarDesde($any($event.target).value)"
+      />
+    </div>
+    <div class="campo">
+      <label for="filtro-hasta-r7">Hasta</label>
+      <input
+        id="filtro-hasta-r7"
+        type="date"
+        [value]="hasta()"
+        [attr.min]="desde() || semestreSeleccionado()?.fechaInicio || null"
+        [attr.max]="semestreSeleccionado()?.fechaFin ?? null"
+        (change)="cambiarHasta($any($event.target).value)"
+      />
+    </div>
+    @if (vista() === 'admin') {
+      <div class="campo">
+        <label for="filtro-rol-r7">Rol</label>
+        <select id="filtro-rol-r7" [value]="rol()" (change)="cambiarRol($any($event.target).value)">
+          <option value="">Todos los roles</option>
+          @for (valor of roles; track valor) {
+            <option [value]="valor">{{ etiquetaGrupo[valor] }}</option>
+          }
+        </select>
+      </div>
+    }
+  </form>
+
+  @if (desde() || hasta()) {
+    <div class="acciones acciones--izquierda">
+      <button type="button" class="btn btn--secundario" (click)="limpiarFechas()">Limpiar fechas</button>
+    </div>
+  }
+
+  <div class="resultado" aria-live="polite" [attr.aria-busy]="carga().estado === 'cargando'">
+    @switch (carga().estado) {
+      @case ('cargando') {
+        <p class="estado-vista" role="status">Cargando reporte…</p>
+      }
+      @case ('error') {
+        @if (carga(); as actual) {
+          @if (actual.estado === 'error') {
+            <div class="estado-vista estado-vista--error" role="alert">
+              <p>{{ actual.error.mensaje }}</p>
+              <button type="button" class="btn" (click)="reintentar()">Reintentar</button>
+            </div>
+          }
+        }
+      }
+      @case ('general') {
+        @if (reporteGeneral(); as reporte) {
+          <p class="periodo">
+            Periodo: {{ reporte.desde | date: 'dd/MM/yyyy' : 'UTC' }} – {{ reporte.hasta | date: 'dd/MM/yyyy' : 'UTC' }}
+            @if (reporte.semestreCodigo) {
+              · Semestre {{ reporte.semestreCodigo }}
+            }
+          </p>
+          <div class="resumen" aria-label="Resumen del reporte">
+            <div class="resumen__tarjeta"><span>Total de eventos</span><strong>{{ reporte.resumen.totalEventos }}</strong></div>
+            <div class="resumen__tarjeta"><span>Usuarios activos</span><strong>{{ reporte.resumen.usuariosActivos }}</strong></div>
+            <div class="resumen__tarjeta"><span>Inicios de sesión</span><strong>{{ reporte.resumen.loginsExitosos }}</strong></div>
+            <div class="resumen__tarjeta"><span>Accesos rechazados</span><strong>{{ reporte.resumen.loginsFallidos }}</strong></div>
+          </div>
+
+          @if (reporte.resumen.totalEventos === 0) {
+            <div class="estado-vista">
+              <p class="estado-vista__titulo">No hay actividad registrada para los filtros seleccionados.</p>
+            </div>
+          } @else {
+            <div class="acciones">
+              <button type="button" class="btn" (click)="exportarCsv()">Exportar CSV</button>
+            </div>
+            <div class="tabla-scroll">
+              <table>
+                <caption class="solo-lectores">Actividad por tipo de usuario</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Rol</th>
+                    <th scope="col" class="num">Usuarios activos</th>
+                    @for (accion of acciones; track accion) {
+                      <th scope="col" class="num">{{ etiquetaAccion[accion] }}</th>
+                    }
+                    <th scope="col" class="num">Total</th>
+                    <th scope="col">Última actividad</th>
+                    <th scope="col" aria-hidden="true"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (fila of reporte.porRol; track fila.rol) {
+                    <tr>
+                      <th scope="row">{{ etiquetaGrupo[fila.rol] }}</th>
+                      <td class="num">{{ fila.rol === 'SIN_IDENTIFICAR' ? '—' : fila.usuariosDistintos }}</td>
+                      @for (accion of acciones; track accion) {
+                        <td class="num">{{ conteoDe(fila.acciones, accion) }}</td>
+                      }
+                      <td class="num"><strong>{{ fila.totalEventos }}</strong></td>
+                      <td>{{ fila.ultimaActividad ? (fila.ultimaActividad | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
+                      <td class="barra-celda" aria-hidden="true">
+                        <span class="barra" [style.width.%]="mayorTotalRol() ? (fila.totalEventos / mayorTotalRol()) * 100 : 0"></span>
+                      </td>
+                    </tr>
+                  }
+                  <tr class="fila-total">
+                    <th scope="row">Total</th>
+                    <td class="num">{{ reporte.resumen.usuariosActivos }}</td>
+                    @for (accion of acciones; track accion) {
+                      <td class="num">{{ totalAccion(accion) }}</td>
+                    }
+                    <td class="num">{{ reporte.resumen.totalEventos }}</td>
+                    <td></td>
+                    <td aria-hidden="true"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          }
+          <p class="nota">
+            Solo se cuentan los eventos que registra la auditoría (inicios de sesión, cambios de estado y notas
+            modificadas o fuera de fecha). El reporte no muestra quién hizo cada acción; «Sin identificar» son
+            intentos de acceso rechazados.
+          </p>
+        }
+      }
+      @case ('profesor') {
+        @if (reporteProfesor(); as reporte) {
+          <p class="periodo">
+            Periodo: {{ reporte.desde | date: 'dd/MM/yyyy' : 'UTC' }} – {{ reporte.hasta | date: 'dd/MM/yyyy' : 'UTC' }}
+            @if (reporte.semestreCodigo) {
+              · Semestre {{ reporte.semestreCodigo }}
+            }
+          </p>
+          <div class="resumen" aria-label="Resumen del reporte">
+            <div class="resumen__tarjeta"><span>Mis eventos</span><strong>{{ reporte.propia.totalEventos }}</strong></div>
+            <div class="resumen__tarjeta"><span>Estudiantes</span><strong>{{ reporte.resumenEstudiantes.total }}</strong></div>
+            <div class="resumen__tarjeta"><span>Con actividad</span><strong>{{ reporte.resumenEstudiantes.conActividad }}</strong></div>
+            <div class="resumen__tarjeta"><span>Sin actividad</span><strong>{{ reporte.resumenEstudiantes.sinActividad }}</strong></div>
+            <div class="resumen__tarjeta"><span>Ingresos de estudiantes</span><strong>{{ reporte.resumenEstudiantes.ingresos }}</strong></div>
+          </div>
+
+          <section class="bloque" aria-labelledby="titulo-mi-actividad">
+            <h2 id="titulo-mi-actividad" class="bloque__titulo">Mi actividad</h2>
+            @if (reporte.propia.totalEventos === 0) {
+              <p class="nota">No registras actividad en este periodo.</p>
+            } @else {
+              <ul class="chips">
+                @for (conteo of reporte.propia.acciones; track conteo.accion) {
+                  <li class="chip">{{ etiquetaAccion[conteo.accion] }}: <strong>{{ conteo.total }}</strong></li>
+                }
+              </ul>
+              @if (reporte.propia.ultimaActividad) {
+                <p class="nota">Última actividad: {{ reporte.propia.ultimaActividad | date: 'dd/MM/yyyy HH:mm' }}</p>
+              }
+            }
+          </section>
+
+          <section class="bloque" aria-labelledby="titulo-estudiantes">
+            <h2 id="titulo-estudiantes" class="bloque__titulo">Actividad de mis estudiantes</h2>
+            @if (reporte.estudiantes.length === 0) {
+              <div class="estado-vista">
+                <p class="estado-vista__titulo">{{ reporte.mensaje ?? 'No hay estudiantes para mostrar.' }}</p>
+              </div>
+            } @else {
+              <div class="acciones">
+                <button type="button" class="btn" (click)="exportarCsv()">Exportar CSV</button>
+              </div>
+              <div class="tabla-scroll">
+                <table>
+                  <caption class="solo-lectores">Actividad de los estudiantes</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Estudiante</th>
+                      <th scope="col">Asignaturas</th>
+                      <th scope="col" class="num">Ingresos</th>
+                      <th scope="col">Último acceso</th>
+                      <th scope="col" aria-hidden="true"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (estudiante of paginacion.filas(); track estudiante.estudianteId) {
+                      <tr>
+                        <th scope="row">
+                          <span class="persona">{{ estudiante.nombreCompleto }}</span>
+                          <span class="persona__correo">{{ estudiante.correoInstitucional }}</span>
+                        </th>
+                        <td>{{ estudiante.asignaturas.join(', ') }}</td>
+                        <td class="num">{{ estudiante.ingresos }}</td>
+                        <td>
+                          @if (estudiante.ultimaActividad) {
+                            {{ estudiante.ultimaActividad | date: 'dd/MM/yyyy HH:mm' }}
+                          } @else {
+                            <span class="marca-sin-actividad">Sin ingresos</span>
+                          }
+                        </td>
+                        <td class="barra-celda" aria-hidden="true">
+                          <span class="barra" [style.width.%]="mayorIngresos() ? (estudiante.ingresos / mayorIngresos()) * 100 : 0"></span>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <app-paginador
+                [total]="paginacion.total()"
+                [pagina]="paginacion.pagina()"
+                [tamanoPagina]="paginacion.tamanoPagina()"
+                (cambioPagina)="paginacion.irA($event)"
+                (cambioTamano)="paginacion.cambiarTamano($event)"
+              />
+            }
+          </section>
+          <p class="nota">
+            Solo aparecen estudiantes con matrícula activa en tus asignaturas del semestre. Se muestran ingresos al
+            sistema y último acceso; no se muestra qué consultó cada estudiante.
+          </p>
+        }
+      }
+    }
+  </div>
+</div>

@@ -3,6 +3,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, map, of, startWith, switchMap } from 'rxjs';
 
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
+import { SesionService } from '../../../../core/services/sesion';
 import { Icono } from '../../../../shared/ui/icono/icono';
 import { Paginador } from '../../../../shared/ui/paginador/paginador';
 import {
@@ -24,7 +25,7 @@ type Carga =
 const TAMANO_INICIAL = 10;
 
 /**
- * Reporte del historial de auditoría para el ADMINISTRADOR (RF-21c): todos los eventos con fecha y
+ * Reporte del historial de auditoría (RF-21c). El ADMINISTRADOR ve todos los eventos con fecha y
  * hora, acción, entidad afectada, usuario y detalle, del más reciente al más antiguo. Se filtra por
  * rango de fechas y tipo de entidad, y la paginación la hace el backend para no cargar todo el
  * historial (RNF de rendimiento). Es solo lectura: el historial no se puede modificar ni borrar.
@@ -38,6 +39,8 @@ const TAMANO_INICIAL = 10;
 })
 export class HistorialAuditoriaPage {
   private readonly service = inject(AuditoriaService);
+  /** El profesor ve solo sus propios eventos («Mi historial»); el administrador, todo el historial. */
+  protected readonly esProfesor = inject(SesionService).rol() === 'profesor';
 
   protected readonly tiposEntidad = TIPOS_ENTIDAD;
   protected readonly etiquetaEntidad = ETIQUETA_ENTIDAD;
@@ -66,7 +69,10 @@ export class HistorialAuditoriaPage {
   private readonly carga = toSignal(
     toObservable(this.consulta).pipe(
       switchMap(({ filtros, pagina, tamano }) =>
-        this.service.consultar(filtros, pagina - 1, tamano).pipe(
+        (this.esProfesor
+          ? this.service.consultarPropios(filtros, pagina - 1, tamano)
+          : this.service.consultar(filtros, pagina - 1, tamano)
+        ).pipe(
           map((resultado): Carga => ({ estado: 'listo', pagina: resultado })),
           catchError((error: unknown) => of<Carga>({ estado: 'error', error: mensajeDeError(error) })),
           startWith<Carga>({ estado: 'cargando' }),

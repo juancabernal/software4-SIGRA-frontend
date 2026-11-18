@@ -13,6 +13,7 @@ import { Subject, catchError, map, of, switchMap, tap } from 'rxjs';
 
 import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
 import { MatriculaFormDialog } from '../matricula-form-dialog/matricula-form-dialog';
+import { OpcionFacultad, facultadesDe } from '../../../../shared/filtros/filtro-por-facultad';
 import { ChipEstado } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
 import { Paginador } from '../../../../shared/ui/paginador/paginador';
@@ -70,9 +71,16 @@ export class MatriculadosPage {
   // ── Filtros ───────────────────────────────────────────────────────
   protected readonly asignaturaId = signal('');
   protected readonly semestreId = signal('');
+  /** La facultad la filtra el backend (GET /asignaturas?facultadId=…). */
+  protected readonly facultadId = signal('');
+  /**
+   * Facultades de las asignaturas del semestre, sin filtrar por facultad: así las opciones no
+   * desaparecen al elegir una. El Profesor no puede consultar GET /facultades.
+   */
+  protected readonly facultades = signal<OpcionFacultad[]>([]);
   protected readonly incluirInactivas = signal(false);
   private readonly recargas = signal(0);
-  private readonly cambiosSemestre = new Subject<string>();
+  private readonly cambiosSemestre = new Subject<{ semestreId: string; facultadId: string }>();
   protected readonly cargandoAsignaturas = signal(false);
 
   protected readonly ambosElegidos = computed(() => !!this.asignaturaId() && !!this.semestreId());
@@ -138,12 +146,19 @@ export class MatriculadosPage {
     this.cargarCatalogos();
     this.cambiosSemestre.pipe(
       tap(() => { this.asignaturas.set([]); this.cargandoAsignaturas.set(true); this.errorCatalogos.set(false); }),
-      switchMap(id => id ? this.catalogos.listarAsignaturas(id).pipe(catchError(() => of(null))) : of([])),
+      switchMap(({ semestreId, facultadId }) =>
+        (semestreId
+          ? this.catalogos.listarAsignaturas(semestreId, facultadId).pipe(catchError(() => of(null)))
+          : of([] as OpcionAsignatura[])
+        ).pipe(map((lista) => ({ lista, facultadId }))),
+      ),
       takeUntilDestroyed(),
-    ).subscribe(lista => {
+    ).subscribe(({ lista, facultadId }) => {
       this.cargandoAsignaturas.set(false);
       this.errorCatalogos.set(lista === null);
       this.asignaturas.set(lista ?? []);
+      // Sin facultad elegida, la lista es la del semestre completo: de ahí salen las opciones.
+      if (!facultadId && lista) this.facultades.set(facultadesDe(lista));
     });
 
     const consulta = computed(() => ({
@@ -194,8 +209,28 @@ export class MatriculadosPage {
     this.matriculados.set([]);
     this.matriculaAbierta.set(false);
     this.aDesvincular.set(null);
+    // Cada semestre tiene sus propias facultades: se vuelve a «Todas».
+    this.facultadId.set('');
     this.semestreId.set((evento.target as HTMLSelectElement).value);
-    this.cambiosSemestre.next(this.semestreId());
+    this.pedirAsignaturas();
+  }
+
+  /** Pide al backend las asignaturas de la facultad; la elegida se descarta si es de otra. */
+  protected alCambiarFacultad(evento: Event): void {
+    const facultadId = (evento.target as HTMLSelectElement).value;
+    const elegida = this.asignaturas().find((a) => a.id === this.asignaturaId());
+    if (facultadId && elegida && elegida.facultadId !== facultadId) {
+      this.paginacion.reiniciar();
+      this.asignaturaId.set('');
+      this.matriculaAbierta.set(false);
+      this.aDesvincular.set(null);
+    }
+    this.facultadId.set(facultadId);
+    this.pedirAsignaturas();
+  }
+
+  private pedirAsignaturas(): void {
+    this.cambiosSemestre.next({ semestreId: this.semestreId(), facultadId: this.facultadId() });
   }
 
   protected alCambiarIncluirInactivas(evento: Event): void {
@@ -337,7 +372,7 @@ export class MatriculadosPage {
         next: semestres => {
           this.semestres.set(semestres);
           this.cargandoCatalogos.set(false);
-          if (this.semestreId()) this.cambiosSemestre.next(this.semestreId());
+          if (this.semestreId()) this.pedirAsignaturas();
         },
         error: () => { this.errorCatalogos.set(true); this.cargandoCatalogos.set(false); },
       });

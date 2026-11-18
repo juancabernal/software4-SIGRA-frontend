@@ -1,0 +1,126 @@
+:host {
+  display: block;
+  color: var(--sg-ink, #1a2332);
+  font-family: var(--sg-font-cuerpo, Inter, system-ui, sans-serif);
+  font-size: 0.875rem;
+}
+
+.panel-reporte {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.panel-reporte__sub,
+.nota {
+  margin: 0;
+  color: var(--sg-ink-muted, #64748b);
+  font-size: 0.875rem;
+}
+
+
+
+.resultado {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.resumen__tarjeta {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--sg-border, #e2e8f0);
+  border-radius: var(--sg-radius-card, 20px);
+  background: var(--sg-card, #fff);
+  color: var(--sg-ink-muted, #64748b);
+
+  strong {
+    color: var(--sg-navy, #1b3a5c);
+    font-size: 1.35rem;
+  }
+}
+
+.acciones {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tabla-scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--sg-divider, #f1f5f9);
+  text-align: left;
+  vertical-align: middle;
+}
+
+thead th {
+  color: var(--sg-ink-muted, #64748b);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.marca-estado {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: var(--sg-ok-bg, #e8f5ee);
+  color: var(--sg-ok-fg, #197a43);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.barra-celda {
+  width: 7rem;
+}
+
+.barra {
+  display: block;
+  min-width: 2px;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--sg-teal, #1d9a8a);
+}
+
+.fila-total {
+  background: var(--sg-field, #f8fafc);
+  font-weight: 700;
+}
+
+
+
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 52rem) {
+  .resumen {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

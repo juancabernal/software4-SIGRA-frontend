@@ -1,6 +1,6 @@
 <section class="pagina" aria-labelledby="titulo-notas">
   <header class="cabecera">
-    <div>
+    <div class="cabecera__texto">
       <h1 id="titulo-notas">Registro de notas y observaciones</h1>
       <p class="cabecera__sub">Planilla de notas por evaluación</p>
     </div>
@@ -37,10 +37,40 @@
     } @else {
       <div class="filtros">
         <div class="filtro">
+          <label for="selector-semestre">Semestre</label>
+          @if (semestres().estado === 'cargando') {
+            <p class="estado-inline" role="status">Cargando semestres…</p>
+          } @else if (errorCarga(semestres()); as error) {
+            <p class="estado-inline estado-inline--error" role="alert">{{ error.mensaje }}</p>
+          } @else {
+            <select id="selector-semestre" class="selector" [value]="semestreId()" (change)="alCambiarSemestre($event)">
+              <option value="">Selecciona un semestre</option>
+              @for (s of listaSemestres(); track s.id) {
+                <option [value]="s.id" [selected]="s.id === semestreId()">
+                  {{ s.codigo }}{{ s.estado === 'ACTIVO' ? ' (activo)' : '' }}
+                </option>
+              }
+            </select>
+          }
+        </div>
+
+        <div class="filtro">
+          <label for="selector-facultad">Facultad</label>
+          <select id="selector-facultad" class="selector" [value]="facultadId()" (change)="alCambiarFacultad($event)">
+            <option value="" [selected]="facultadId() === ''">Todas las facultades</option>
+            @for (f of facultades(); track f.id) {
+              <option [value]="f.id" [selected]="f.id === facultadId()">{{ f.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filtro">
           <label for="selector-materia">Materia</label>
           <select id="selector-materia" class="selector" [value]="asignaturaId()" (change)="alCambiarAsignatura($event)">
-            <option value="">Selecciona una materia</option>
-            @for (a of listaAsignaturas(); track a.id) {
+            <option value="">
+              {{ listaMaterias().length === 0 ? 'Sin materias en esta facultad' : 'Selecciona una materia' }}
+            </option>
+            @for (a of listaMaterias(); track a.id) {
               <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
             }
           </select>
@@ -72,24 +102,6 @@
               @for (ra of resultadosActivos(); track ra.id) {
                 <option [value]="ra.id">
                   {{ ra.codigo }} · {{ ra.descripcion }}
-                </option>
-              }
-            </select>
-          }
-        </div>
-
-        <div class="filtro">
-          <label for="selector-semestre">Semestre</label>
-          @if (semestres().estado === 'cargando') {
-            <p class="estado-inline" role="status">Cargando semestres…</p>
-          } @else if (errorCarga(semestres()); as error) {
-            <p class="estado-inline estado-inline--error" role="alert">{{ error.mensaje }}</p>
-          } @else {
-            <select id="selector-semestre" class="selector" [value]="semestreId()" (change)="alCambiarSemestre($event)">
-              <option value="">Selecciona un semestre</option>
-              @for (s of listaSemestres(); track s.id) {
-                <option [value]="s.id" [selected]="s.id === semestreId()">
-                  {{ s.codigo }}{{ s.estado === 'ACTIVO' ? ' (activo)' : '' }}
                 </option>
               }
             </select>
@@ -192,7 +204,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    @for (f of p.filas; track f.matriculaId) {
+                    @for (f of paginacion.filas(); track f.matriculaId) {
                       <tr [class.fila--retirada]="!f.matriculaActiva">
                         <th scope="row" class="codigo">{{ f.numeroDocumento }}</th>
                         <td class="nombre">
@@ -215,10 +227,11 @@
                             @if (f.fueraDeFecha) {
                               <span
                                 class="fuera-de-fecha"
-                                title="Registrada o modificada después de la fecha tentativa"
+                                tabindex="0"
+                                aria-label="Registrado fuera de fecha"
                               >
                                 <app-icono nombre="advertencia" [tamano]="16" />
-                                <span class="solo-lectores">Fuera de la fecha tentativa</span>
+                                <span class="fuera-de-fecha__aviso" aria-hidden="true">Registrado fuera de fecha</span>
                               </span>
                             }
                           }
@@ -227,6 +240,7 @@
                           <button
                             type="button"
                             class="btn btn--fila"
+                            [class.btn--primario]="!f.calificacionId"
                             [attr.aria-disabled]="puedeEditar(f) ? null : 'true'"
                             [attr.title]="
                               puedeEditar(f)
@@ -247,6 +261,13 @@
                   </tbody>
                 </table>
               </div>
+              <app-paginador
+                [total]="paginacion.total()"
+                [pagina]="paginacion.pagina()"
+                [tamanoPagina]="paginacion.tamanoPagina()"
+                (cambioPagina)="paginacion.irA($event)"
+                (cambioTamano)="paginacion.cambiarTamano($event)"
+              />
             }
           }
         }

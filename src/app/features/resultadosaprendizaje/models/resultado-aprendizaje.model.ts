@@ -40,6 +40,8 @@ export interface AsignaturaOpcion {
   nombre: string;
   programaId: string;
   programaNombre: string;
+  facultadId: string;
+  facultadNombre: string;
   estado: EstadoAsignaturaOpcion;
   cantidadRa: number;
 }

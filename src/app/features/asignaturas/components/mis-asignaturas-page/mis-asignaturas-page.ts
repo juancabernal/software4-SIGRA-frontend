@@ -9,10 +9,11 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { catchError, finalize, of, skip } from 'rxjs';
+import { Subscription, catchError, finalize, of, skip } from 'rxjs';
 
 import { refrescoAutomatico } from '../../../../core/util/refresco-automatico';
 import { mensajeDeError, MensajeError } from '../../../../core/http/mensaje-de-error';
+import { facultadesDe } from '../../../../shared/filtros/filtro-por-facultad';
 import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
 import { MiAsignatura, EstadoAsignatura } from '../../models/asignatura.model';
@@ -68,7 +69,11 @@ export class MisAsignaturasPage {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly presentacionEstado = PRESENTACION_ESTADO;
+  /** Todas las asignaturas autorizadas, sin filtrar: de aquí salen las opciones de los filtros. */
+  protected readonly todas = signal<MiAsignatura[]>([]);
+  /** Lo que devolvió el backend con la facultad elegida (igual a `todas` sin facultad). */
   protected readonly asignaturas = signal<MiAsignatura[]>([]);
+  private consultaFacultad: Subscription | undefined;
   protected readonly cargando = signal(true);
   protected readonly errorCarga = signal<MensajeError | null>(null);
   protected readonly seleccionada = signal<MiAsignatura | null>(null);
@@ -102,12 +107,21 @@ export class MisAsignaturasPage {
   );
 
   protected readonly texto = signal('');
+  /** La facultad la filtra el backend (GET /asignaturas/mias?facultadId=…). */
+  protected readonly facultadId = signal('');
   protected readonly programaId = signal('');
   protected readonly estadoFiltro = signal<EstadoAsignatura | ''>('');
 
+  /** Facultades de las asignaturas autorizadas, sin duplicados y por nombre. */
+  protected readonly facultades = computed(() => facultadesDe(this.todas()));
+
   protected readonly programas = computed<OpcionPrograma[]>(() => {
+    const facultad = this.facultadId();
     const vistos = new Map<string, string>();
-    for (const asignatura of this.asignaturas()) {
+    for (const asignatura of this.todas()) {
+      if (facultad && asignatura.facultadId !== facultad) {
+        continue;
+      }
       if (!vistos.has(asignatura.programaId)) {
         vistos.set(asignatura.programaId, asignatura.programaNombre);
       }
@@ -119,14 +133,18 @@ export class MisAsignaturasPage {
 
   protected readonly estadosDisponibles = computed<EstadoAsignatura[]>(() => {
     const vistos = new Set<EstadoAsignatura>();
-    for (const asignatura of this.asignaturas()) {
+    for (const asignatura of this.todas()) {
       vistos.add(asignatura.estado);
     }
     return Array.from(vistos);
   });
 
   protected readonly hayFiltros = computed(
-    () => this.texto().trim() !== '' || this.programaId() !== '' || this.estadoFiltro() !== '',
+    () =>
+      this.texto().trim() !== '' ||
+      this.facultadId() !== '' ||
+      this.programaId() !== '' ||
+      this.estadoFiltro() !== '',
   );
 
   protected readonly asignaturasFiltradas = computed(() => {
@@ -198,6 +216,17 @@ export class MisAsignaturasPage {
     this.texto.set((evento.target as HTMLInputElement).value);
   }
 
+  /** Pide al backend las asignaturas de la facultad y descarta el programa si no es de ella. */
+  protected alCambiarFacultad(evento: Event): void {
+    const facultadId = (evento.target as HTMLSelectElement).value;
+    this.facultadId.set(facultadId);
+    const delPrograma = this.todas().find((a) => a.programaId === this.programaId());
+    if (facultadId && delPrograma && delPrograma.facultadId !== facultadId) {
+      this.programaId.set('');
+    }
+    this.consultarFacultad();
+  }
+
   protected alCambiarPrograma(evento: Event): void {
     this.programaId.set((evento.target as HTMLSelectElement).value);
   }
@@ -207,9 +236,34 @@ export class MisAsignaturasPage {
   }
 
   protected limpiarFiltros(): void {
+    const habiaFacultad = this.facultadId() !== '';
     this.texto.set('');
+    this.facultadId.set('');
     this.programaId.set('');
     this.estadoFiltro.set('');
+    if (habiaFacultad) {
+      this.consultarFacultad();
+    }
+  }
+
+  /**
+   * Sin facultad, la lista es `todas`. Con facultad, se consulta al backend; la respuesta de una
+   * facultad anterior se descarta. Un fallo se muestra como error de carga.
+   */
+  private consultarFacultad(): void {
+    this.consultaFacultad?.unsubscribe();
+    const facultadId = this.facultadId();
+    if (!facultadId) {
+      this.asignaturas.set(this.todas());
+      return;
+    }
+    this.consultaFacultad = this.asignaturaService
+      .misAsignaturas(facultadId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (asignaturas) => this.asignaturas.set(asignaturas),
+        error: (error: unknown) => this.errorCarga.set(mensajeDeError(error)),
+      });
   }
 
   /** Vuelve a consultar las asignaturas sin mostrar "cargando" ni borrar lo que ya hay en pantalla. */
@@ -217,17 +271,37 @@ export class MisAsignaturasPage {
     if (this.cargando()) {
       return;
     }
+    const facultadId = this.facultadId();
     this.asignaturaService
       .misAsignaturas()
       .pipe(
         catchError(() => of(null)),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe((asignaturas) => {
-        if (asignaturas === null) {
+      .subscribe((todas) => {
+        if (todas === null || JSON.stringify(this.todas()) === JSON.stringify(todas)) {
           return;
         }
-        if (JSON.stringify(this.asignaturas()) === JSON.stringify(asignaturas)) {
+        this.todas.set(todas);
+        if (!facultadId) {
+          this.asignaturas.set(todas);
+        }
+      });
+    if (!facultadId) {
+      return;
+    }
+    this.asignaturaService
+      .misAsignaturas(facultadId)
+      .pipe(
+        catchError(() => of(null)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((asignaturas) => {
+        if (
+          asignaturas === null ||
+          this.facultadId() !== facultadId ||
+          JSON.stringify(this.asignaturas()) === JSON.stringify(asignaturas)
+        ) {
           return;
         }
         this.asignaturas.set(asignaturas);
@@ -248,11 +322,12 @@ export class MisAsignaturasPage {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((asignaturas) => {
-        this.asignaturas.set(asignaturas);
+        this.todas.set(asignaturas);
         if (asignaturas.length === 0) {
           this.seleccionada.set(null);
           this.resultados.set([]);
         }
+        this.consultarFacultad();
       });
   }
 }

@@ -24,8 +24,10 @@ import {
 import { MensajeError, mensajeDeError } from '../../../../core/http/mensaje-de-error';
 import { refrescoAutomatico } from '../../../../core/util/refresco-automatico';
 import { DialogoConfirmacion } from '../../../../shared/components/dialogo-confirmacion/dialogo-confirmacion';
+import { OpcionFacultad, facultadesDe } from '../../../../shared/filtros/filtro-por-facultad';
 import { ChipEstado, VarianteChip } from '../../../../shared/ui/chip-estado/chip-estado';
 import { Icono } from '../../../../shared/ui/icono/icono';
+import { Paginador } from '../../../../shared/ui/paginador/paginador';
 import { ResultadoAprendizaje } from '../../../resultadosaprendizaje/models/resultado-aprendizaje.model';
 import { marcarRefrescoSilencioso } from '../../../resultadosaprendizaje/services/consulta-con-refresco';
 import { ResultadoAprendizajeService } from '../../../resultadosaprendizaje/services/resultado-aprendizaje.service';
@@ -48,7 +50,6 @@ import {
   EvaluacionFormDialog,
   ResultadoFormularioEvaluacion,
 } from '../evaluacion-form-dialog/evaluacion-form-dialog';
-import { PaginacionTabla } from '../paginacion-tabla/paginacion-tabla';
 
 interface Presentacion {
   etiqueta: string;
@@ -123,7 +124,7 @@ function cargar<T>(fuente: Observable<T>, silencioso = false): Observable<Carga<
  */
 @Component({
   selector: 'app-evaluaciones-page',
-  imports: [ChipEstado, DialogoConfirmacion, EvaluacionFormDialog, Icono, PaginacionTabla],
+  imports: [ChipEstado, DialogoConfirmacion, EvaluacionFormDialog, Icono, Paginador],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './evaluaciones-page.html',
   styleUrl: './evaluaciones-page.scss',
@@ -137,7 +138,6 @@ export class EvaluacionesPage {
   protected readonly presentacion = PRESENTACION_EVALUACION;
   protected readonly motivoSinDisponible = MOTIVO_SIN_DISPONIBLE;
   protected readonly motivoReactivar = MOTIVO_REACTIVAR;
-  protected readonly tamanos = TAMANOS_PAGINA;
 
   // ── Catálogos de los selectores ─────────────────────────────────────
   protected readonly cargandoCatalogos = signal(true);
@@ -148,7 +148,14 @@ export class EvaluacionesPage {
   protected readonly asignaturaId = signal('');
   protected readonly raId = signal('');
   protected readonly semestreId = signal('');
-  private readonly cambiosSemestre = new Subject<string>();
+  /** La facultad la filtra el backend (GET /asignaturas?facultadId=…). */
+  protected readonly facultadId = signal('');
+  /**
+   * Facultades de las materias del semestre, sin filtrar por facultad: así las opciones no
+   * desaparecen al elegir una. El Profesor no puede consultar GET /facultades.
+   */
+  protected readonly facultades = signal<OpcionFacultad[]>([]);
+  private readonly cambiosSemestre = new Subject<{ semestreId: string; facultadId: string }>();
   protected readonly cargandoAsignaturas = signal(false);
 
   protected readonly semestreEnCurso = computed(
@@ -291,11 +298,17 @@ export class EvaluacionesPage {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.temporizadorAviso));
     this.cambiosSemestre.pipe(
       tap(() => { this.asignaturas.set([]); this.cargandoAsignaturas.set(true); this.errorCatalogos.set(null); }),
-      switchMap(id => id ? this.catalogos.listarAsignaturasActivas(id).pipe(
-        catchError((error: unknown) => { this.errorCatalogos.set(mensajeDeError(error)); return of([]); }),
-      ) : of([])),
+      switchMap(({ semestreId, facultadId }) => semestreId ? this.catalogos.listarAsignaturasActivas(semestreId, facultadId).pipe(
+        map((lista) => ({ lista, facultadId })),
+        catchError((error: unknown) => { this.errorCatalogos.set(mensajeDeError(error)); return of({ lista: [], facultadId }); }),
+      ) : of({ lista: [] as AsignaturaOpcion[], facultadId })),
       takeUntilDestroyed(),
-    ).subscribe(lista => { this.asignaturas.set(lista); this.cargandoAsignaturas.set(false); });
+    ).subscribe(({ lista, facultadId }) => {
+      this.asignaturas.set(lista);
+      // Sin facultad elegida, la lista es la del semestre completo: de ahí salen las opciones.
+      if (!facultadId) this.facultades.set(facultadesDe(lista));
+      this.cargandoAsignaturas.set(false);
+    });
     this.cargarCatalogos();
 
     // El primer valor es el inicial (0): la carga inicial ya la hace cargarCatalogos().
@@ -323,14 +336,18 @@ export class EvaluacionesPage {
       return;
     }
     const semestreConsultado = this.semestreId();
+    const facultadConsultada = this.facultadId();
     forkJoin({
-      asignaturas: this.semestreId() ? this.catalogos.listarAsignaturasActivas(this.semestreId()) : of([]),
+      asignaturas: this.semestreId()
+        ? this.catalogos.listarAsignaturasActivas(this.semestreId(), facultadConsultada)
+        : of([]),
       semestres: this.catalogos.listarSemestres(),
     }).subscribe({
       next: ({ asignaturas, semestres }) => {
-        if (semestreConsultado !== this.semestreId()) return;
+        if (semestreConsultado !== this.semestreId() || facultadConsultada !== this.facultadId()) return;
         const elegida = this.asignaturas().find((a) => a.id === this.asignaturaId());
         this.asignaturas.set(asignaturas);
+        if (!facultadConsultada) this.facultades.set(facultadesDe(asignaturas));
         this.semestres.set(semestres);
         if (elegida && !asignaturas.some((a) => a.id === elegida.id)) {
           this.asignaturaId.set('');
@@ -343,8 +360,9 @@ export class EvaluacionesPage {
         if (!semestres.some((s) => s.id === this.semestreId())) {
           this.asignaturaId.set('');
           this.raId.set('');
+          this.facultadId.set('');
           this.semestreId.set(semestrePorDefecto(semestres)?.id ?? '');
-          this.cambiosSemestre.next(this.semestreId());
+          this.pedirMaterias();
         }
       },
       // Un fallo en segundo plano no cambia la pantalla; el próximo refresco lo reintenta.
@@ -372,9 +390,10 @@ export class EvaluacionesPage {
         this.semestres.set(semestres);
         this.asignaturaId.set('');
         this.raId.set('');
+        this.facultadId.set('');
         this.semestreId.set(semestrePorDefecto(semestres)?.id ?? '');
         this.cargandoCatalogos.set(false);
-        this.cambiosSemestre.next(this.semestreId());
+        this.pedirMaterias();
       },
       error: (error: unknown) => {
         this.errorCatalogos.set(mensajeDeError(error));
@@ -394,12 +413,31 @@ export class EvaluacionesPage {
     this.pagina.set(1);
   }
 
+  /** Cada semestre tiene sus propias facultades: al cambiarlo se vuelve a «Todas». */
   protected alCambiarSemestre(evento: Event): void {
     this.asignaturaId.set('');
     this.raId.set('');
+    this.facultadId.set('');
     this.semestreId.set((evento.target as HTMLSelectElement).value);
-    this.cambiosSemestre.next(this.semestreId());
+    this.pedirMaterias();
     this.pagina.set(1);
+  }
+
+  /** Pide al backend las materias de la facultad; la materia y el RA elegidos se descartan si son de otra. */
+  protected alCambiarFacultad(evento: Event): void {
+    const facultadId = (evento.target as HTMLSelectElement).value;
+    const elegida = this.asignaturas().find((a) => a.id === this.asignaturaId());
+    if (facultadId && elegida && elegida.facultadId !== facultadId) {
+      this.asignaturaId.set('');
+      this.raId.set('');
+      this.pagina.set(1);
+    }
+    this.facultadId.set(facultadId);
+    this.pedirMaterias();
+  }
+
+  private pedirMaterias(): void {
+    this.cambiosSemestre.next({ semestreId: this.semestreId(), facultadId: this.facultadId() });
   }
 
   protected recargarRa(): void {

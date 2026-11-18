@@ -1,4 +1,4 @@
-// Tokens --sg-* de styles.scss. Botón y estado vacío con la misma forma que en `estadisticas-page`.
+// Tokens --sg-* de styles.scss. Botón y estado vacío con la misma forma que en las páginas de estadísticas.
 
 :host {
   display: grid;
@@ -59,7 +59,7 @@
 }
 
 .resumen__nota {
-  color: var(--sg-ink-soft);
+  color: var(--sg-ink-muted);
   font-size: 0.75rem;
 }
 
@@ -90,7 +90,7 @@
 }
 
 .distribucion__rango {
-  color: var(--sg-ink-soft);
+  color: var(--sg-ink-muted);
   font-size: 0.75rem;
 }
 
@@ -170,7 +170,7 @@
   align-items: center;
   gap: 0.4rem;
   margin: 0;
-  color: var(--sg-ink-soft);
+  color: var(--sg-ink-muted);
   font-size: 0.8125rem;
 }
 

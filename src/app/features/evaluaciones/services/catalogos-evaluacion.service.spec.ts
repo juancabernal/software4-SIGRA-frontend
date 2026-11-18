@@ -49,6 +49,13 @@ describe('CatalogosEvaluacionService', () => {
     req.flush([]);
   });
 
+  it('combina semestre y facultad al consultar materias', () => {
+    service.listarAsignaturasActivas('s1', 'f1').subscribe();
+    const req = http.expectOne(`${API}/asignaturas?estado=ACTIVA&semestreId=s1&facultadId=f1`);
+    expect(req.request.params.get('facultadId')).toBe('f1');
+    req.flush([]);
+  });
+
   it('lista los semestres del más reciente al más antiguo', () => {
     let resultado: SemestreOpcion[] | undefined;
     service.listarSemestres().subscribe((r) => (resultado = r));
